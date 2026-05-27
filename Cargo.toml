@@ -170,6 +170,8 @@ mockito = "1"
 tempfile = "3"
 hex-literal = "0.4"
 criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1"
+zip = { version = "2", features = ["deflate"] }
 
 [[bench]]
 name = "pipeline"
@@ -182,6 +184,10 @@ harness = false
 [[test]]
 name = "pipeline_e2e"
 path = "tests/integration/pipeline_e2e.rs"
+
+[[test]]
+name = "fuzz_props"
+path = "tests/fuzz_props.rs"
 
 [profile.release]
 opt-level = 3

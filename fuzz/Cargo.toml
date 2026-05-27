@@ -1,0 +1,53 @@
+[package]
+name = "secret-squirrel-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+secret-squirrel = { path = "..", features = [] }
+zip = { version = "2", features = ["deflate"] }
+bytes = "1"
+
+# Prevent this fuzz package from being included in workspace
+[workspace]
+
+[[bin]]
+name = "fuzz_rule_parser"
+path = "fuzz_targets/fuzz_rule_parser.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_gitleaks_parser"
+path = "fuzz_targets/fuzz_gitleaks_parser.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_rule_compiler"
+path = "fuzz_targets/fuzz_rule_compiler.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_archive_zip"
+path = "fuzz_targets/fuzz_archive_zip.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_entropy_gate"
+path = "fuzz_targets/fuzz_entropy_gate.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_markov_scorer"
+path = "fuzz_targets/fuzz_markov_scorer.rs"
+test = false
+doc = false
