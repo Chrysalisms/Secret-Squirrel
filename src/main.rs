@@ -166,8 +166,12 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum ProtectCommands {
-    /// Install the Secret Squirrel pre-commit hook in the current repository
-    Install,
+    /// Install the pre-commit hook
+    Install {
+        /// Overwrite an existing hook without prompting
+        #[arg(long)]
+        force: bool,
+    },
     /// Remove the Secret Squirrel pre-commit hook
     Uninstall,
     /// Run a manual staged-file check (same logic as the pre-commit hook)
@@ -488,72 +492,89 @@ async fn run_validate(finding_id: String) -> Result<i32> {
     Ok(0)
 }
 
+/// The pre-commit hook script written by `protect install`.
+const PRE_COMMIT_HOOK: &str = "#!/bin/sh\n# Secret Squirrel pre-commit hook\n# Scans staged files for credentials before commit\nset -e\n\nexec squirrel detect --source git-staged --exit-code 1\n";
+
+/// Walk up from `start` to find the nearest `.git` directory.
+fn find_git_dir(start: &std::path::Path) -> Option<std::path::PathBuf> {
+    let mut current = start;
+    loop {
+        let candidate = current.join(".git");
+        if candidate.is_dir() {
+            return Some(candidate);
+        }
+        match current.parent() {
+            Some(parent) => current = parent,
+            None => return None,
+        }
+    }
+}
+
 /// Protect subcommand — manage the git pre-commit hook.
 fn run_protect(action: ProtectCommands) -> Result<i32> {
     match action {
-        ProtectCommands::Install => {
-            install_pre_commit_hook()?;
-            println!("✅ Secret Squirrel pre-commit hook installed.");
-            println!("   Secrets will be scanned before each commit.");
-            println!("   Use `git commit --no-verify` to bypass (not recommended).");
+        ProtectCommands::Install { force } => {
+            let cwd = std::env::current_dir()?;
+            let git_dir = find_git_dir(&cwd).ok_or_else(|| {
+                secret_squirrel::error::SquirrelError::Config(
+                    "Not in a git repository (no .git directory found in any parent).".to_string(),
+                )
+            })?;
+
+            // Ensure hooks directory exists.
+            let hooks_dir = git_dir.join("hooks");
+            std::fs::create_dir_all(&hooks_dir)?;
+
+            let hook_path = hooks_dir.join("pre-commit");
+
+            if hook_path.exists() && !force {
+                eprintln!(
+                    "[squirrel] WARNING: pre-commit hook already exists at {}",
+                    hook_path.display()
+                );
+                eprintln!("[squirrel] Use `squirrel protect install --force` to overwrite.");
+                return Ok(2);
+            }
+
+            std::fs::write(&hook_path, PRE_COMMIT_HOOK)?;
+
+            // Make executable on Unix (no-op on Windows — git handles it).
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mut perms = std::fs::metadata(&hook_path)?.permissions();
+                perms.set_mode(0o755);
+                std::fs::set_permissions(&hook_path, perms)?;
+            }
+
+            println!("[squirrel] Pre-commit hook installed: {}", hook_path.display());
+            println!("[squirrel] Secrets will be scanned before each commit.");
+            println!("[squirrel] Use `git commit --no-verify` to bypass (not recommended).");
+            tracing::info!(path = %hook_path.display(), "pre-commit hook installed");
         }
+
         ProtectCommands::Uninstall => {
-            uninstall_pre_commit_hook()?;
-            println!("✅ Secret Squirrel pre-commit hook removed.");
+            let cwd = std::env::current_dir()?;
+            if let Some(git_dir) = find_git_dir(&cwd) {
+                let hook_path = git_dir.join("hooks").join("pre-commit");
+                if hook_path.exists() {
+                    std::fs::remove_file(&hook_path)?;
+                    println!("[squirrel] Pre-commit hook removed.");
+                    tracing::info!("pre-commit hook removed");
+                } else {
+                    println!("[squirrel] No pre-commit hook found.");
+                }
+            } else {
+                eprintln!("[squirrel] Not in a git repository.");
+                return Ok(2);
+            }
         }
+
         ProtectCommands::Check => {
-            println!("Running protect check...");
+            println!("[squirrel] Running protect check...");
         }
     }
     Ok(0)
-}
-
-/// The pre-commit hook script written by `protect install`.
-const PRE_COMMIT_HOOK: &str = r#"#!/bin/sh
-# Secret Squirrel pre-commit hook
-STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null)
-[ -z "$STAGED" ] && exit 0
-echo "[squirrel] Scanning staged files for secrets..."
-for FILE in $STAGED; do
-    [ -f "$FILE" ] && squirrel detect "$FILE" --severity high --format table 2>&1 || true
-done
-if [ $? -eq 1 ]; then
-    echo "[squirrel] Secrets detected! Use --no-verify to override."
-    exit 1
-fi
-exit 0
-"#;
-
-fn install_pre_commit_hook() -> Result<()> {
-    if !PathBuf::from(".git").exists() {
-        return Err(secret_squirrel::error::SquirrelError::Config(
-            "Not in a git repository. Run `git init` first.".to_string(),
-        ));
-    }
-
-    let hook_path = PathBuf::from(".git/hooks/pre-commit");
-    std::fs::write(&hook_path, PRE_COMMIT_HOOK)?;
-
-    // Make executable on Unix (no-op on Windows — git handles it)
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&hook_path)?.permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(&hook_path, perms)?;
-    }
-
-    tracing::info!(path = %hook_path.display(), "pre-commit hook installed");
-    Ok(())
-}
-
-fn uninstall_pre_commit_hook() -> Result<()> {
-    let hook_path = PathBuf::from(".git/hooks/pre-commit");
-    if hook_path.exists() {
-        std::fs::remove_file(&hook_path)?;
-        tracing::info!("pre-commit hook removed");
-    }
-    Ok(())
 }
 
 /// Rules subcommand — list, show, or validate rules.
@@ -613,14 +634,145 @@ fn run_rules(action: RulesCommands, _config: &SquirrelConfig) -> Result<i32> {
     Ok(0)
 }
 
+/// Download URL and expected SHA256 for a model tier.
+struct ModelAsset {
+    url: &'static str,
+    sha256: &'static str,
+    filename: &'static str,
+}
+
+fn model_asset(tier: &ModelTier) -> Option<ModelAsset> {
+    match tier {
+        ModelTier::Tiny => Some(ModelAsset {
+            url: "https://github.com/Chrysalisms/Secret-Squirrel/releases/download/v0.1.0/squirrel-tiny-fp32.onnx",
+            sha256: "33c9e627fb327268ba8e3ab00b3fe4073a97a857a96da8c87498d29b90252075",
+            filename: "squirrel-tiny-fp32.onnx",
+        }),
+        ModelTier::Large => Some(ModelAsset {
+            url: "https://github.com/Chrysalisms/Secret-Squirrel/releases/download/v0.1.0/squirrel-large-fp32.onnx",
+            sha256: "79c30d636bc8b6c61e5c205ed15c740d26655ea8eda7872c2e71f5e0e233701d",
+            filename: "squirrel-large-fp32.onnx",
+        }),
+        _ => None,
+    }
+}
+
+/// Compute the lowercase hex SHA256 of `data`.
+fn sha256_hex(data: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hex::encode(hasher.finalize())
+}
+
 /// Model subcommand — pull, list, or remove ONNX models.
 async fn run_model(action: ModelCommands) -> Result<i32> {
     match action {
         ModelCommands::Pull { tier } => {
             let tier: ModelTier = tier.into();
-            println!("📥 Downloading model tier: {:?}", tier);
-            println!("   Models are saved to: ~/.squirrel/models/");
-            println!("   ℹ️  Full model download is implemented in Phase 3.");
+
+            // Only tiny and large are available right now.
+            let asset = match model_asset(&tier) {
+                Some(a) => a,
+                None => {
+                    match &tier {
+                        ModelTier::Default => {
+                            println!("[squirrel] Tier 'none' uses the built-in Markov scorer — no download needed.");
+                            return Ok(0);
+                        }
+                        _ => {
+                            eprintln!("[squirrel] ERROR: Model tier '{:?}' is not yet available.", tier);
+                            eprintln!("[squirrel] Check back at https://github.com/Chrysalisms/Secret-Squirrel/releases");
+                            return Ok(2);
+                        }
+                    }
+                }
+            };
+
+            // Resolve ~/.squirrel/models/
+            let model_dir = dirs::home_dir()
+                .ok_or_else(|| secret_squirrel::error::SquirrelError::Config(
+                    "Cannot determine home directory.".to_string(),
+                ))?
+                .join(".squirrel")
+                .join("models");
+
+            std::fs::create_dir_all(&model_dir)?;
+            let dest = model_dir.join(asset.filename);
+
+            // Skip download if the file already exists with the correct hash.
+            if dest.exists() {
+                let existing = std::fs::read(&dest)?;
+                let existing_hash = sha256_hex(&existing);
+                if existing_hash == asset.sha256 {
+                    println!("[squirrel] Model already downloaded and verified: {}", dest.display());
+                    return Ok(0);
+                } else {
+                    println!("[squirrel] Existing file has wrong hash — re-downloading.");
+                }
+            }
+
+            println!("[squirrel] Downloading: {}", asset.url);
+            println!("[squirrel] Destination: {}", dest.display());
+
+            // Download with a blocking client inside a spawn_blocking task so
+            // we don't block the async executor.
+            let url = asset.url.to_string();
+            let (bytes, bytes_total) = tokio::task::spawn_blocking(move || {
+                    use std::io::Read;
+                    let mut response = reqwest::blocking::get(&url)
+                        .map_err(|e| format!("HTTP request failed: {e}"))?;
+                    if !response.status().is_success() {
+                        return Err::<(Vec<u8>, usize), String>(
+                            format!("HTTP {}: {}", response.status(), url)
+                        );
+                    }
+                    let content_length = response.content_length().unwrap_or(0);
+                    let mut buf: Vec<u8> = Vec::with_capacity(content_length as usize);
+                    let mut tmp = [0u8; 65536];
+                    let mut downloaded: u64 = 0;
+                    loop {
+                        let n = response.read(&mut tmp)
+                            .map_err(|e| format!("Read error: {e}"))?;
+                        if n == 0 { break; }
+                        buf.extend_from_slice(&tmp[..n]);
+                        downloaded += n as u64;
+                        if content_length > 0 {
+                            let pct = downloaded * 100 / content_length;
+                            eprint!(
+                                "\r[squirrel] Progress: {}/{} bytes ({}%)",
+                                downloaded, content_length, pct
+                            );
+                        } else {
+                            eprint!("\r[squirrel] Downloaded: {} bytes", downloaded);
+                        }
+                    }
+                    eprintln!(); // newline after progress
+                    let total = buf.len();
+                    Ok((buf, total))
+                },
+            )
+            .await
+            .map_err(|e| {
+                secret_squirrel::error::SquirrelError::Config(format!(
+                    "Download task panicked: {e}"
+                ))
+            })?
+            .map_err(secret_squirrel::error::SquirrelError::Config)?;
+
+            // Verify SHA256.
+            let actual_hash = sha256_hex(&bytes);
+            if actual_hash != asset.sha256 {
+                eprintln!("[squirrel] ERROR: SHA256 mismatch!");
+                eprintln!("[squirrel]   Expected: {}", asset.sha256);
+                eprintln!("[squirrel]   Got:      {}", actual_hash);
+                return Ok(2);
+            }
+
+            std::fs::write(&dest, &bytes)?;
+            println!("[squirrel] Download complete: {} bytes", bytes_total);
+            println!("[squirrel] SHA256 verified: OK");
+            println!("[squirrel] Saved to: {}", dest.display());
         }
 
         ModelCommands::List => {

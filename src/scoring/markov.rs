@@ -59,7 +59,7 @@ const SCORE_MAX: f32 = -14.0; // most random
 /// score (closer to 1.0).
 pub struct MarkovScorer {
     /// Flattened 64×64×64 table of log-probabilities.
-    table: Box<[f32; TABLE_SIZE]>,
+    table: Box<[f32]>,
     /// Character → alphabet index lookup (non-alphabet chars map to `None`).
     char_index: [Option<u8>; 256],
 }
@@ -94,7 +94,7 @@ impl MarkovScorer {
 
         // Allocate the trigram table on the heap to avoid stack overflow.
         // Default everything to LOG_MIXED.
-        let mut table = Box::new([LOG_MIXED; TABLE_SIZE]);
+        let mut table: Box<[f32]> = vec![LOG_MIXED; TABLE_SIZE].into_boxed_slice();
 
         // Apply heuristic overrides.
         for a in 0u8..64 {
