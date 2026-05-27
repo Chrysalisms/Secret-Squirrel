@@ -30,6 +30,8 @@ use crate::semantic::languages;
 #[derive(Clone, Debug)]
 struct ParserEntry {
     /// Human-readable language name (e.g. "Python", "TypeScript").
+    /// Retained for diagnostics and future telemetry — not yet consumed.
+    #[allow(dead_code)]
     language_name: String,
 }
 
