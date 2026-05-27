@@ -1,0 +1,18 @@
+{
+  "filename": "squirrel-large-fp32.onnx",
+  "tier": "large",
+  "size_bytes": 4660262,
+  "size_mb": 4.444,
+  "sha256": "79c30d636bc8b6c61e5c205ed15c740d26655ea8eda7872c2e71f5e0e233701d",
+  "opset_version": 17,
+  "seq_len": 256,
+  "vocab_size": 100,
+  "input_names": [
+    "input_ids"
+  ],
+  "output_names": [
+    "logits"
+  ],
+  "checkpoint_epoch": 3,
+  "val_f1": 0.9981662591687042
+}

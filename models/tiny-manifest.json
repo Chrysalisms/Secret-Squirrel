@@ -1,0 +1,18 @@
+{
+  "filename": "squirrel-tiny-fp32.onnx",
+  "tier": "tiny",
+  "size_bytes": 720112,
+  "size_mb": 0.687,
+  "sha256": "33c9e627fb327268ba8e3ab00b3fe4073a97a857a96da8c87498d29b90252075",
+  "opset_version": 17,
+  "seq_len": 256,
+  "vocab_size": 100,
+  "input_names": [
+    "input_ids"
+  ],
+  "output_names": [
+    "logits"
+  ],
+  "checkpoint_epoch": 6,
+  "val_f1": 0.9979620949663746
+}

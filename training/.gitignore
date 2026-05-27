@@ -1,0 +1,16 @@
+# Python virtual environment (managed by uv)
+.venv/
+
+# Compiled Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Training data (large JSONL files — regenerate with dataset_builder.py)
+data/
+
+# PyTorch checkpoints (large binary — kept in GitHub Releases)
+checkpoints/
+
+# uv lock file and package cache
+# uv.lock is committed for reproducibility
