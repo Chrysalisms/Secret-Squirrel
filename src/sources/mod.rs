@@ -38,4 +38,10 @@ pub mod notebook;
 pub mod postman;
 pub mod slack;
 
+// Phase 4 sources
+pub mod database;
+pub mod elasticsearch;
+pub mod npm_package;
+
 pub use traits::{AsyncSource, SourceStream, SyncSource};
+
