@@ -19,6 +19,7 @@
 //! - `cnn` — Enable ONNX-based CNN classifier
 //! - `semantic` — Enable tree-sitter AST analysis
 
+pub mod baseline;
 pub mod config;
 pub mod engine;
 pub mod error;

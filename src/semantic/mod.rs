@@ -1,13 +1,23 @@
-//! Semantic analysis stub — full implementation in Phase 2.
+//! Semantic analysis module for Secret Squirrel.
 //!
-//! When enabled via `--semantic`, this module integrates tree-sitter parsers
-//! to adjust finding confidence scores based on AST context:
+//! This module uses tree-sitter to parse source code and determine the
+//! surrounding code context of a potential secret match.  That context
+//! is then expressed as a [`CodeContext`] which carries a
+//! [`confidence_adjustment`](context::CodeContext::confidence_adjustment)
+//! factor used by the scoring engine to suppress false positives
+//! (e.g. secrets inside comments or test functions) and boost true
+//! positives (e.g. secrets on the right-hand side of assignments).
 //!
-//! - Comment node: -80% confidence (likely documentation example)
-//! - Test file scope: -50% confidence (test credentials)
-//! - String assignment: +30% confidence (direct credential exposure)
-//! - Function call argument: +20% confidence (credential being used)
+//! # Feature gate
 //!
-//! Supports 10 languages: JS, TS, Python, Go, Rust, Java, Ruby, C, C++, C#
+//! The entire module is compiled only when the `semantic` Cargo feature
+//! is enabled.  A pure regex-based fallback is always available via
+//! [`languages::fallback_context`] for environments where tree-sitter
+//! grammar C libraries cannot be compiled.
 
-pub mod tree_sitter;
+pub mod analyzer;
+pub mod context;
+pub mod languages;
+
+pub use analyzer::{SemanticAnalyzer, SemanticContext};
+pub use context::{CodeContext, ContextType};
