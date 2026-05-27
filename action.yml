@@ -1,0 +1,100 @@
+name: "Secret Squirrel — Credential Scanner"
+description: >-
+  GPU-accelerated, AI-powered credential and secret scanner.
+  Scans your repository for hardcoded secrets, API keys, and credentials
+  with minimal false positives. Outputs SARIF for GitHub Security dashboard.
+
+# ============================================================
+# Inputs
+# ============================================================
+inputs:
+  scan-mode:
+    description: >-
+      Scan mode: 'diff' (changed files only, fast), 'full' (entire repo),
+      or 'history' (full git history).
+    required: false
+    default: "diff"
+
+  config-path:
+    description: >-
+      Path to a custom Squirrel/Betterleaks/Gitleaks TOML rule file.
+      If not set, the embedded default rules are used.
+    required: false
+    default: ""
+
+  severity-threshold:
+    description: >-
+      Minimum severity to report. One of: info, low, medium, high, critical.
+    required: false
+    default: "medium"
+
+  fail-on-findings:
+    description: >-
+      Exit with a non-zero code if any findings are reported at or above the
+      severity threshold. Set to 'false' to report-only without failing CI.
+    required: false
+    default: "true"
+
+  validate:
+    description: >-
+      Attempt active validation of discovered credentials against their
+      respective services (AWS, GitHub, etc.). Adds network calls.
+    required: false
+    default: "false"
+
+  sarif-upload:
+    description: >-
+      Upload the SARIF report to the GitHub Code Scanning dashboard.
+      Requires github-token with security_events write permission.
+    required: false
+    default: "true"
+
+  model-tier:
+    description: >-
+      ML model tier for CNN-based false-positive reduction.
+      Options: default (Markov only), tiny (500K CNN), large (1M CNN),
+               enhanced (TinyBERT), maximum (DistilBERT).
+    required: false
+    default: "tiny"
+
+  github-token:
+    description: >-
+      GitHub token for SARIF upload and authenticated API access.
+      Defaults to the built-in GITHUB_TOKEN secret.
+    required: false
+    default: "${{ github.token }}"
+
+# ============================================================
+# Outputs
+# ============================================================
+outputs:
+  findings-count:
+    description: "Total number of findings at or above the severity threshold."
+    value: ${{ steps.scan.outputs.findings-count }}
+
+  sarif-path:
+    description: "Absolute path to the generated SARIF file."
+    value: ${{ steps.scan.outputs.sarif-path }}
+
+# ============================================================
+# Action definition
+# ============================================================
+runs:
+  using: "docker"
+  image: "Dockerfile.action"
+  env:
+    SQUIRREL_SCAN_MODE: ${{ inputs.scan-mode }}
+    SQUIRREL_CONFIG_PATH: ${{ inputs.config-path }}
+    SQUIRREL_SEVERITY_THRESHOLD: ${{ inputs.severity-threshold }}
+    SQUIRREL_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+    SQUIRREL_VALIDATE: ${{ inputs.validate }}
+    SQUIRREL_SARIF_UPLOAD: ${{ inputs.sarif-upload }}
+    SQUIRREL_MODEL_TIER: ${{ inputs.model-tier }}
+    GITHUB_TOKEN: ${{ inputs.github-token }}
+
+# ============================================================
+# Branding
+# ============================================================
+branding:
+  icon: "shield"
+  color: "orange"

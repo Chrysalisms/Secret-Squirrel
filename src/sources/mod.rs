@@ -12,6 +12,9 @@
 //!
 //! **Phase 2 (stubbed):** GitHub, GitLab, S3/GCS/R2, Docker images, Kubernetes,
 //! and Terraform state.
+//!
+//! **Phase 3 (implemented):** Ansible playbooks, CI/CD logs (GitHub Actions),
+//! Slack workspace messages, Postman collections, and Jupyter notebooks.
 
 pub mod archive;
 pub mod dir;
@@ -27,5 +30,12 @@ pub mod gitlab;
 pub mod kubernetes;
 pub mod s3;
 pub mod terraform;
+
+// Phase 3 sources
+pub mod ansible;
+pub mod ci_logs;
+pub mod notebook;
+pub mod postman;
+pub mod slack;
 
 pub use traits::{AsyncSource, SourceStream, SyncSource};

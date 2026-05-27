@@ -3,12 +3,28 @@
 //! Exposes scanning as MCP tools consumable by any MCP-compatible AI assistant.
 //! Enabled via `--features mcp-server`.
 //!
+//! # Protocol
+//!
+//! The server implements JSON-RPC 2.0 over stdio, as specified by the
+//! [Model Context Protocol](https://spec.modelcontextprotocol.io/) v2024-11-05.
+//! The [`rmcp`] crate handles protocol framing; this file provides the
+//! [`ServerHandler`] implementation and tool dispatch logic.
+//!
 //! # Tools
-//! - `scan_text`       — scan inline text for secrets  
-//! - `scan_file`       — scan a single file (path-sandboxed)
-//! - `scan_diff`       — scan a git unified diff (added lines only)
-//! - `get_rules`       — list all loaded detection rules
-//! - `validate_finding`— validate a finding by opaque ID
+//! - `scan_text`        — scan inline text for secrets
+//! - `scan_file`        — scan a single file (path-sandboxed)
+//! - `scan_diff`        — scan a git unified diff (added lines only)
+//! - `get_rules`        — list all loaded detection rules
+//! - `validate_finding` — validate a finding by opaque ID
+//!
+//! # Usage
+//!
+//! ```no_run
+//! # #[cfg(feature = "mcp-server")]
+//! # tokio_test::block_on(async {
+//! secret_squirrel::mcp::McpServer::run_stdio().await.unwrap();
+//! # });
+//! ```
 
 // When the mcp-server feature is disabled we still expose run_stdio so that
 // main.rs can call it unconditionally.
@@ -23,25 +39,55 @@ pub async fn run_stdio() -> crate::error::Result<()> {
 #[cfg(feature = "mcp-server")]
 pub use self::mcp_impl::run_stdio;
 
+/// Public façade for the MCP server.
+///
+/// This struct is the primary entry point re-exported as
+/// `secret_squirrel::mcp::McpServer`. It wraps the internal
+/// `SquirrelMcpServer` (built on [`rmcp`]) and provides a clean public API.
+///
+/// Requires the `mcp-server` feature flag.
+#[cfg(feature = "mcp-server")]
+pub struct McpServer;
+
+#[cfg(feature = "mcp-server")]
+impl McpServer {
+    /// Run the MCP server on stdio (blocking until the client disconnects).
+    ///
+    /// This is the main entry point. Call it from `main()` when the binary
+    /// is started in MCP mode (e.g., `squirrel mcp`).
+    pub async fn run_stdio() -> crate::error::Result<()> {
+        mcp_impl::run_stdio().await
+    }
+}
+
 #[cfg(feature = "mcp-server")]
 mod mcp_impl {
     use bytes::Bytes;
     use rmcp::{
         ServerHandler, ServiceExt,
         model::{
-            CallToolResult, Content, Implementation, ProtocolVersion, ServerCapabilities,
-            ServerInfo, Tool,
+            CallToolRequestParams, CallToolResult, Content, Implementation, InitializeResult,
+            ListToolsResult, PaginatedRequestParams, ServerCapabilities, Tool,
         },
+        service::RequestContext,
         transport::stdio,
+        ErrorData as McpError, RoleServer,
     };
     use serde_json::Value;
     use std::path::{Path, PathBuf};
+    use std::sync::Arc;
     use tracing::{info, warn};
 
     use crate::config::SquirrelConfig;
     use crate::engine::{pipeline::Pipeline, router::Router};
     use crate::rules::RuleRegistry;
     use crate::types::Fragment;
+
+    /// Helper: convert a serde_json Object to the rmcp `JsonObject` (which is
+    /// `serde_json::Map<String, Value>` — the same underlying type).
+    fn json_to_schema(schema: Value) -> Arc<serde_json::Map<String, Value>> {
+        Arc::new(schema.as_object().cloned().unwrap_or_default())
+    }
 
     // =========================================================================
     // Security: path sandboxing
@@ -229,59 +275,56 @@ mod mcp_impl {
     // =========================================================================
 
     impl ServerHandler for SquirrelMcpServer {
-        fn get_info(&self) -> ServerInfo {
-            ServerInfo {
-                protocol_version: ProtocolVersion::V_2024_11_05,
-                capabilities: ServerCapabilities::builder().enable_tools().build(),
-                server_info: Implementation {
-                    name: "secret-squirrel".to_string(),
-                    version: env!("CARGO_PKG_VERSION").to_string(),
-                },
-                instructions: Some(
-                    "Secret Squirrel: GPU-accelerated credential scanner. \
-                     Tools: scan_text, scan_file, scan_diff, get_rules, validate_finding."
-                        .to_string(),
-                ),
-            }
+        fn get_info(&self) -> InitializeResult {
+            InitializeResult::new(
+                ServerCapabilities::builder().enable_tools().build(),
+            )
+            .with_server_info(
+                Implementation::new("secret-squirrel", env!("CARGO_PKG_VERSION")),
+            )
+            .with_instructions(
+                "Secret Squirrel: GPU-accelerated credential scanner. \
+                 Tools: scan_text, scan_file, scan_diff, get_rules, validate_finding.",
+            )
         }
 
         fn list_tools(
             &self,
-            _request: rmcp::model::PaginatedRequestParam,
-            _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-        ) -> impl std::future::Future<Output = Result<rmcp::model::ListToolsResult, rmcp::Error>>
+            _request: Option<PaginatedRequestParams>,
+            _context: RequestContext<RoleServer>,
+        ) -> impl std::future::Future<Output = Result<ListToolsResult, McpError>>
                + Send + '_ {
             async move {
-                let make_tool = |name: &str, desc: &str, schema: Value| Tool {
-                    name: name.to_string().into(),
-                    description: Some(desc.to_string().into()),
-                    input_schema: std::sync::Arc::new(schema.as_object().cloned().unwrap_or_default()),
-                    ..Default::default()
+                let make_tool = |name: &'static str, desc: &'static str, schema: Value| {
+                    Tool::new(name, desc, json_to_schema(schema))
                 };
-                Ok(rmcp::model::ListToolsResult {
-                    tools: vec![
-                        make_tool("scan_text", "Scan inline text for secrets",
-                            serde_json::json!({"type":"object","properties":{"text":{"type":"string"}},"required":["text"]})),
-                        make_tool("scan_file", "Scan a file for secrets (path-sandboxed)",
-                            serde_json::json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]})),
-                        make_tool("scan_diff", "Scan a git unified diff for secrets",
-                            serde_json::json!({"type":"object","properties":{"diff":{"type":"string"}},"required":["diff"]})),
-                        make_tool("get_rules", "List all loaded detection rules",
-                            serde_json::json!({"type":"object","properties":{}})),
-                        make_tool("validate_finding", "Validate a finding by its opaque ID",
-                            serde_json::json!({"type":"object","properties":{"finding_id":{"type":"string"}},"required":["finding_id"]})),
-                    ],
-                    next_cursor: None,
-                })
+                let tools = vec![
+                    make_tool("scan_text", "Scan inline text for secrets (<50ms)",
+                        serde_json::json!({"type":"object","properties":{"text":{"type":"string"},"context":{"type":"string"}},"required":["text"]})),
+                    make_tool("scan_file", "Scan a file for secrets (path-sandboxed)",
+                        serde_json::json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]})),
+                    make_tool("scan_diff", "Scan a git unified diff for secrets (added lines only)",
+                        serde_json::json!({"type":"object","properties":{"diff":{"type":"string"}},"required":["diff"]})),
+                    make_tool("get_rules", "List all loaded detection rules",
+                        serde_json::json!({"type":"object","properties":{"category":{"type":"string"},"severity":{"type":"string"}}})),
+                    make_tool("validate_finding", "Validate a finding by its opaque ID (never raw secret values)",
+                        serde_json::json!({"type":"object","properties":{"finding_id":{"type":"string"}},"required":["finding_id"]})),
+                    make_tool("scan_repo", "Scan a full repository for secrets",
+                        serde_json::json!({"type":"object","properties":{"path":{"type":"string"},"depth":{"type":"integer"}},"required":["path"]})),
+                ];
+                Ok(ListToolsResult::with_all_items(tools))
             }
         }
 
         fn call_tool(
             &self,
-            request: rmcp::model::CallToolRequestParam,
-            _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-        ) -> impl std::future::Future<Output = Result<CallToolResult, rmcp::Error>> + Send + '_ {
-            let args = request.arguments.map(|m| Value::Object(m.into_iter().map(|(k, v)| (k.to_string(), v)).collect()));
+            request: CallToolRequestParams,
+            _context: RequestContext<RoleServer>,
+        ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+            // Extract arguments as a serde_json::Value::Object
+            let args = request.arguments.map(|m| {
+                Value::Object(m.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
+            });
             let name = request.name.to_string();
             async move {
                 let result = match name.as_str() {
@@ -310,8 +353,58 @@ mod mcp_impl {
         let server = handler.serve(stdio()).await.map_err(|e| {
             crate::error::SquirrelError::Io(std::io::Error::other(e.to_string()))
         })?;
-        server.waiting().await;
+        let _ = server.waiting().await;
         info!("MCP server exited cleanly");
         Ok(())
+    }
+}
+
+// ============================================================================
+// Tests (feature-gated; only test logic that doesn't require a running server)
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    // Tests for the tool definitions are in tools.rs.
+    // Here we test the path-sandboxing helper (always compiled in).
+    use crate::mcp::tools::validate_path;
+    use crate::error::SquirrelError;
+
+    #[test]
+    fn test_sandbox_rejects_absolute_unix() {
+        assert!(validate_path("/etc/passwd").is_err());
+    }
+
+    #[test]
+    fn test_sandbox_rejects_windows_drive() {
+        assert!(validate_path("C:\\Windows").is_err());
+    }
+
+    #[test]
+    fn test_sandbox_rejects_parent_dir() {
+        assert!(validate_path("../../etc/shadow").is_err());
+    }
+
+    #[test]
+    fn test_sandbox_allows_dot() {
+        // "." is the current directory — always valid
+        let r = validate_path(".");
+        match r {
+            Err(SquirrelError::PathTraversal { .. }) => {
+                panic!(".  should not be rejected as traversal")
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn test_sandbox_allows_simple_relative() {
+        let r = validate_path("Cargo.toml");
+        match r {
+            Err(SquirrelError::PathTraversal { .. }) => {
+                panic!("Simple relative path should not be rejected")
+            }
+            _ => {}
+        }
     }
 }

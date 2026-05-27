@@ -23,6 +23,7 @@ pub mod baseline;
 pub mod config;
 pub mod engine;
 pub mod error;
+pub mod model_manager;
 pub mod report;
 pub mod rules;
 pub mod scoring;
