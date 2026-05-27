@@ -1,0 +1,191 @@
+[package]
+name = "secret-squirrel"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Secret Squirrel Contributors"]
+description = "GPU-accelerated, AI-powered credential scanner — the better Betterleaks"
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Chrysalisms/Secret-Squirrel"
+keywords = ["security", "secrets", "scanning", "credentials", "gpu"]
+categories = ["command-line-utilities", "cryptography"]
+
+[[bin]]
+name = "squirrel"
+path = "src/main.rs"
+
+[lib]
+name = "secret_squirrel"
+path = "src/lib.rs"
+
+# ===== Feature Flags =====
+[features]
+default = ["cli", "gpu", "cpu-simd"]
+cli = ["clap", "colored", "indicatif"]
+gpu = ["wgpu", "encase", "bytemuck"]
+cpu-simd = []
+mcp-server = ["rmcp", "tokio/full", "tokio-stream"]
+github-action = ["ort", "mcp-server"]
+semantic = [
+    "tree-sitter",
+    "tree-sitter-javascript",
+    "tree-sitter-typescript",
+    "tree-sitter-python",
+    "tree-sitter-go",
+    "tree-sitter-rust",
+    "tree-sitter-java",
+    "tree-sitter-ruby",
+    "tree-sitter-c",
+    "tree-sitter-cpp",
+    "tree-sitter-c-sharp",
+]
+validate = ["reqwest", "tokio/full"]
+cnn = ["ort"]
+
+# ===== Core Dependencies =====
+[dependencies]
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Async runtime
+tokio = { version = "1", features = ["rt-multi-thread", "io-util", "fs", "sync", "signal", "time", "macros"] }
+tokio-stream = { version = "0.1", optional = true }
+futures = "0.3"
+
+# Byte manipulation
+bytes = "1"
+memchr = "2"
+
+# Pattern matching
+aho-corasick = { version = "1", features = ["perf-literal"] }
+regex = "1"
+fancy-regex = "0.14"
+
+# Parallelism
+rayon = "1"
+crossbeam-channel = "0.5"
+crossbeam = "0.8"
+
+# Hashing & crypto
+sha2 = "0.10"
+hmac = "0.12"
+xxhash-rust = { version = "0.8", features = ["xxh64"] }
+zeroize = { version = "1", features = ["derive", "zeroize_derive"] }
+secrecy = "0.10"
+rand = "0.8"
+hex = "0.4"
+base64 = "0.22"
+
+# File system
+memmap2 = "0.9"
+ignore = "0.4"
+walkdir = "2"
+tempfile = "3"
+dirs = "6"
+
+# Git
+git2 = "0.19"
+
+# Archive support
+zip = "2"
+tar = "0.4"
+flate2 = "1"
+bzip2 = "0.4"
+xz2 = "0.1"
+
+# Logging and observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
+# Config
+config = "0.14"
+
+# Numeric & math utilities
+ordered-float = "4"
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# String utilities
+unicode-segmentation = "1"
+# aho-corasick-extras removed (no such crate on crates.io)
+
+# ===== Optional / Feature-Gated =====
+
+# GPU (wgpu)
+wgpu = { version = "22", optional = true }
+encase = { version = "0.10", features = ["glam"], optional = true }
+bytemuck = { version = "1", features = ["derive"], optional = true }
+
+# CLI
+clap = { version = "4", features = ["derive", "env", "string", "wrap_help"], optional = true }
+colored = { version = "2", optional = true }
+indicatif = { version = "0.17", optional = true }
+
+# HTTP client (validation engine)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false, optional = true }
+
+# MCP server
+rmcp = { version = "0.2", features = ["server", "transport-io", "transport-sse-server"], optional = true }
+
+# ONNX Runtime (CNN inference)
+ort = { version = "2.0.0-rc.12", features = ["load-dynamic"], optional = true }
+
+# Tree-sitter (semantic analysis)
+tree-sitter = { version = "0.24", optional = true }
+tree-sitter-javascript = { version = "0.23", optional = true }
+tree-sitter-typescript = { version = "0.23", optional = true }
+tree-sitter-python = { version = "0.23", optional = true }
+tree-sitter-go = { version = "0.23", optional = true }
+tree-sitter-rust = { version = "0.23", optional = true }
+tree-sitter-java = { version = "0.23", optional = true }
+tree-sitter-ruby = { version = "0.23", optional = true }
+tree-sitter-c = { version = "0.23", optional = true }
+tree-sitter-cpp = { version = "0.23", optional = true }
+tree-sitter-c-sharp = { version = "0.23", optional = true }
+
+# Rate limiting
+governor = "0.7"
+
+# Async traits for stable Rust
+async-trait = "0.1"
+
+# Storage (disk-backed correlation)
+redb = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "test-util"] }
+pretty_assertions = "1"
+rstest = "0.23"
+mockito = "1"
+tempfile = "3"
+hex-literal = "0.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "pipeline"
+harness = false
+
+[[bench]]
+name = "entropy"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true

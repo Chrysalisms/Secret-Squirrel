@@ -1,0 +1,352 @@
+# Secret Squirrel — Default Detection Rules
+#
+# This file is embedded into the binary at compile time.
+# Format: Squirrel TOML (superset of Betterleaks; compatible with Gitleaks)
+#
+# Fields:
+#   id                  — unique rule identifier (kebab-case)
+#   description         — human-readable rule description
+#   regex               — primary detection pattern (Rust regex syntax)
+#   keywords            — Aho-Corasick pre-filter keywords (case-insensitive)
+#   severity            — "critical" | "high" | "medium" | "low" | "info"
+#   category            — "cloud" | "saas" | "devtools" | "database" |
+#                         "crypto" | "ai" | "payments" | "generic"
+#   allowlist           — regex patterns that suppress a finding if matched
+#   entropy_threshold   — optional per-rule minimum Shannon entropy override
+#   validation_provider — optional validator name
+#   remediation         — short rotation guidance text
+
+# ==============================================================================
+# CLOUD — AWS
+# ==============================================================================
+
+[[rules]]
+id = "aws-access-key-id"
+description = "AWS Access Key ID"
+regex = '\bAKIA[0-9A-Z]{16}\b'
+keywords = ["AKIA"]
+severity = "critical"
+category = "cloud"
+tags = ["aws", "iam", "cloud"]
+allowlist = [
+    'AKIAIOSFODNN7EXAMPLE',         # AWS documentation example key
+    'AKIAI44QH8DHBEXAMPLE',
+]
+validation_provider = "aws"
+remediation = "Revoke immediately at https://console.aws.amazon.com/iam/ → Security credentials → Access keys. Rotate all affected IAM permissions and audit CloudTrail for unauthorized usage."
+
+[[rules]]
+id = "aws-secret-access-key"
+description = "AWS Secret Access Key"
+regex = "(?i)aws[_\\-\\s]*secret[_\\-\\s]*(?:access[_\\-\\s]*)?key\\s*[:=]\\s*[\"']?([A-Za-z0-9+/]{40})[\"']?"
+keywords = ["aws_secret", "aws-secret", "AWS_SECRET"]
+severity = "critical"
+category = "cloud"
+tags = ["aws", "iam", "cloud"]
+entropy_threshold = 4.0
+remediation = "Revoke at https://console.aws.amazon.com/iam/ and rotate all services using this credential."
+
+# ==============================================================================
+# DEVTOOLS — GitHub
+# ==============================================================================
+
+[[rules]]
+id = "github-pat"
+description = "GitHub Personal Access Token (classic)"
+regex = '\bghp_[a-zA-Z0-9]{36}\b'
+keywords = ["ghp_"]
+severity = "critical"
+category = "devtools"
+tags = ["github", "token", "devtools"]
+allowlist = ['ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX']
+validation_provider = "github"
+remediation = "Revoke at https://github.com/settings/tokens and generate a replacement with minimum required scopes."
+
+[[rules]]
+id = "github-oauth-token"
+description = "GitHub OAuth Access Token"
+regex = '\bgho_[a-zA-Z0-9]{36}\b'
+keywords = ["gho_"]
+severity = "critical"
+category = "devtools"
+tags = ["github", "oauth", "devtools"]
+remediation = "Revoke at https://github.com/settings/tokens and rotate the OAuth application client secret."
+
+[[rules]]
+id = "github-app-token"
+description = "GitHub App Installation Token"
+regex = '\bghs_[a-zA-Z0-9]{36}\b'
+keywords = ["ghs_"]
+severity = "high"
+category = "devtools"
+tags = ["github", "app", "devtools"]
+remediation = "Revoke at https://github.com/settings/tokens — installation tokens expire in 1 hour but should still be rotated."
+
+[[rules]]
+id = "github-refresh-token"
+description = "GitHub User-to-Server Refresh Token"
+regex = '\bghr_[a-zA-Z0-9]{76}\b'
+keywords = ["ghr_"]
+severity = "high"
+category = "devtools"
+tags = ["github", "oauth", "devtools"]
+remediation = "Revoke via the GitHub OAuth app settings and reauthorize the app."
+
+# ==============================================================================
+# DEVTOOLS — GitLab
+# ==============================================================================
+
+[[rules]]
+id = "gitlab-pat"
+description = "GitLab Personal Access Token"
+regex = '\bglpat-[a-zA-Z0-9\-_]{20}\b'
+keywords = ["glpat-"]
+severity = "critical"
+category = "devtools"
+tags = ["gitlab", "token", "devtools"]
+validation_provider = "gitlab"
+remediation = "Revoke at https://gitlab.com/-/user_settings/personal_access_tokens and create a replacement with minimum scopes."
+
+[[rules]]
+id = "gitlab-runner-token"
+description = "GitLab Runner Registration Token"
+regex = '\bGR1348941[a-zA-Z0-9\-_]{20}\b'
+keywords = ["GR1348941"]
+severity = "high"
+category = "devtools"
+tags = ["gitlab", "runner", "devtools"]
+remediation = "Reset the runner token in GitLab → Settings → CI/CD → Runners and re-register affected runners."
+
+# ==============================================================================
+# SAAS — Slack
+# ==============================================================================
+
+[[rules]]
+id = "slack-token"
+description = "Slack API Token"
+regex = '\bxox[baprs]-[a-zA-Z0-9\-]{10,48}\b'
+keywords = ["xoxb-", "xoxa-", "xoxp-", "xoxr-", "xoxs-"]
+severity = "critical"
+category = "saas"
+tags = ["slack", "token", "saas"]
+allowlist = ['xoxb-XXXX-XXXX-XXXX']
+validation_provider = "slack"
+remediation = "Revoke at https://api.slack.com/apps → OAuth & Permissions → Revoke All OAuth Tokens."
+
+# ==============================================================================
+# PAYMENTS — Stripe
+# ==============================================================================
+
+[[rules]]
+id = "stripe-live-key"
+description = "Stripe Live API Secret Key"
+regex = '\bsk_live_[a-zA-Z0-9]{24,99}\b'
+keywords = ["sk_live_"]
+severity = "critical"
+category = "payments"
+tags = ["stripe", "live", "payments"]
+validation_provider = "stripe"
+remediation = "Roll immediately at https://dashboard.stripe.com/apikeys — Stripe supports zero-downtime key rotation."
+
+[[rules]]
+id = "stripe-test-key"
+description = "Stripe Test API Secret Key"
+regex = '\bsk_test_[a-zA-Z0-9]{24,99}\b'
+keywords = ["sk_test_"]
+severity = "medium"
+category = "payments"
+tags = ["stripe", "test", "payments"]
+remediation = "Test keys are lower risk but should not be committed. Rotate at https://dashboard.stripe.com/test/apikeys."
+
+# ==============================================================================
+# SAAS — Twilio
+# ==============================================================================
+
+[[rules]]
+id = "twilio-account-sid"
+description = "Twilio Account SID"
+regex = '\bAC[a-z0-9]{32}\b'
+keywords = ["TWILIO_", "twilio"]
+severity = "high"
+category = "saas"
+tags = ["twilio", "saas"]
+allowlist = [
+    'ACa{32}',       # all-a placeholder
+    'AC0{32}',       # all-zero placeholder
+]
+remediation = "Rotate at https://console.twilio.com → Account → General Settings → API Keys."
+
+# ==============================================================================
+# SAAS — SendGrid
+# ==============================================================================
+
+[[rules]]
+id = "sendgrid-api-key"
+description = "SendGrid API Key"
+regex = '\bSG\.[a-zA-Z0-9\-_]{22}\.[a-zA-Z0-9\-_]{43}\b'
+keywords = ["SG."]
+severity = "high"
+category = "saas"
+tags = ["sendgrid", "email", "saas"]
+validation_provider = "sendgrid"
+remediation = "Delete and regenerate at https://app.sendgrid.com/settings/api_keys."
+
+# ==============================================================================
+# AI — OpenAI
+# ==============================================================================
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '\bsk-[a-zA-Z0-9]{48}\b'
+keywords = ["sk-"]
+severity = "critical"
+category = "ai"
+tags = ["openai", "ai"]
+entropy_threshold = 4.5
+allowlist = ['sk-[xX]{48}']
+validation_provider = "openai"
+remediation = "Delete at https://platform.openai.com/api-keys and set a usage limit on the new key."
+
+# ==============================================================================
+# AI — Anthropic
+# ==============================================================================
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic Claude API Key"
+regex = '\bsk-ant-[a-zA-Z0-9\-]{95}\b'
+keywords = ["sk-ant-"]
+severity = "critical"
+category = "ai"
+tags = ["anthropic", "claude", "ai"]
+entropy_threshold = 4.5
+remediation = "Delete at https://console.anthropic.com/settings/keys and monitor for unauthorized usage."
+
+# ==============================================================================
+# AI — HuggingFace
+# ==============================================================================
+
+[[rules]]
+id = "huggingface-token"
+description = "HuggingFace User Access Token"
+regex = '\bhf_[a-zA-Z0-9]{37}\b'
+keywords = ["hf_"]
+severity = "high"
+category = "ai"
+tags = ["huggingface", "ai", "ml"]
+remediation = "Revoke at https://huggingface.co/settings/tokens and create a replacement with minimum required permissions."
+
+# ==============================================================================
+# GENERIC — Password Assignments
+# ==============================================================================
+
+[[rules]]
+id = "generic-password-assignment"
+description = "Generic password in variable assignment"
+regex = "(?i)(password|passwd|pwd)\\s*[:=]\\s*[\"']?(?!.*\\$\\{)[^\\s\"']{8,}"
+keywords = ["password", "passwd", "pwd"]
+severity = "high"
+category = "generic"
+tags = ["password", "generic"]
+allowlist = [
+    "(?i)password\\s*[:=]\\s*[\"']?\\s*[\"']",      # empty value
+    "(?i)password\\s*[:=]\\s*[\"']?\\s*\\*+\\s*[\"']", # masked with asterisks
+    "(?i)password\\s*[:=]\\s*[\"']?YOUR_PASSWORD",    # placeholder
+    "(?i)password\\s*[:=]\\s*[\"']?changeme",          # common placeholder
+    "(?i)password\\s*[:=]\\s*[\"']?<[^>]+>",           # XML placeholder
+]
+entropy_threshold = 3.0
+remediation = "Rotate the credential immediately, then move it to a secrets manager (e.g. AWS Secrets Manager, HashiCorp Vault, or your CI/CD platform's native secrets store)."
+
+# ==============================================================================
+# GENERIC — API Key Assignments
+# ==============================================================================
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API key in variable assignment"
+regex = "(?i)(api[_\\-]?key|apikey)\\s*[:=]\\s*[\"']?[a-zA-Z0-9\\-_]{16,}[\"']?"
+keywords = ["api_key", "apikey", "api-key", "API_KEY"]
+severity = "medium"
+category = "generic"
+tags = ["api-key", "generic"]
+allowlist = [
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?\\s*[\"']",         # empty
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?YOUR_API_KEY",      # placeholder
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?<[^>]+>",           # XML placeholder
+]
+entropy_threshold = 3.5
+remediation = "Identify the service this key belongs to and rotate it via that service's developer console."
+
+# ==============================================================================
+# GENERIC — Token Assignments
+# ==============================================================================
+
+[[rules]]
+id = "generic-token-assignment"
+description = "Generic token in variable assignment"
+regex = "(?i)(token|auth_token|access_token|secret_token)\\s*[:=]\\s*[\"']?[a-zA-Z0-9\\-_\\.]{16,}[\"']?"
+keywords = ["token", "auth_token", "access_token", "secret_token"]
+severity = "medium"
+category = "generic"
+tags = ["token", "generic"]
+allowlist = [
+    "(?i)token\\s*[:=]\\s*[\"']?\\s*[\"']",
+    "(?i)token\\s*[:=]\\s*[\"']?YOUR_TOKEN",
+    "(?i)token\\s*[:=]\\s*[\"']?<[^>]+>",
+]
+entropy_threshold = 3.5
+remediation = "Identify the issuing service and rotate the token via its developer console."
+
+# ==============================================================================
+# CRYPTO — Private Keys
+# ==============================================================================
+
+[[rules]]
+id = "private-key-generic"
+description = "PEM private key header"
+regex = '-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'
+keywords = ["BEGIN PRIVATE KEY", "BEGIN RSA PRIVATE KEY", "BEGIN EC PRIVATE KEY"]
+severity = "critical"
+category = "crypto"
+tags = ["crypto", "pem", "private-key"]
+remediation = "Rotate the key pair immediately. Generate a new key with: openssl genrsa -out new-key.pem 4096 (RSA) or openssl ecparam -genkey -name prime256v1 (EC). Update all services and revoke/re-issue any certificates signed by this key."
+
+# ==============================================================================
+# GENERIC — JWT Tokens
+# ==============================================================================
+
+[[rules]]
+id = "jwt-token"
+description = "JSON Web Token (JWT)"
+regex = '\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b'
+keywords = ["eyJ"]
+severity = "high"
+category = "generic"
+tags = ["jwt", "token", "auth"]
+allowlist = [
+    'eyJhbGciOiJub25lIn0',  # "alg: none" — invalid by design
+]
+entropy_threshold = 4.0
+remediation = "JWTs encode claims — if this is a long-lived token, revoke it immediately. Check if the JWT secret used to sign it has been exposed and rotate the signing key."
+
+# ==============================================================================
+# GENERIC — Bearer Tokens
+# ==============================================================================
+
+[[rules]]
+id = "generic-bearer-token"
+description = "HTTP Authorization Bearer token"
+regex = '(?i)\bBearer\s+[a-zA-Z0-9\-_\.]{20,}'
+keywords = ["Bearer "]
+severity = "medium"
+category = "generic"
+tags = ["bearer", "http", "auth"]
+allowlist = [
+    '(?i)Bearer\s+YOUR_TOKEN',
+    '(?i)Bearer\s+<[^>]+>',
+    '(?i)Bearer\s+\$\{',
+]
+entropy_threshold = 3.5
+remediation = "Identify the token issuer from context and rotate the credential via its developer console."
