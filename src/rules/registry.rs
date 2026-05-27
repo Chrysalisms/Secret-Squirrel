@@ -152,6 +152,16 @@ impl RuleRegistry {
     pub fn is_empty(&self) -> bool {
         self.rules.is_empty()
     }
+
+    /// Convenience: load defaults only (no user config).
+    pub fn load_defaults() -> Result<Self> {
+        Self::load(None)
+    }
+
+    /// Alias for `rules()` — returns all compiled rules.
+    pub fn all_rules(&self) -> &[CompiledRule] {
+        &self.rules
+    }
 }
 
 // ============================================================================

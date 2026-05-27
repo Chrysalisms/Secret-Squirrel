@@ -135,6 +135,37 @@ pub struct Fragment {
     pub metadata: FragmentMetadata,
 }
 
+impl Fragment {
+    /// Create a Fragment from a UTF-8 string slice.
+    pub fn from_text(text: &str, path: impl Into<String>) -> Self {
+        let content = Bytes::copy_from_slice(text.as_bytes());
+        let size = content.len() as u64;
+        Self {
+            content,
+            metadata: FragmentMetadata {
+                path: path.into(),
+                source_type: SourceType::Stdin,
+                size,
+                attributes: Default::default(),
+            },
+        }
+    }
+
+    /// Create a Fragment from raw bytes.
+    pub fn from_bytes(content: Bytes, path: impl Into<String>) -> Self {
+        let size = content.len() as u64;
+        Self {
+            content,
+            metadata: FragmentMetadata {
+                path: path.into(),
+                source_type: SourceType::Directory,
+                size,
+                attributes: Default::default(),
+            },
+        }
+    }
+}
+
 /// Metadata associated with a Fragment — where it came from and what it is.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FragmentMetadata {

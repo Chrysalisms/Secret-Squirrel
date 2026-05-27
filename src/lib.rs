@@ -29,13 +29,11 @@ pub mod sources;
 pub mod stages;
 pub mod types;
 
-#[cfg(feature = "mcp-server")]
 pub mod mcp;
 
 #[cfg(feature = "semantic")]
 pub mod semantic;
 
-#[cfg(feature = "validate")]
 pub mod validate;
 
 // Re-export key types for public API consumers
