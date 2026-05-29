@@ -183,6 +183,7 @@ pub mod classifier {
     use ort::{
         session::Session,
         value::Tensor,
+        execution_providers::{CPUExecutionProvider, ExecutionProviderDispatch},
     };
 
     use crate::error::{Result, SquirrelError};
@@ -226,8 +227,44 @@ pub mod classifier {
         pub fn load(path: &Path, tier: ModelTier) -> Result<Self> {
             let max_seq_len = tier.max_seq_len();
 
-            let session = Session::builder()
-                .map_err(|e| SquirrelError::Cnn(format!("ort SessionBuilder::new failed: {e}")))?
+            // Constrain ORT thread pool via environment before initializing the session.
+            // This prevents ORT 1.20.x from hanging in environments without GPU hardware
+            // (e.g., WSL, CI runners without CUDA). These vars are read during ORT init.
+            // We only set them if not already set by the caller.
+            if std::env::var("OMP_NUM_THREADS").is_err() {
+                // SAFETY: single-threaded at this point; no concurrent env mutations.
+                unsafe { std::env::set_var("OMP_NUM_THREADS", "2"); }
+            }
+            if std::env::var("ORT_NUM_INTRA_THREADS").is_err() {
+                unsafe { std::env::set_var("ORT_NUM_INTRA_THREADS", "2"); }
+            }
+            if std::env::var("ORT_NUM_INTER_THREADS").is_err() {
+                unsafe { std::env::set_var("ORT_NUM_INTER_THREADS", "1"); }
+            }
+
+            // Build a CPU-only execution provider list.
+            // `with_execution_providers` takes `impl AsRef<[ExecutionProviderDispatch]>`,
+            // so we convert first and store in a Vec (which implements AsRef<[T]>).
+            let cpu_eps: Vec<ExecutionProviderDispatch> = vec![
+                CPUExecutionProvider::default().into(),
+            ];
+
+            let mut builder = Session::builder()
+                .map_err(|e| SquirrelError::Cnn(format!("ort SessionBuilder::new failed: {e}")))?;
+
+            // Apply CPU-only EP. If this fails (e.g., ORT version mismatch), recover the
+            // builder and proceed — CPU is always available in the standard ORT release.
+            builder = builder
+                .with_execution_providers(cpu_eps)
+                .unwrap_or_else(|e| {
+                    tracing::warn!(
+                        "ORT execution provider setup failed ({}), using ORT defaults",
+                        e
+                    );
+                    e.recover()
+                });
+
+            let session = builder
                 .commit_from_file(path)
                 .map_err(|e| SquirrelError::Cnn(format!(
                     "ort failed to load model {:?}: {e}", path

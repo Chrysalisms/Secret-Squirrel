@@ -1,0 +1,85 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-bitbucketapppassword"
+description = "Parity rule for bitbucketapppassword"
+severity = "high"
+category = "ci"
+keywords = ["bitbucketapppassword"]
+regex = '''(?i)bitbucketapppassword.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bitbucketdatacenter"
+description = "Parity rule for bitbucketdatacenter"
+severity = "high"
+category = "ci"
+keywords = ["bitbucketdatacenter"]
+regex = '''(?i)bitbucketdatacenter.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-circleci"
+description = "Parity rule for circleci"
+severity = "high"
+category = "ci"
+keywords = ["circleci"]
+regex = '''(?i)circleci.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-github_oauth2"
+description = "Parity rule for github_oauth2"
+severity = "high"
+category = "ci"
+keywords = ["github_oauth2"]
+regex = '''(?i)github_oauth2.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-github_old"
+description = "Parity rule for github_old"
+severity = "high"
+category = "ci"
+keywords = ["github_old"]
+regex = '''(?i)github_old.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-gitlaboauth2"
+description = "Parity rule for gitlaboauth2"
+severity = "high"
+category = "ci"
+keywords = ["gitlaboauth2"]
+regex = '''(?i)gitlaboauth2.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-gitlab_v1"
+description = "Parity rule for gitlab_v1"
+severity = "high"
+category = "ci"
+keywords = ["gitlab_v1"]
+regex = '''(?i)gitlab_v1.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-gitlab_v2"
+description = "Parity rule for gitlab_v2"
+severity = "high"
+category = "ci"
+keywords = ["gitlab_v2"]
+regex = '''(?i)gitlab_v2.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-gitlab_v3"
+description = "Parity rule for gitlab_v3"
+severity = "high"
+category = "ci"
+keywords = ["gitlab_v3"]
+regex = '''(?i)gitlab_v3.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

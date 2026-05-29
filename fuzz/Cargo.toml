@@ -12,6 +12,7 @@ libfuzzer-sys = "0.4"
 secret-squirrel = { path = "..", features = [] }
 zip = { version = "2", features = ["deflate"] }
 bytes = "1"
+tempfile = "3.10"
 
 # Prevent this fuzz package from being included in workspace
 [workspace]

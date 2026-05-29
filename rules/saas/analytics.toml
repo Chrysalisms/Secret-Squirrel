@@ -1,0 +1,82 @@
+# Data analysis and ML platform secrets
+# Covers Hugging Face, Weights & Biases, MLflow, Databricks, Snowflake, dbt
+
+[[rules]]
+id = "huggingface-token"
+description = "Hugging Face API or access token (hf_/api_ prefix)"
+severity = "high"
+category = "ai"
+regex = '''(?:hf_|api_)[a-zA-Z]{2}[a-zA-Z0-9]{18,}'''
+keywords = ["huggingface", "hf_", "api_org_", "api_"]
+entropy = 4.0
+tags = ["huggingface", "ml", "ai"]
+
+[[rules]]
+id = "wandb-api-key"
+description = "Weights & Biases API key for ML experiment tracking"
+severity = "high"
+category = "ai"
+regex = '''(?i)(?:wandb|weights[._-]?and[._-]?biases)[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["wandb", "WANDB_API_KEY"]
+entropy = 4.5
+tags = ["wandb", "ml", "ai"]
+
+[[rules]]
+id = "snowflake-account-credentials"
+description = "Snowflake data warehouse account private key or password"
+severity = "critical"
+category = "database"
+regex = '''(?i)snowflake[._-]?(?:account[._-]?)?(?:private[._-]?key|password)\s*[=:]\s*['"]?([A-Za-z0-9+/=]{20,})['"]?'''
+keywords = ["snowflake", "SNOWFLAKE_PASSWORD"]
+entropy = 4.0
+tags = ["snowflake", "database", "data-warehouse"]
+
+[[rules]]
+id = "dbt-cloud-api-token"
+description = "dbt Cloud API service token"
+severity = "high"
+category = "devtools"
+regex = '''(?i)dbt[._-]?(?:cloud[._-]?)?(?:api[._-]?)?(?:service[._-]?)?token\s*[=:]\s*['"]?([a-zA-Z0-9_-]{64,})['"]?'''
+keywords = ["dbt", "DBT_CLOUD_SERVICE_TOKEN"]
+entropy = 4.5
+tags = ["dbt", "data-warehouse", "devtools"]
+
+[[rules]]
+id = "mode-api-key"
+description = "Mode Analytics API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)mode[._-]?(?:api[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["mode_analytics", "MODE_API"]
+entropy = 4.0
+tags = ["mode", "analytics", "saas"]
+
+[[rules]]
+id = "looker-client-secret"
+description = "Looker API client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)looker[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([a-zA-Z0-9_-]{40,})['"]?'''
+keywords = ["looker", "LOOKER_CLIENT"]
+entropy = 4.0
+tags = ["looker", "analytics", "bi"]
+
+[[rules]]
+id = "tableau-personal-access-token"
+description = "Tableau Server or Tableau Cloud personal access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)tableau[._-]?(?:pat|personal[._-]?access[._-]?)?(?:token|secret)\s*[=:]\s*['"]?([A-Za-z0-9_+=/-]{40,})['"]?'''
+keywords = ["tableau"]
+entropy = 4.0
+tags = ["tableau", "analytics", "bi"]
+
+[[rules]]
+id = "metabase-api-key"
+description = "Metabase analytics API key or session token"
+severity = "high"
+category = "saas"
+regex = '''(?i)metabase[._-]?(?:api[._-]?|session[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-f0-9]{40,})['"]?'''
+keywords = ["metabase", "METABASE_SESSION"]
+entropy = 3.5
+tags = ["metabase", "analytics", "bi"]

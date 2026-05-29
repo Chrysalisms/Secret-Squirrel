@@ -1,0 +1,42 @@
+# Cloud storage and object storage extended
+# Covers MinIO, Backblaze B2, Cloudflare R2, Wasabi, Vultr Object Storage
+
+[[rules]]
+id = "backblaze-b2-application-key"
+description = "Backblaze B2 cloud storage application key"
+severity = "high"
+category = "storage"
+regex = '''(?i)(?:backblaze|b2)[._-]?(?:application[._-]?|master[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9+/=]{31})['"]?'''
+keywords = ["backblaze", "B2_APPLICATION_KEY", "BACKBLAZE_KEY"]
+entropy = 4.0
+tags = ["backblaze", "b2", "storage"]
+
+[[rules]]
+id = "wasabi-access-key-id"
+description = "Wasabi S3-compatible cloud storage access key ID"
+severity = "high"
+category = "storage"
+regex = '''(?i)wasabi[._-]?(?:access[._-]?)?(?:key[._-]?id|key|token)\s*[=:]\s*['"]?([A-Z0-9]{20})['"]?'''
+keywords = ["wasabi", "WASABI_ACCESS_KEY"]
+entropy = 3.0
+tags = ["wasabi", "storage", "s3"]
+
+[[rules]]
+id = "scaleway-secret-key"
+description = "Scaleway cloud infrastructure secret key"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)scaleway[._-]?secret[._-]?key\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["scaleway", "SCW_SECRET_KEY"]
+entropy = 3.0
+tags = ["scaleway", "cloud", "storage"]
+
+[[rules]]
+id = "ovhcloud-api-key"
+description = "OVH Cloud API application key/secret"
+severity = "high"
+category = "cloud"
+regex = '''(?i)ovh[._-]?(?:cloud[._-]?|api[._-]?)?(?:application[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([A-Za-z0-9]{14,32})['"]?'''
+keywords = ["ovhcloud", "OVH_API", "OVH_APPLICATION"]
+entropy = 3.5
+tags = ["ovh", "cloud", "european"]

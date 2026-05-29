@@ -1,0 +1,128 @@
+# Secret Squirrel — Key Assignment Rules
+# Covers the "key" CredData category (3,751 secrets, currently 0.6% recall)
+#
+# Root causes of FNs:
+#  1. Commented-out env vars:  # VAR_KEY=value
+#  2. Programmatic assignments: obj.SetKey("value"), createKey("value")
+#  3. Windows SET command:      SET VAR_KEY=value
+
+# ==============================================================================
+# Commented-Out Environment Variable Secret
+# Catches: # GITHUB_ENTERPRISE_ORG_KEY=mdrzfpyodu7do894h296m5
+# ==============================================================================
+
+[[rules]]
+id = "commented-env-var-secret"
+description = "Secret value in a commented-out environment variable assignment"
+regex = '''#\s{0,5}(?:export\s{1,5})?([A-Z][A-Z0-9_]{2,50}(?:KEY|SECRET|TOKEN|PASSWORD|PASS|CREDENTIAL|API_KEY|ACCESS_KEY|PRIVATE_KEY|CLIENT_SECRET|APP_SECRET|AUTH_TOKEN|AUTH_KEY|SIGNING_KEY|ENCRYPTION_KEY|MASTER_KEY|ADMIN_KEY|ACCOUNT_KEY|WEBHOOK_SECRET|REFRESH_TOKEN|SERVICE_KEY|DEPLOY_KEY))\s{0,5}=\s{0,5}(?!\s)(?!\$\{)(?!<)(?!\*)(?!XXXX)(?!xxxx)(?!YOUR)(?!EXAMPLE)(?!CHANGEME)(?!replace)(?!placeholder)(\S{8,200})'''
+keywords = ["KEY=", "SECRET=", "TOKEN=", "PASSWORD=", "CREDENTIAL="]
+severity = "high"
+category = "generic"
+tags = ["env-var", "comment", "key", "secret", "generic"]
+entropy_threshold = 3.0
+allowlist = [
+    '# KEY=YOUR_KEY',
+    '# SECRET=<your',
+    '# TOKEN=$\{',
+    '# KEY=xxxxxx',
+    '# KEY=XXXXXXXX',
+    '# PASSWORD=changeme',
+    '# KEY=example',
+    '# KEY=replace',
+]
+remediation = "Ensure secrets are not stored in source control even in comments. Uncommented versions of these values should be rotated immediately."
+
+# ==============================================================================
+# Windows SET Command — Secret Assignment
+# Catches: SET GCM_AZREPOS_SP_SECRET="dd16b3fe9e0f3f0d4500cfba86737074adb38768"
+# ==============================================================================
+
+[[rules]]
+id = "windows-set-env-secret"
+description = "Secret value assigned via Windows SET command in batch/PowerShell script"
+regex = '''(?i)(?:^|[\r\n])\s{0,4}SET\s{1,5}([A-Z][A-Z0-9_]{2,50}(?:KEY|SECRET|TOKEN|PASSWORD|PASS|CREDENTIAL|API_KEY|ACCESS_KEY|PRIVATE_KEY|CLIENT_SECRET|APP_SECRET|AUTH_TOKEN|SIGNING_KEY|ACCOUNT_KEY|WEBHOOK_SECRET|REFRESH_TOKEN|SERVICE_KEY))\s{0,2}=\s{0,2}["']?(?!\s)(?!\$\{)(?!<)(?!\*)(?!XXXX)(?!YOUR)(?!EXAMPLE)(?!changeme)([A-Za-z0-9\-_\.!@#%^&+=]{8,200})["']?'''
+keywords = ["SET KEY=", "SET SECRET=", "SET TOKEN=", "SET PASSWORD=", "SET API_KEY=", "SET ACCESS_KEY="]
+severity = "high"
+category = "generic"
+tags = ["windows", "batch", "powershell", "env-var", "key", "generic"]
+entropy_threshold = 3.0
+allowlist = [
+    'SET KEY=YOUR_KEY',
+    'SET SECRET=<',
+    'SET TOKEN=$\{',
+    'SET KEY=xxxxxxxx',
+    'SET PASSWORD=changeme',
+    'SET KEY=example',
+]
+remediation = "Do not hardcode secrets in batch or PowerShell scripts. Use Windows Credential Manager, Azure Key Vault, or environment variables injected at runtime."
+
+# ==============================================================================
+# Programmatic Key Assignment — Method Call
+# Catches: cipher->SetKey("3669-GY7G-TVGX-R@icmnnoitrp")
+#          createKey("MLS8-YKM0-DPE0-NOS3-2192")
+# ==============================================================================
+
+[[rules]]
+id = "method-key-assignment"
+description = "Hardcoded secret passed directly to a key-setting or key-creation method"
+regex = '''(?i)\.(?:set|create|with|init|load|use|add|apply|configure|register)(?:Key|Secret|Token|Password|Credential|ApiKey|AuthKey|SigningKey|MasterKey|EncryptionKey|AccessKey)\s{0,3}\(\s{0,3}["'](?!\s*["'])(?!\$\{)(?!<)(?!\*)(?!YOUR)(?!EXAMPLE)(?!changeme)(?!replace)([^\s"']{8,200})["']\s{0,3}\)'''
+keywords = ["setKey(", "SetKey(", "createKey(", "withKey(", "setSecret(", "setToken(", "setPassword("]
+severity = "high"
+category = "generic"
+tags = ["method-call", "api", "key", "secret", "generic"]
+entropy_threshold = 3.0
+allowlist = [
+    'setKey\("YOUR_KEY"\)',
+    'setKey\("<key>',
+    'setKey\("example"\)',
+    'setKey\("test"\)',
+    'setKey\("placeholder"\)',
+    'setKey\(key',
+    'setKey\(self\.',
+]
+remediation = "Pass secrets via secure configuration rather than as method arguments in source code. Use a secrets manager or inject via environment variables."
+
+# ==============================================================================
+# Generic Key Variable Assignment
+# Catches: privateKey = "MIIEpAIB..."
+#          encryption_key = "a3f9c2b1d4e5f6a7"
+# ==============================================================================
+
+[[rules]]
+id = "generic-key-variable"
+description = "Generic key value assigned to a variable with key-related name"
+regex = '''(?i)(?:private|public|encryption|decryption|signing|api|access|secret|master|admin|auth|client|service|deploy|app|account|webhook|session|cipher)[\s_\-]?(?:key|keys|keyfile|keypath|keypair|keyseed)\s{0,5}(?:[:=]{1,2}|:=)\s{0,5}["`']{0,1}(?!\s*["`']$)(?!\$\{)(?!<[a-z])(?!\*)(?!XXXX)(?!xxxx)(?!YOUR)(?!EXAMPLE)(?!changeme)(?!replace)(?!placeholder)(?!null)(?!nil)(?!undefined)(?!false)(?!true)(?!none)(?!None)([a-zA-Z0-9+/\-_=]{16,300})["`']?'''
+keywords = ["private_key", "privateKey", "private-key", "encryption_key", "signing_key", "api_key", "access_key", "secret_key", "master_key"]
+severity = "medium"
+category = "generic"
+tags = ["key", "variable", "assignment", "generic"]
+entropy_threshold = 3.8
+allowlist = [
+    'private_key = ""',
+    'private_key = None',
+    'private_key = null',
+    'private_key = undefined',
+    'private_key = "YOUR_',
+    'private_key = "<',
+    'private_key = "$\{',
+    'api_key = "your-',
+    'api_key = "EXAMPLE',
+    'signing_key = "changeme',
+    'signing_key = "secret"',
+    'signing_key = "test"',
+    # Known documentation example values
+    'AKIAIOSFODNN7EXAMPLE',
+    'wJalrXUtnFEMI',
+    # Test/mock markers in value
+    '"mock_',
+    '"fake_',
+    '"test_key',
+    '"dummy_',
+    # Pure digits or low-entropy patterns
+    '"12345',
+    '"00000',
+    # GitHub Actions expressions
+    'secrets\.',
+    '\$\{\{',
+]
+remediation = "Store private and signing keys in a secrets manager (AWS Secrets Manager, HashiCorp Vault, Azure Key Vault). Never commit key material to source control."

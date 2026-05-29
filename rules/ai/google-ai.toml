@@ -1,0 +1,86 @@
+# Secret Squirrel — Google AI Rules
+# Google AI / Gemini / PaLM / AI Studio secret detection rules
+
+# ==============================================================================
+# Google — Gemini API Key
+# ==============================================================================
+
+[[rules]]
+id = "google-gemini-api-key"
+description = "Google Gemini API Key (AIza prefix, Google AI Studio)"
+regex = '''(?i)(?:gemini[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|GEMINI_API_KEY|GOOGLE_GEMINI_KEY)\s{0,5}[:=]\s{0,5}["']?(AIza[0-9A-Za-z\-_]{35})["']?'''
+keywords = ["GEMINI_API_KEY", "GOOGLE_GEMINI_KEY", "gemini_api_key", "gemini-api-key"]
+severity = "critical"
+category = "ai"
+tags = ["google", "gemini", "ai"]
+entropy_threshold = 3.5
+allowlist = [
+    'GEMINI_API_KEY=YOUR_API_KEY',
+    'GEMINI_API_KEY=AIzaEXAMPLE',
+    'GEMINI_API_KEY=<',
+    'GEMINI_API_KEY=$\{',
+]
+remediation = "Rotate at https://aistudio.google.com/app/apikey. Restrict key to specific APIs and add referrer restrictions to prevent abuse."
+
+# ==============================================================================
+# Google — PaLM API Key
+# ==============================================================================
+
+[[rules]]
+id = "google-palm-api-key"
+description = "Google PaLM (Pathways Language Model) API Key"
+regex = '''(?i)(?:palm[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|PALM_API_KEY|GOOGLE_PALM_KEY)\s{0,5}[:=]\s{0,5}["']?(AIza[0-9A-Za-z\-_]{35})["']?'''
+keywords = ["PALM_API_KEY", "GOOGLE_PALM_KEY", "palm_api_key"]
+severity = "critical"
+category = "ai"
+tags = ["google", "palm", "ai"]
+entropy_threshold = 3.5
+allowlist = [
+    'PALM_API_KEY=YOUR_API_KEY',
+    'PALM_API_KEY=AIzaEXAMPLE',
+    'PALM_API_KEY=<',
+    'PALM_API_KEY=$\{',
+]
+remediation = "Rotate at https://console.cloud.google.com/apis/credentials. PaLM API is merging into Gemini; migrate to Gemini API keys with proper restrictions."
+
+# ==============================================================================
+# Google — Vertex AI API Key
+# ==============================================================================
+
+[[rules]]
+id = "google-vertex-api-key"
+description = "Google Vertex AI Generative AI API Key"
+regex = '''(?i)(?:vertex[_\-\.\s]{0,10}(?:ai[_\-\.\s]{0,5})?(?:api[_\-\.\s]{0,5})?key|VERTEX_AI_KEY|GOOGLE_VERTEX_KEY)\s{0,5}[:=]\s{0,5}["']?(AIza[0-9A-Za-z\-_]{35})["']?'''
+keywords = ["VERTEX_AI_KEY", "GOOGLE_VERTEX_KEY", "vertex_ai_key"]
+severity = "critical"
+category = "ai"
+tags = ["google", "vertex", "ai", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'VERTEX_AI_KEY=YOUR_KEY',
+    'GOOGLE_VERTEX_KEY=AIzaEXAMPLE',
+    'VERTEX_AI_KEY=<',
+    'VERTEX_AI_KEY=$\{',
+]
+remediation = "Rotate at https://console.cloud.google.com/apis/credentials. Prefer service accounts over API keys for server-to-server Vertex AI authentication."
+
+# ==============================================================================
+# Google — AI Studio Key
+# ==============================================================================
+
+[[rules]]
+id = "google-ai-studio-key"
+description = "Google AI Studio (MakerSuite) API Key"
+regex = '''(?i)(?:ai[_\-]?studio[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|GOOGLE_AI_STUDIO_KEY|AI_STUDIO_API_KEY|MAKERSUITE_KEY)\s{0,5}[:=]\s{0,5}["']?(AIza[0-9A-Za-z\-_]{35})["']?'''
+keywords = ["GOOGLE_AI_STUDIO_KEY", "AI_STUDIO_API_KEY", "MAKERSUITE_KEY", "ai_studio"]
+severity = "critical"
+category = "ai"
+tags = ["google", "ai-studio", "makersuite", "gemini", "ai"]
+entropy_threshold = 3.5
+allowlist = [
+    'GOOGLE_AI_STUDIO_KEY=YOUR_KEY',
+    'AI_STUDIO_API_KEY=AIzaEXAMPLE',
+    'AI_STUDIO_API_KEY=<',
+    'MAKERSUITE_KEY=$\{',
+]
+remediation = "Revoke and regenerate at https://aistudio.google.com/app/apikey. Set API key restrictions to specific referrers or IP ranges."

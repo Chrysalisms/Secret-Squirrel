@@ -100,7 +100,11 @@ fn bench_entropy_plus_proximity(c: &mut Criterion) {
 fn bench_markov_scorer(c: &mut Criterion) {
     use secret_squirrel::scoring::markov::MarkovScorer;
 
-    let scorer = MarkovScorer::default();
+    // Use new_heuristic() rather than default() — default() allocates a
+    // 1 MB Box<[f32; 262_144]> on the Criterion benchmark thread stack, which
+    // overflows the 1 MB default thread stack on Windows. new_heuristic()
+    // uses the same heap-allocated path without the intermediate stack frame.
+    let scorer = MarkovScorer::new_heuristic();
 
     let secrets = [
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",

@@ -1,0 +1,82 @@
+# HR and talent management platform secrets
+# Covers Workday, ADP, Greenhouse, Lever, BambooHR, Rippling
+
+[[rules]]
+id = "workday-client-secret"
+description = "Workday HCM REST API client secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)workday[._-]?(?:api[._-]?|client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["workday", "WORKDAY_SECRET"]
+entropy = 4.0
+tags = ["workday", "hr", "hcm", "saas"]
+
+[[rules]]
+id = "adp-client-secret"
+description = "ADP payroll platform client secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)adp[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["adp", "ADP_SECRET"]
+entropy = 4.0
+tags = ["adp", "payroll", "hr", "saas"]
+
+[[rules]]
+id = "greenhouse-api-key"
+description = "Greenhouse recruiting API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)greenhouse[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32,40})['"]?'''
+keywords = ["greenhouse", "GH_API_KEY"]
+entropy = 4.0
+tags = ["greenhouse", "recruiting", "hr", "saas"]
+
+[[rules]]
+id = "lever-api-key"
+description = "Lever recruiting platform API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)lever[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["lever", "LEVER_API"]
+entropy = 3.0
+tags = ["lever", "recruiting", "hr", "saas"]
+
+[[rules]]
+id = "bamboohr-api-key"
+description = "BambooHR human resources platform API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)bamboohr?[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,40})['"]?'''
+keywords = ["bamboohr", "BAMBOOHR_API"]
+entropy = 3.5
+tags = ["bamboohr", "hr", "saas"]
+
+[[rules]]
+id = "rippling-api-key"
+description = "Rippling workforce management API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)rippling[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["rippling", "RIPPLING_API"]
+entropy = 4.0
+tags = ["rippling", "hr", "payroll", "saas"]
+
+[[rules]]
+id = "gusto-api-token"
+description = "Gusto payroll and HR API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)gusto[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,50})['"]?'''
+keywords = ["gusto", "GUSTO_API"]
+entropy = 3.5
+tags = ["gusto", "payroll", "hr", "saas"]
+
+[[rules]]
+id = "deel-api-key"
+description = "Deel global payroll API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)deel[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["deel"]
+entropy = 4.0
+tags = ["deel", "payroll", "hr", "saas"]

@@ -1,0 +1,82 @@
+# Healthcare and biotech API secrets
+# Covers Epic, Cerner, FHIR, Veeva, Benchling, Terra
+
+[[rules]]
+id = "epic-fhir-api-key"
+description = "Epic MyChart FHIR API client key"
+severity = "critical"
+category = "saas"
+regex = '''(?i)epic[._-]?(?:fhir[._-]?|mychart[._-]?)?(?:client[._-]?)?(?:key|id|secret)\s*[=:]\s*['"]?([A-Za-z0-9\-]{36,48})['"]?'''
+keywords = ["epic", "EPIC_FHIR", "mychart"]
+entropy = 3.5
+tags = ["epic", "healthcare", "fhir", "ehr"]
+
+[[rules]]
+id = "cerner-smart-api-secret"
+description = "Cerner SMART on FHIR API client secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)cerner[._-]?(?:smart[._-]?|fhir[._-]?)?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["cerner", "CERNER_SECRET"]
+entropy = 4.0
+tags = ["cerner", "healthcare", "fhir", "ehr"]
+
+[[rules]]
+id = "veeva-api-token"
+description = "Veeva Vault cloud pharma platform API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)veeva[._-]?(?:vault[._-]?)?(?:api[._-]?)?(?:key|token|session)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["veeva", "VEEVA_TOKEN"]
+entropy = 4.0
+tags = ["veeva", "pharma", "saas"]
+
+[[rules]]
+id = "benchling-api-key"
+description = "Benchling lab data management API key"
+severity = "high"
+category = "saas"
+regex = '''sk_[a-f0-9]{32}'''
+keywords = ["benchling", "BENCHLING_KEY"]
+entropy = 4.0
+tags = ["benchling", "biotech", "saas"]
+
+[[rules]]
+id = "flatiron-api-key"
+description = "Flatiron Health oncology data API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)flatiron[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["flatiron"]
+entropy = 4.0
+tags = ["flatiron", "healthcare", "oncology"]
+
+[[rules]]
+id = "welltory-api-key"
+description = "Welltory health data platform API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)welltory[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["welltory"]
+entropy = 4.0
+tags = ["welltory", "health", "saas"]
+
+[[rules]]
+id = "fitbit-client-secret"
+description = "Fitbit health data OAuth client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)fitbit[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["fitbit", "FITBIT_SECRET"]
+entropy = 4.0
+tags = ["fitbit", "health", "wearable"]
+
+[[rules]]
+id = "healthkit-team-id"
+description = "Apple HealthKit team ID and key ID"
+severity = "medium"
+category = "mobile"
+regex = '''(?i)(?:apple|healthkit)[._-]?team[._-]?id\s*[=:]\s*['"]?([A-Z0-9]{10})['"]?'''
+keywords = ["APPLE_TEAM_ID", "healthkit"]
+entropy = 2.5
+tags = ["apple", "healthkit", "mobile"]

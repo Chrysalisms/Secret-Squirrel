@@ -1,0 +1,42 @@
+# SMS and messaging extended rules
+# Covers MessageBird, Vonage (extended), Kaleyra, Infobip, AWS SNS, Sinch
+
+[[rules]]
+id = "infobip-api-key"
+description = "Infobip enterprise SMS/messaging API key"
+severity = "high"
+category = "messaging"
+regex = '''(?i)infobip[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["infobip", "INFOBIP_API"]
+entropy = 4.0
+tags = ["infobip", "sms", "enterprise"]
+
+[[rules]]
+id = "kaleyra-api-key"
+description = "Kaleyra (formerly Hoiio) enterprise SMS API key"
+severity = "high"
+category = "messaging"
+regex = '''(?i)kaleyra[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["kaleyra"]
+entropy = 4.0
+tags = ["kaleyra", "sms", "messaging"]
+
+[[rules]]
+id = "firebase-fcm-v1-access-token"
+description = "Firebase FCM v1 HTTP API OAuth2 access token"
+severity = "critical"
+category = "mobile"
+regex = '''ya29\.[A-Za-z0-9_\-]{100,}'''
+keywords = ["ya29.", "FCM_ACCESS_TOKEN"]
+entropy = 5.0
+tags = ["firebase", "fcm", "google", "oauth"]
+
+[[rules]]
+id = "aws-sns-topic-arn"
+description = "AWS SNS topic ARN reference (indicates notification target)"
+severity = "low"
+category = "cloud"
+regex = '''arn:aws:sns:[a-z0-9\-]+:\d{12}:[A-Za-z0-9\-_]+'''
+keywords = ["arn:aws:sns", "sns_topic_arn"]
+entropy = 2.0
+tags = ["aws", "sns", "messaging"]

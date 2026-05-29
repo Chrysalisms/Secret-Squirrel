@@ -43,5 +43,9 @@ pub mod database;
 pub mod elasticsearch;
 pub mod npm_package;
 
+// Phase 5 sources (v1.1) — Bitbucket Cloud and Azure DevOps
+pub mod azure_devops;
+pub mod bitbucket;
+
 pub use traits::{AsyncSource, SourceStream, SyncSource};
 

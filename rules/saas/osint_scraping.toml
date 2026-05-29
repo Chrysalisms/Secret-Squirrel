@@ -1,0 +1,92 @@
+# Network scanning and OSINT tool API secrets
+# Covers Twilio Lookup, abstract-api.com, ipstack, FullContact, Hunter.io
+
+[[rules]]
+id = "ipstack-api-key"
+description = "IPStack IP geolocation API access key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)ipstack[._-]?(?:access[._-]?|api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["ipstack", "IPSTACK_KEY"]
+entropy = 4.0
+tags = ["ipstack", "geolocation", "osint"]
+
+[[rules]]
+id = "hunter-io-api-key"
+description = "Hunter.io email discovery API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)hunter(?:\.io)?[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["hunter.io", "HUNTER_API"]
+entropy = 4.5
+tags = ["hunter", "email", "osint"]
+
+[[rules]]
+id = "fullcontact-api-key"
+description = "FullContact / Contacts+ person data API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)fullcontact[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,40})['"]?'''
+keywords = ["fullcontact"]
+entropy = 4.0
+tags = ["fullcontact", "data", "osint"]
+
+[[rules]]
+id = "clearbit-api-key"
+description = "Clearbit company and person data API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)clearbit[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(sk_[a-f0-9]{32})['"]?'''
+keywords = ["clearbit", "sk_"]
+entropy = 4.0
+tags = ["clearbit", "data", "saas"]
+
+[[rules]]
+id = "zoominfo-api-key"
+description = "ZoomInfo B2B data intelligence API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)zoominfo[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["zoominfo"]
+entropy = 4.0
+tags = ["zoominfo", "b2b", "data"]
+
+[[rules]]
+id = "abstract-api-key"
+description = "Abstract API various utility APIs key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)abstract[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["abstractapi", "abstract_api"]
+entropy = 4.0
+tags = ["abstractapi", "utility", "saas"]
+
+[[rules]]
+id = "scrapingbee-api-key"
+description = "ScrapingBee web scraping API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)(?:scraping|spider)[._-]?(?:bee|ant)?[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,60})['"]?'''
+keywords = ["scrapingbee", "scrapingant"]
+entropy = 4.0
+tags = ["scraping", "web", "saas"]
+
+[[rules]]
+id = "zenrows-api-key"
+description = "ZenRows web scraping / residential proxy API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)zenrows[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,48})['"]?'''
+keywords = ["zenrows"]
+entropy = 4.0
+tags = ["zenrows", "scraping", "saas"]
+
+[[rules]]
+id = "apify-api-token"
+description = "Apify web scraping and automation platform API token"
+severity = "high"
+category = "saas"
+regex = '''apify_api_[A-Za-z0-9_]{40,48}'''
+keywords = ["apify_api_", "apify"]
+entropy = 4.5
+tags = ["apify", "scraping", "automation", "saas"]

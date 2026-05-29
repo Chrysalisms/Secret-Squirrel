@@ -1,0 +1,52 @@
+# Monitoring and APM extended 
+# Covers Grafana, Prometheus, Sentry (extended), Datadog (extended), New Relic (extended)
+
+[[rules]]
+id = "grafana-cloud-api-key"
+description = "Grafana Cloud API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)grafana[._-]?(?:cloud[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-=]{40,})['"]?'''
+keywords = ["grafana", "GRAFANA_API_KEY"]
+entropy = 4.0
+tags = ["grafana", "cloud", "monitoring"]
+
+[[rules]]
+id = "prometheus-bearer-token"
+description = "Prometheus remote write bearer token"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)prometheus[._-]?(?:remote[._-]?write[._-]?)?(?:bearer[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["prometheus", "PROMETHEUS_TOKEN"]
+entropy = 4.0
+tags = ["prometheus", "monitoring", "metrics"]
+
+[[rules]]
+id = "lightstep-access-token"
+description = "Lightstep distributed tracing access token"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)lightstep[._-]?(?:access[._-]?|api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64})['"]?'''
+keywords = ["lightstep", "LIGHTSTEP_TOKEN"]
+entropy = 4.5
+tags = ["lightstep", "tracing", "monitoring"]
+
+[[rules]]
+id = "bugsnag-api-key"
+description = "Bugsnag error monitoring API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)bugsnag[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["bugsnag", "BUGSNAG_API"]
+entropy = 4.0
+tags = ["bugsnag", "monitoring", "error-tracking"]
+
+[[rules]]
+id = "sumo-logic-access-key"
+description = "Sumo Logic cloud log analytics access key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)sumo[._-]?(?:logic[._-]?)?(?:access[._-]?)?(?:key|id|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64})['"]?'''
+keywords = ["sumologic", "SUMO_LOGIC", "SUMO_ACCESS"]
+entropy = 4.5
+tags = ["sumologic", "logging", "monitoring"]

@@ -1,0 +1,122 @@
+# Monitoring / Observability service secrets
+# Covers Sentry, New Relic, Datadog APM, Grafana, Honeycomb, Logdna/Mezmo
+
+[[rules]]
+id = "sentry-dsn-secret"
+description = "Sentry Data Source Name (DSN) with secret key"
+severity = "high"
+category = "monitoring"
+regex = '''https://([a-f0-9]{32})@o\d+\.ingest(?:\.us)?\.sentry\.io/\d+'''
+allowlist = [
+    'https://examplePublicKey@',
+    'https://0000000000000000',
+    '=$\{',
+]
+entropy = 4.0
+tags = ["sentry", "monitoring", "apm"]
+
+[[rules]]
+id = "sentry-auth-token"
+description = "Sentry authentication token for API access"
+severity = "critical"
+category = "monitoring"
+regex = '''(?i)sentry[._-]?(?:auth[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+]
+entropy = 4.5
+tags = ["sentry", "monitoring"]
+
+[[rules]]
+id = "new-relic-license-key"
+description = "New Relic license key (40-char hex)"
+severity = "critical"
+category = "monitoring"
+regex = '''(?i)(?:new[._-]?relic[._-]?)?(?:license[._-]?|account[._-]?)?(?:key|ingest[._-]?key)\s*[=:]\s*['"]?([A-Za-z0-9]{40}NRAL|[a-f0-9]{40})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+    '=0000000000000000000000000000000000000000',
+]
+entropy = 4.0
+tags = ["new-relic", "monitoring", "apm"]
+
+[[rules]]
+id = "new-relic-api-key"
+description = "New Relic User API key (NRAK- prefix)"
+severity = "critical"
+category = "monitoring"
+regex = '''NRAK-[A-Z0-9]{27}'''
+allowlist = [
+    'NRAK-AAAAAAAAAAAAAAAAAAAAAAAAAA',
+    'NRAK-000000000000000000000000000',
+]
+entropy = 4.0
+tags = ["new-relic", "monitoring"]
+
+[[rules]]
+id = "grafana-api-key"
+description = "Grafana service account token or API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)grafana[._-]?(?:api[._-]?|service[._-]?account[._-]?)?(?:key|token)\s*[=:]\s*['"]?(glsa_[A-Za-z0-9]{32}_[a-f0-9]{8}|eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+)['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 4.0
+tags = ["grafana", "monitoring", "observability"]
+
+[[rules]]
+id = "honeycomb-api-key"
+description = "Honeycomb API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)honeycomb[._-]?(?:api[._-]?)?key\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+allowlist = [
+    '=$\{',
+    '=00000000000000000000000000000000',
+]
+entropy = 4.0
+tags = ["honeycomb", "observability", "tracing"]
+
+[[rules]]
+id = "logdna-api-key"
+description = "LogDNA / Mezmo ingestion key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)(?:logdna|mezmo)[._-]?(?:ingestion[._-]?|api[._-]?)?key\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 4.0
+tags = ["logdna", "mezmo", "logging"]
+
+[[rules]]
+id = "rollbar-access-token"
+description = "Rollbar access token"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)rollbar[._-]?(?:access[._-]?|post[._-]?server[._-]?item[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+allowlist = [
+    '=$\{',
+    '=00000000000000000000000000000000',
+]
+entropy = 4.0
+tags = ["rollbar", "monitoring", "error-tracking"]
+
+[[rules]]
+id = "elastic-apm-secret-token"
+description = "Elastic APM secret token"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)elastic[._-]?apm[._-]?secret[._-]?token\s*[=:]\s*['"]?([A-Za-z0-9\-_]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+]
+entropy = 3.5
+tags = ["elastic", "apm", "monitoring"]

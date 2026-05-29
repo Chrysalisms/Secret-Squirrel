@@ -78,46 +78,47 @@ def load_creddata(creddata_dir: Path) -> list[Finding]:
             meta_path = p
             break
 
-    if meta_path is None:
+    findings: list[Finding] = []
+    
+    if meta_path is not None:
+        with meta_path.open(encoding="utf-8") as fh:
+            raw = json.load(fh)
+        for item in raw:
+            file_path = item.get("FilePath") or item.get("file_path") or item.get("file") or ""
+            line = int(item.get("LineStart") or item.get("line_start") or item.get("line") or 0)
+            kind = item.get("CredType") or item.get("cred_type") or item.get("type") or "unknown"
+            if file_path and line:
+                findings.append(Finding(file=_norm_path(file_path), line=line, kind=kind.lower()))
+    else:
+        # Load from meta/*.csv
+        meta_dir = creddata_dir / "meta"
+        if meta_dir.exists() and meta_dir.is_dir():
+            import csv
+            for csv_file in meta_dir.glob("*.csv"):
+                with csv_file.open(encoding="utf-8", newline='') as fh:
+                    reader = csv.DictReader(fh)
+                    for row in reader:
+                        if row.get("GroundTruth") != "T":
+                            continue # Only count true positives
+                        file_path = row.get("FilePath", "")
+                        if file_path.startswith("data/"):
+                            file_path = file_path[5:] # Remove "data/" prefix to match findings which have relative paths from data dir
+                        line_str = row.get("LineStart", "0")
+                        try:
+                            line = int(line_str)
+                        except ValueError:
+                            line = 0
+                        kind = row.get("Category", "unknown")
+                        if file_path and line:
+                            findings.append(Finding(file=_norm_path(file_path), line=line, kind=kind.lower()))
+
+    if not findings:
         print(
             f"[eval] ERROR: Could not find CredData metadata in {creddata_dir}.\n"
-            f"[eval] Tried: {', '.join(CREDDATA_META_CANDIDATES)}\n"
-            f"[eval] Clone CredData with:\n"
-            f"[eval]   git clone https://github.com/Samsung/CredData.git ./CredData",
+            f"[eval] Tried: {', '.join(CREDDATA_META_CANDIDATES)} and meta/*.csv\n",
             file=sys.stderr,
         )
         sys.exit(1)
-
-    with meta_path.open(encoding="utf-8") as fh:
-        raw = json.load(fh)
-
-    findings: list[Finding] = []
-    for item in raw:
-        # Support multiple key name conventions across CredData versions.
-        file_path = (
-            item.get("FilePath")
-            or item.get("file_path")
-            or item.get("file")
-            or ""
-        )
-        line = int(
-            item.get("LineStart")
-            or item.get("line_start")
-            or item.get("line")
-            or 0
-        )
-        kind = (
-            item.get("CredType")
-            or item.get("cred_type")
-            or item.get("type")
-            or "unknown"
-        )
-        if file_path and line:
-            findings.append(Finding(
-                file=_norm_path(file_path),
-                line=line,
-                kind=kind.lower(),
-            ))
 
     return findings
 
@@ -137,8 +138,13 @@ def load_squirrel(json_file: Path) -> list[Finding]:
 
     findings: list[Finding] = []
     for item in raw:
-        file_path = item.get("file") or item.get("path") or ""
-        line = int(item.get("line") or item.get("line_number") or 0)
+        location = item.get("location", {})
+        file_path = location.get("path") or item.get("file") or item.get("path") or ""
+        if file_path.startswith("benchmark/CredData/data/"):
+            file_path = file_path[len("benchmark/CredData/data/"):]
+        elif file_path.startswith("data/"):
+            file_path = file_path[5:]
+        line = int(location.get("start_line") or item.get("line") or item.get("line_number") or 0)
         kind = (
             item.get("rule_id")
             or item.get("type")

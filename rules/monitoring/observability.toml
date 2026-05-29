@@ -1,0 +1,102 @@
+# Logging, APM, and observability platform secrets
+# Covers Datadog, New Relic, Splunk, Elastic, Sentry (extended), Grafana
+
+[[rules]]
+id = "datadog-api-key"
+description = "Datadog API key for metrics, logs and traces"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)datadog[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["datadog", "DD_API_KEY", "DATADOG_API"]
+entropy = 4.0
+tags = ["datadog", "monitoring", "apm"]
+
+[[rules]]
+id = "datadog-app-key"
+description = "Datadog application key (for administrative operations)"
+severity = "critical"
+category = "monitoring"
+regex = '''(?i)datadog[._-]?app[._-]?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["datadog", "DD_APP_KEY", "DATADOG_APP"]
+entropy = 4.5
+tags = ["datadog", "monitoring", "apm"]
+
+[[rules]]
+id = "newrelic-api-key"
+description = "New Relic API key (license, user, or ingest key)"
+severity = "high"
+category = "monitoring"
+regex = '''NRAK-[A-Z0-9]{27}|NRII-[A-Za-z0-9\-_]{40,}|(?i)newrelic[._-]?(?:license|api|ingest)[._-]?key\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["NRAK-", "NRII-", "newrelic"]
+entropy = 3.5
+tags = ["newrelic", "monitoring", "apm"]
+
+[[rules]]
+id = "splunk-hec-token"
+description = "Splunk HTTP Event Collector (HEC) token"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)splunk[._-]?(?:hec[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["splunk", "SPLUNK_HEC", "hec_token"]
+entropy = 3.0
+tags = ["splunk", "monitoring", "logs"]
+
+[[rules]]
+id = "elastic-cloud-api-key"
+description = "Elastic Cloud API key (base64 encoded id:key)"
+severity = "critical"
+category = "monitoring"
+regex = '''(?i)elastic[._-]?(?:cloud[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9+/]{100,}={0,2})['"]?'''
+keywords = ["elastic", "ELASTIC_API_KEY", "elasticsearch"]
+entropy = 4.5
+tags = ["elastic", "elasticsearch", "monitoring"]
+
+[[rules]]
+id = "grafana-service-account-token"
+description = "Grafana service account token (glsa_ prefix)"
+severity = "high"
+category = "monitoring"
+regex = '''glsa_[a-zA-Z0-9]{32}_[a-f0-9]{8}'''
+keywords = ["glsa_", "grafana"]
+entropy = 4.0
+tags = ["grafana", "monitoring", "dashboard"]
+
+[[rules]]
+id = "grafana-api-key"
+description = "Grafana API key (eyJ Bearer token)"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)grafana[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)['"]?'''
+keywords = ["grafana", "GRAFANA_API"]
+entropy = 5.0
+tags = ["grafana", "monitoring"]
+
+[[rules]]
+id = "logstash-api-key"
+description = "Logstash / Elastic output API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)logstash[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{40,60})['"]?'''
+keywords = ["logstash", "LOGSTASH_API"]
+entropy = 4.0
+tags = ["logstash", "elastic", "monitoring"]
+
+[[rules]]
+id = "honeycomb-api-key"
+description = "Honeycomb.io observability API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)honeycomb[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["honeycomb", "HONEYCOMB_API"]
+entropy = 4.0
+tags = ["honeycomb", "observability", "monitoring"]
+
+[[rules]]
+id = "lightstep-token"
+description = "LightStep / ServiceNow distributed tracing access token"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)lightstep[._-]?(?:access[._-]?|api[._-]?)?token\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{32,64})['"]?'''
+keywords = ["lightstep", "LIGHTSTEP_TOKEN"]
+entropy = 4.0
+tags = ["lightstep", "tracing", "monitoring"]

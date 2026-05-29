@@ -1,0 +1,63 @@
+# Secret Squirrel — OpenAI Extended Rules
+# Additional OpenAI secret detection rules beyond default.toml
+
+# ==============================================================================
+# OpenAI — Session Key
+# ==============================================================================
+
+[[rules]]
+id = "openai-session-key"
+description = "OpenAI user session key (browser/app session token)"
+regex = '''\bsess-[a-zA-Z0-9]{40,120}\b'''
+keywords = ["sess-", "openai", "session"]
+severity = "critical"
+category = "ai"
+tags = ["openai", "session", "ai"]
+entropy_threshold = 4.0
+allowlist = [
+    'sess-EXAMPLE',
+    'sess-YOUR_SESSION_KEY',
+    'sess-xxxx',
+]
+remediation = "Log out from all OpenAI sessions at https://platform.openai.com/account and rotate any API keys that were accessible during the compromised session."
+
+# ==============================================================================
+# OpenAI — Project API Key
+# ==============================================================================
+
+[[rules]]
+id = "openai-project-api-key"
+description = "OpenAI project-scoped API key (sk-proj- prefix, 100+ chars)"
+regex = '''\bsk-proj-[a-zA-Z0-9_\-]{97,}\b'''
+keywords = ["sk-proj-"]
+severity = "critical"
+category = "ai"
+tags = ["openai", "project-key", "ai"]
+entropy_threshold = 4.5
+allowlist = [
+    'sk-proj-EXAMPLE',
+    'sk-proj-xxxx',
+    'sk-proj-YOUR_KEY',
+]
+remediation = "Delete the project API key at https://platform.openai.com/api-keys and create a new scoped key with minimum required permissions. Audit usage logs for unauthorized calls."
+
+# ==============================================================================
+# Azure OpenAI — API Key
+# ==============================================================================
+
+[[rules]]
+id = "azure-openai-api-key"
+description = "Azure OpenAI Service API key (32 hex chars) paired with Azure endpoint"
+regex = '''(?i)(?:azure[_\-]?openai[_\-]?(?:api[_\-]?)?key|AZURE_OPENAI_API_KEY|AZURE_OPENAI_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_KEY", "azure_openai"]
+severity = "critical"
+category = "ai"
+tags = ["azure", "openai", "ai", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'AZURE_OPENAI_API_KEY=YOUR_KEY',
+    'AZURE_OPENAI_KEY=00000000000000000000000000000000',
+    'AZURE_OPENAI_API_KEY=<',
+    'AZURE_OPENAI_API_KEY=$\{',
+]
+remediation = "Rotate the Azure OpenAI key at Azure Portal → Azure OpenAI → Keys and Endpoint → Regenerate key. Update all dependent services and function apps."

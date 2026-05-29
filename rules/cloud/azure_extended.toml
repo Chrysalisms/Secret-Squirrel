@@ -1,0 +1,43 @@
+# Azure extended secrets
+# Covers Azure AD app registrations, Storage SAS, Service Bus, Event Hub
+
+[[rules]]
+id = "azure-service-bus-connection-string"
+description = "Azure Service Bus connection string with SharedAccessKey"
+severity = "critical"
+category = "cloud"
+regex = '''Endpoint=sb://[a-z0-9\-]+\.servicebus\.windows\.net/;SharedAccessKeyName=[A-Za-z0-9]+;SharedAccessKey=([A-Za-z0-9+/=]{44})'''
+keywords = ["servicebus.windows.net", "SharedAccessKey", "AZURE_SERVICE_BUS"]
+entropy = 4.5
+tags = ["azure", "service-bus", "cloud"]
+
+[[rules]]
+id = "azure-event-hub-connection-string"
+description = "Azure Event Hub connection string with SharedAccessKey"
+severity = "critical"
+category = "cloud"
+regex = '''Endpoint=sb://[a-z0-9\-]+\.servicebus\.windows\.net/;SharedAccessKeyName=[A-Za-z0-9]+;SharedAccessKey=([A-Za-z0-9+/=]{44});EntityPath=[A-Za-z0-9\-]+'''
+keywords = ["EntityPath", "servicebus.windows.net", "AZURE_EVENT_HUB"]
+entropy = 4.5
+tags = ["azure", "event-hub", "cloud"]
+
+[[rules]]
+id = "azure-storage-account-key"
+description = "Azure Storage account access key (base64 encoded)"
+severity = "critical"
+category = "cloud"
+regex = '''AccountKey=([A-Za-z0-9+/]{86}==)'''
+keywords = ["AccountKey=", "AZURE_STORAGE_KEY", "DefaultEndpointsProtocol"]
+entropy = 5.0
+tags = ["azure", "storage", "cloud"]
+
+[[rules]]
+id = "azure-cosmos-db-key"
+description = "Azure Cosmos DB account primary or secondary key"
+severity = "critical"
+category = "database"
+regex = '''(?i)cosmos(?:db)?[._-]?(?:primary[._-]?|secondary[._-]?)?(?:master[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9/+=]{88})['"]?'''
+keywords = ["cosmosdb", "COSMOS_KEY", "CosmosDB"]
+entropy = 5.0
+tags = ["azure", "cosmosdb", "database", "cloud"]
+

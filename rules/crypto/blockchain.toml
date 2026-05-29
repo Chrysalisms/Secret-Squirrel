@@ -1,0 +1,87 @@
+# Cryptocurrency and DeFi secrets
+# Covers exchange API keys, wallet private keys, mnemonic seeds
+
+[[rules]]
+id = "ethereum-private-key"
+description = "Ethereum / EVM-compatible blockchain private key (64-char hex)"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)(?:eth(?:ereum)?|evm|web3)[._-]?(?:private[._-]?|wallet[._-]?)?(?:key|priv)\s*[=:]\s*['"]?(?:0x)?([a-f0-9]{64})['"]?'''
+keywords = ["ethereum", "private_key", "ETH_PRIVATE"]
+entropy = 4.5
+allowlist = [
+    '0x0000000000000000000000000000000000000000000000000000000000000000',
+    '=0xDEADDEAD',
+    '=YOUR_PRIVATE_KEY',
+]
+tags = ["ethereum", "crypto", "blockchain"]
+
+[[rules]]
+id = "solana-private-key"
+description = "Solana wallet private key (base58 encoded)"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)(?:solana|sol)[._-]?(?:private[._-]?|wallet[._-]?)?(?:key|priv|secret)\s*[=:]\s*['"]?([1-9A-HJ-NP-Za-km-z]{87,88})['"]?'''
+keywords = ["solana", "SOL_PRIVATE"]
+entropy = 4.5
+tags = ["solana", "crypto", "blockchain"]
+
+[[rules]]
+id = "bip39-mnemonic-seed"
+description = "BIP-39 mnemonic seed phrase (12 or 24 words from wordlist)"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)(?:mnemonic|seed[._-]?phrase|recovery[._-]?phrase|secret[._-]?phrase|backup[._-]?phrase)\s*[=:'"]\s*([a-z]+(?: [a-z]+){11,23})'''
+keywords = ["mnemonic", "seed phrase", "recovery phrase"]
+entropy = 3.5
+tags = ["bip39", "crypto", "wallet", "mnemonic"]
+
+[[rules]]
+id = "binance-api-key"
+description = "Binance exchange API key"
+severity = "high"
+category = "payments"
+regex = '''(?i)binance[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{64})['"]?'''
+keywords = ["binance"]
+entropy = 4.5
+tags = ["binance", "crypto", "exchange"]
+
+[[rules]]
+id = "kraken-api-key"
+description = "Kraken cryptocurrency exchange API key"
+severity = "high"
+category = "payments"
+regex = '''(?i)kraken[._-]?(?:api[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([A-Za-z0-9/+=]{56,})['"]?'''
+keywords = ["kraken"]
+entropy = 4.5
+tags = ["kraken", "crypto", "exchange"]
+
+[[rules]]
+id = "alchemy-api-key"
+description = "Alchemy blockchain infrastructure API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)alchemy[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9_-]{32})['"]?|https://(?:eth|polygon|arb|opt)-mainnet\.g\.alchemy\.com/v2/([a-zA-Z0-9_-]{32})'''
+keywords = ["alchemy", "alchemy.com/v2/"]
+entropy = 4.0
+tags = ["alchemy", "blockchain", "rpc"]
+
+[[rules]]
+id = "infura-project-id"
+description = "Infura Ethereum node access with project secret"
+severity = "high"
+category = "cloud"
+regex = '''(?i)infura[._-]?(?:project[._-]?|api[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["infura", "INFURA_SECRET"]
+entropy = 4.0
+tags = ["infura", "blockchain", "rpc"]
+
+[[rules]]
+id = "moralis-api-key"
+description = "Moralis Web3 platform API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)moralis[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_-]{64})['"]?'''
+keywords = ["moralis"]
+entropy = 4.5
+tags = ["moralis", "blockchain", "saas"]

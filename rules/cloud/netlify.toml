@@ -1,0 +1,65 @@
+# Secret Squirrel — Netlify Rules
+# Netlify deployment platform secret detection rules
+
+# ==============================================================================
+# Netlify — Access Token
+# ==============================================================================
+
+[[rules]]
+id = "netlify-access-token"
+description = "Netlify personal access token"
+regex = '''(?i)(?:netlify[_\-\.\s]{0,10}(?:access[_\-\.\s]{0,5})?token|NETLIFY_AUTH_TOKEN|NETLIFY_TOKEN|NETLIFY_ACCESS_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{40,44})["']?'''
+keywords = ["NETLIFY_AUTH_TOKEN", "NETLIFY_TOKEN", "NETLIFY_ACCESS_TOKEN", "netlify_token"]
+severity = "critical"
+category = "cloud"
+tags = ["netlify", "deployment", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'NETLIFY_AUTH_TOKEN=YOUR_TOKEN',
+    'NETLIFY_TOKEN=<',
+    'NETLIFY_TOKEN=$\{',
+    'netlify_token = ""',
+]
+remediation = "Revoke at https://app.netlify.com/user/applications#personal-access-tokens and generate a replacement. Audit recent site deployments for unauthorized changes."
+
+# ==============================================================================
+# Netlify — OAuth Client Secret
+# ==============================================================================
+
+[[rules]]
+id = "netlify-oauth-client-secret"
+description = "Netlify OAuth application client secret"
+regex = '''(?i)(?:netlify[_\-\.\s]{0,10}(?:oauth[_\-\.\s]{0,5})?(?:client[_\-\.\s]{0,5})?secret|NETLIFY_CLIENT_SECRET|NETLIFY_OAUTH_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{32,48})["']?'''
+keywords = ["NETLIFY_CLIENT_SECRET", "NETLIFY_OAUTH_SECRET", "netlify_client_secret"]
+severity = "critical"
+category = "cloud"
+tags = ["netlify", "oauth", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'NETLIFY_CLIENT_SECRET=YOUR_SECRET',
+    'NETLIFY_OAUTH_SECRET=<',
+    'NETLIFY_CLIENT_SECRET=$\{',
+    'netlify_client_secret = ""',
+]
+remediation = "Rotate the OAuth secret at https://app.netlify.com/user/applications and update any OAuth integrations."
+
+# ==============================================================================
+# Netlify — Webhook Signature Secret
+# ==============================================================================
+
+[[rules]]
+id = "netlify-webhook-signature"
+description = "Netlify webhook signature secret (for payload verification)"
+regex = '''(?i)(?:netlify[_\-\.\s]{0,10}webhook[_\-\.\s]{0,10}(?:secret|signature|key)|NETLIFY_WEBHOOK_SECRET|NETLIFY_WEBHOOK_SIGNATURE)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{32,64})["']?'''
+keywords = ["NETLIFY_WEBHOOK_SECRET", "NETLIFY_WEBHOOK_SIGNATURE", "netlify_webhook"]
+severity = "high"
+category = "cloud"
+tags = ["netlify", "webhook", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'NETLIFY_WEBHOOK_SECRET=YOUR_SECRET',
+    'NETLIFY_WEBHOOK_SIGNATURE=<',
+    'NETLIFY_WEBHOOK_SECRET=$\{',
+    'netlify_webhook_secret = ""',
+]
+remediation = "Regenerate the webhook secret in Netlify site settings and update signature validation in your webhook handler."

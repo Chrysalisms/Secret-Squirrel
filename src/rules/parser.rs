@@ -53,6 +53,20 @@ pub enum RuleCategory {
     Payments,
     /// Generic / catch-all patterns (password assignments, API keys)
     Generic,
+    /// CI/CD service tokens (CircleCI, Travis CI, Jenkins, Buildkite)
+    Ci,
+    /// Messaging / event-bus service secrets (Kafka, RabbitMQ, Pusher, PubNub)
+    Messaging,
+    /// Identity provider secrets (Okta, Auth0, Keycloak, Cognito, Azure AD)
+    Identity,
+    /// Monitoring / observability service secrets (Sentry, New Relic, Grafana)
+    Monitoring,
+    /// Object storage secrets (MinIO, Backblaze B2, Cloudflare R2, Wasabi)
+    Storage,
+    /// Mobile app secrets (Google Maps, Firebase, iOS/Android, OneSignal)
+    Mobile,
+    /// IoT device and embedded systems secrets (MQTT, Particle, Arduino Cloud)
+    Iot,
 }
 
 // ============================================================================

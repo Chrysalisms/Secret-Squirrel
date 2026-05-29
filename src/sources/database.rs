@@ -81,6 +81,7 @@ impl DbDialect {
 #[derive(Debug)]
 pub struct DatabaseSource {
     /// Connection string — held opaquely, never logged.
+    #[allow(dead_code)]
     connection_string: String,
     /// Detected or explicit database dialect.
     pub dialect: DbDialect,
@@ -96,6 +97,7 @@ impl DatabaseSource {
     /// Return the connection string for use by a driver.
     ///
     /// Intentionally not `pub` to prevent accidental logging in caller code.
+    #[allow(dead_code)]
     pub(crate) fn connection_string(&self) -> &str {
         &self.connection_string
     }

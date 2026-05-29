@@ -1,0 +1,82 @@
+# Supply chain and logistics platform secrets
+# Covers EasyPost, ShipBob, ShipStation, Shippo, FedEx, UPS, DHL
+
+[[rules]]
+id = "easypost-api-key"
+description = "EasyPost shipping API key (EZAK prefix)"
+severity = "high"
+category = "saas"
+regex = '''EZ[A-Z][A-Za-z0-9]{64,72}'''
+keywords = ["EZAKtest", "EZTK", "easypost", "EASYPOST_API"]
+entropy = 4.5
+tags = ["easypost", "shipping", "logistics"]
+
+[[rules]]
+id = "shipstation-api-secret"
+description = "ShipStation multi-carrier shipping API secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)shipstation[._-]?(?:api[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,40})['"]?'''
+keywords = ["shipstation", "SS_API_SECRET"]
+entropy = 4.0
+tags = ["shipstation", "shipping", "ecommerce"]
+
+[[rules]]
+id = "shippo-api-token"
+description = "Shippo multi-carrier shipping API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)shippo[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64})['"]?'''
+keywords = ["shippo", "SHIPPO_API"]
+entropy = 4.5
+tags = ["shippo", "shipping", "logistics"]
+
+[[rules]]
+id = "shipbob-api-key"
+description = "ShipBob fulfillment platform API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)shipbob[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["shipbob"]
+entropy = 4.0
+tags = ["shipbob", "fulfillment", "logistics"]
+
+[[rules]]
+id = "fedex-api-key"
+description = "FedEx developer API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)fedex[._-]?(?:api[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,40})['"]?'''
+keywords = ["fedex", "FEDEX_KEY", "FEDEX_SECRET"]
+entropy = 4.0
+tags = ["fedex", "shipping", "logistics"]
+
+[[rules]]
+id = "ups-api-key"
+description = "UPS developer API access key"
+severity = "high"
+category = "saas"
+regex = '''(?i)ups[._-]?(?:api[._-]?)?(?:access[._-]?)?(?:key|secret|token|license)\s*[=:]\s*['"]?([A-Z0-9]{16})['"]?'''
+keywords = ["ups", "UPS_API", "UPS_LICENSE"]
+entropy = 3.5
+tags = ["ups", "shipping", "logistics"]
+
+[[rules]]
+id = "dhl-api-key"
+description = "DHL Express API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)dhl[._-]?(?:express[._-]?|api[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["dhl", "DHL_API"]
+entropy = 4.0
+tags = ["dhl", "shipping", "logistics"]
+
+[[rules]]
+id = "usps-api-key"
+description = "USPS web tools API user ID"
+severity = "medium"
+category = "saas"
+regex = '''(?i)usps[._-]?(?:web[._-]?tools[._-]?|api[._-]?)?(?:user[._-]?id|api[._-]?key)\s*[=:]\s*['"]?([A-Z0-9]{30,})['"]?'''
+keywords = ["usps", "USPS_API", "USPS_USERID"]
+entropy = 3.0
+tags = ["usps", "shipping", "logistics"]

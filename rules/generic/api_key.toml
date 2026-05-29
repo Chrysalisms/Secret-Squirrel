@@ -1,0 +1,182 @@
+# Generic API Key patterns
+# Covers REACT_APP_, VITE_, NEXT_PUBLIC_, and common env-prefix assignments
+# that don't match any vendor-specific rule.
+# These account for ~35% of the 'key' FN bucket in CredData.
+
+[[rules]]
+id = "react-app-api-key"
+description = "React / CRA environment variable holding an API key"
+severity = "high"
+category = "generic"
+regex = '''(?i)REACT_APP_[A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL)[A-Z0-9_]*\s*=\s*['"]?([A-Za-z0-9\-_./+]{20,})['"]?'''
+allowlist = [
+    'REACT_APP_API_KEY=$\{',
+    'REACT_APP_API_KEY=your-',
+    'REACT_APP_API_KEY=REPLACE',
+    'REACT_APP_API_KEY=<',
+    'REACT_APP_API_KEY=xxx',
+]
+entropy = 3.5
+tags = ["react", "frontend", "env"]
+
+[[rules]]
+id = "vite-api-key"
+description = "Vite / Nuxt environment variable holding an API key"
+severity = "high"
+category = "generic"
+regex = '''(?i)VITE_[A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD)[A-Z0-9_]*\s*=\s*['"]?([A-Za-z0-9\-_./+]{20,})['"]?'''
+allowlist = [
+    'VITE_API_KEY=$\{',
+    'VITE_API_KEY=your-',
+    'VITE_API_KEY=<',
+]
+entropy = 3.5
+tags = ["vite", "vue", "frontend", "env"]
+
+[[rules]]
+id = "next-public-api-key"
+description = "Next.js public environment variable holding an API key"
+severity = "high"
+category = "generic"
+regex = '''(?i)NEXT_PUBLIC_[A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN|KEY)[A-Z0-9_]*\s*=\s*['"]?([A-Za-z0-9\-_./+]{20,})['"]?'''
+allowlist = [
+    'NEXT_PUBLIC_API_KEY=$\{',
+    'NEXT_PUBLIC_API_KEY=your-',
+    'NEXT_PUBLIC_API_KEY=<',
+]
+entropy = 3.5
+tags = ["nextjs", "frontend", "env"]
+
+[[rules]]
+id = "expo-api-key"
+description = "Expo / React Native environment variable holding an API key"
+severity = "high"
+category = "generic"
+regex = '''(?i)EXPO_(?:PUBLIC_)?[A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN)[A-Z0-9_]*\s*=\s*['"]?([A-Za-z0-9\-_./+]{20,})['"]?'''
+allowlist = [
+    'EXPO_API_KEY=$\{',
+]
+entropy = 3.5
+tags = ["expo", "react-native", "mobile", "env"]
+
+[[rules]]
+id = "app-api-key-assignment"
+description = "Generic APP_* environment variable holding an API key"
+severity = "medium"
+category = "generic"
+regex = '''(?i)APP_[A-Z0-9_]*(?:API[_-]?KEY|SECRET_KEY|ACCESS_KEY)[A-Z0-9_]*\s*=\s*['"]?([A-Za-z0-9\-_./+]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=REPLACE',
+    '=<your',
+    '=xxx',
+    '=test',
+    '=fake',
+    '=example',
+]
+entropy = 3.8
+tags = ["generic", "env"]
+
+[[rules]]
+id = "api-key-json-field"
+description = "API key value in JSON configuration files"
+severity = "high"
+category = "generic"
+regex = '''(?i)"(?:api[_-]?key|api[_-]?secret|access[_-]?key|secret[_-]?key|client[_-]?secret)"\s*:\s*"([A-Za-z0-9\-_./+]{24,})"'''
+allowlist = [
+    '": "$\{',
+    '": "your-',
+    '": "REPLACE',
+    '": "<',
+    '": "xxx',
+    '": "test',
+    '": "fake',
+    '": "example',
+    '": "1234',
+    '": "abcd',
+    '": "null',
+    '": ""',
+]
+entropy = 3.8
+tags = ["json", "config", "generic"]
+
+[[rules]]
+id = "api-key-yaml-field"
+description = "API key value in YAML configuration files"
+severity = "high"
+category = "generic"
+regex = '''(?i)(?:api[_-]?key|api[_-]?secret|access[_-]?key|secret[_-]?key|client[_-]?secret)\s*:\s*['"]?([A-Za-z0-9\-_./+]{24,})['"]?'''
+allowlist = [
+    ': $\{',
+    ': \{\{',
+    ': your-',
+    ': REPLACE',
+    ': <',
+    ': xxx',
+    ': null',
+    ': ""',
+    ": ''",
+]
+entropy = 3.8
+tags = ["yaml", "config", "generic"]
+
+[[rules]]
+id = "private-key-variable"
+description = "Variable named private_key holding a high-entropy value"
+severity = "critical"
+category = "generic"
+regex = '''(?i)(?:private[_-]?key|priv[_-]?key)\s*[=:]\s*['"]?([A-Za-z0-9\-_./+]{32,})['"]?'''
+allowlist = [
+    '=$\{',
+    ': $\{',
+    '=your-',
+    '=<',
+    '=REPLACE',
+    '=example',
+    '=null',
+]
+entropy = 4.0
+tags = ["private-key", "generic"]
+
+[[rules]]
+id = "secret-key-variable"
+description = "Variable named secret_key or similar with a high-entropy value"
+severity = "high"
+category = "generic"
+regex = '''(?i)(?:secret[_-]?key|secret[_-]?token|secret[_-]?pass(?:word)?)\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_./+]{16,})['"]?'''
+allowlist = [
+    '=$\{',
+    ': $\{',
+    '=your-',
+    '=<',
+    '=REPLACE',
+    '=example',
+    '=null',
+    '=django-insecure-',
+    '=change-me',
+    '=changeme',
+    '=please-change',
+    '=CHANGE_ME',
+    '=TODO',
+]
+entropy = 4.0
+tags = ["secret", "generic"]
+
+[[rules]]
+id = "access-token-variable"
+description = "Variable named access_token or similar with a high-entropy value"
+severity = "high"
+category = "generic"
+regex = '''(?i)(?:access[_-]?token|auth[_-]?token|bearer[_-]?token)\s*[=:]\s*['"]?([A-Za-z0-9\-_./+]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+    ': $\{',
+    '=your-',
+    '=<',
+    '=REPLACE',
+    '=null',
+    '=undefined',
+]
+entropy = 3.5
+tags = ["access-token", "generic"]

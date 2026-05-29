@@ -1,0 +1,49 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-anthropic"
+description = "Parity rule for anthropic"
+severity = "high"
+category = "ai"
+keywords = ["anthropic"]
+regex = '''(?i)anthropic.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-openaiadmin"
+description = "Parity rule for openaiadmin"
+severity = "high"
+category = "ai"
+keywords = ["openaiadmin"]
+regex = '''(?i)openaiadmin.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-openai"
+description = "Parity rule for openai"
+severity = "high"
+category = "ai"
+keywords = ["openai"]
+regex = '''(?i)openai.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-pinecone"
+description = "Parity rule for pinecone"
+severity = "high"
+category = "ai"
+keywords = ["pinecone"]
+regex = '''(?i)pinecone.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-xai"
+description = "Parity rule for xai"
+severity = "high"
+category = "ai"
+keywords = ["xai"]
+regex = '''(?i)xai.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

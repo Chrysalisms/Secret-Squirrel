@@ -1,0 +1,82 @@
+# Mobile push notification service secrets
+# Covers OneSignal, Firebase Cloud Messaging, Apple APNS, Expo, Urban Airship
+
+[[rules]]
+id = "onesignal-api-key"
+description = "OneSignal push notification REST API key"
+severity = "high"
+category = "mobile"
+regex = '''(?i)onesignal[._-]?(?:rest[._-]?|api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64,88})['"]?'''
+keywords = ["onesignal", "ONESIGNAL_API", "OS_REST_API_KEY"]
+entropy = 4.5
+tags = ["onesignal", "push", "mobile"]
+
+[[rules]]
+id = "firebase-server-key"
+description = "Firebase Cloud Messaging (FCM) server key (legacy)"
+severity = "critical"
+category = "mobile"
+regex = '''AAAA[A-Za-z0-9_\-]{7}:[A-Za-z0-9_\-]{140}'''
+keywords = ["AAAA", "FCM", "firebase_server_key"]
+entropy = 5.0
+tags = ["firebase", "fcm", "push", "mobile"]
+
+[[rules]]
+id = "apns-auth-key"
+description = "Apple Push Notification Service (APNs) .p8 authentication key"
+severity = "critical"
+category = "mobile"
+regex = '''-----BEGIN PRIVATE KEY-----[\s\S]{100,200}-----END PRIVATE KEY-----'''
+keywords = ["APNs", "apns", "apple_push"]
+entropy = 5.0
+tags = ["apple", "apns", "push", "mobile"]
+
+[[rules]]
+id = "expo-access-token"
+description = "Expo React Native development service access token"
+severity = "high"
+category = "mobile"
+regex = '''(?i)expo[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,48})['"]?'''
+keywords = ["expo", "EXPO_TOKEN"]
+entropy = 4.0
+tags = ["expo", "react-native", "mobile"]
+
+[[rules]]
+id = "airship-api-key"
+description = "Airship (Urban Airship) push notification API key"
+severity = "high"
+category = "mobile"
+regex = '''(?i)(?:urban[._-]?)?airship[._-]?(?:api[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{22})['"]?'''
+keywords = ["airship", "urbanairship"]
+entropy = 3.5
+tags = ["airship", "push", "mobile"]
+
+[[rules]]
+id = "braze-api-key"
+description = "Braze customer engagement platform REST API key"
+severity = "high"
+category = "mobile"
+regex = '''(?i)braze[._-]?(?:api[._-]?|rest[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["braze", "BRAZE_API_KEY"]
+entropy = 3.0
+tags = ["braze", "push", "mobile", "crm"]
+
+[[rules]]
+id = "iterable-api-key"
+description = "Iterable cross-channel marketing platform API key"
+severity = "high"
+category = "mobile"
+regex = '''(?i)iterable[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["iterable", "ITERABLE_API"]
+entropy = 4.0
+tags = ["iterable", "push", "marketing", "mobile"]
+
+[[rules]]
+id = "leanplum-api-key"
+description = "Leanplum mobile marketing API key"
+severity = "high"
+category = "mobile"
+regex = '''(?i)leanplum[._-]?(?:api[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["leanplum", "LEANPLUM_KEY"]
+entropy = 4.0
+tags = ["leanplum", "push", "mobile", "marketing"]

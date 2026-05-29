@@ -1,0 +1,114 @@
+# Generic pattern rules — extended sensitive variable names
+# Catches common variable name patterns containing secrets
+
+[[rules]]
+id = "generic-oauth-client-secret"
+description = "OAuth client secret variable"
+severity = "high"
+category = "generic"
+regex = '''(?i)(?:oauth|oidc)[._-]?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{16,})['"]?'''
+keywords = ["oauth_client_secret", "oidc_client_secret", "CLIENT_SECRET"]
+entropy = 3.5
+allowlist = ['YOUR_CLIENT_SECRET', '<client_secret>', 'EXAMPLE_SECRET']
+tags = ["oauth", "oidc", "generic"]
+
+[[rules]]
+id = "generic-database-url"
+description = "Generic database connection URL with embedded password"
+severity = "critical"
+category = "generic"
+regex = '''(?:postgres(?:ql)?|mysql|mariadb|mssql|mongodb|redis|amqp|rabbitmq)://[A-Za-z0-9_.~-]{1,64}:([^@\s'"]{8,64})@[A-Za-z0-9._-]{1,253}'''
+keywords = ["DATABASE_URL", "database_url", "DB_URL"]
+entropy = 2.5
+allowlist = [
+    'postgres://user:password@',
+    'postgres://user:pass@',
+    'mysql://user:password@',
+    'mongodb://user:password@',
+    'redis://:password@',
+    'postgres://localhost',
+]
+tags = ["database", "connection-string", "generic"]
+
+
+[[rules]]
+id = "generic-smtp-password"
+description = "SMTP email server password in connection string"
+severity = "high"
+category = "generic"
+regex = '''(?i)smtp[._-]?(?:password|pass|secret)\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["SMTP_PASSWORD", "smtp_pass", "EMAIL_PASSWORD"]
+entropy = 3.0
+allowlist = ['smtp_password=yourpassword', 'SMTP_PASSWORD=', 'smtp_pass=password']
+tags = ["smtp", "email", "generic"]
+
+[[rules]]
+id = "generic-jwt-secret"
+description = "JWT signing secret key"
+severity = "critical"
+category = "generic"
+regex = '''(?i)jwt[._-]?(?:signing[._-]?|secret[._-]?)?(?:key|secret)\s*[=:]\s*['"]?([A-Za-z0-9_\-!@#$%^&*+=/]{32,})['"]?'''
+keywords = ["JWT_SECRET", "jwt_secret", "JWT_SIGNING_KEY"]
+entropy = 4.0
+allowlist = [
+    'jwt_secret=your_secret',
+    'JWT_SECRET=changeme',
+    'JWT_SECRET=your-secret',
+    'jwt_secret_key=',
+]
+tags = ["jwt", "auth", "generic"]
+
+[[rules]]
+id = "generic-session-secret"
+description = "Web framework session secret"
+severity = "high"
+category = "generic"
+regex = '''(?i)session[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-!@#$%^&*+=/]{24,})['"]?'''
+keywords = ["SESSION_SECRET", "session_secret", "FLASK_SECRET"]
+entropy = 3.5
+allowlist = ['SESSION_SECRET=changeme', 'session_secret=your_secret']
+tags = ["session", "web", "generic"]
+
+[[rules]]
+id = "generic-encryption-key"
+description = "Data encryption key variable"
+severity = "critical"
+category = "generic"
+regex = '''(?i)(?:aes|des|encryption|cipher|master)[._-]?(?:secret|key|iv|salt)\s*[=:]\s*['"]?([A-Za-z0-9+/=]{16,})['"]?'''
+keywords = ["encryption_key", "AES_KEY", "MASTER_KEY", "CIPHER_KEY"]
+entropy = 3.5
+allowlist = ['encryption_key=your_key', 'AES_KEY=YOUR_KEY']
+tags = ["encryption", "aes", "generic"]
+
+[[rules]]
+id = "generic-webhook-secret"
+description = "Webhook signing or validation secret"
+severity = "high"
+category = "generic"
+regex = '''(?i)webhook[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-!@#$%^&*+=/]{20,})['"]?'''
+keywords = ["WEBHOOK_SECRET", "webhook_secret"]
+entropy = 3.5
+allowlist = ['WEBHOOK_SECRET=changeme', 'webhook_secret=your_secret']
+tags = ["webhook", "generic"]
+
+[[rules]]
+id = "generic-hmac-secret"
+description = "HMAC signing secret key"
+severity = "high"
+category = "generic"
+regex = '''(?i)hmac[._-]?(?:signing[._-]?|secret[._-]?)?(?:key|secret)\s*[=:]\s*['"]?([A-Za-z0-9+/=_\-]{24,})['"]?'''
+keywords = ["HMAC_SECRET", "hmac_key", "HMAC_KEY"]
+entropy = 4.0
+allowlist = ['HMAC_SECRET=changeme']
+tags = ["hmac", "auth", "generic"]
+
+[[rules]]
+id = "generic-signing-key"
+description = "Code signing or document signing private key ID"
+severity = "high"
+category = "generic"
+regex = '''(?i)signing[._-]?(?:private[._-]?)?(?:key|secret)\s*[=:]\s*['"]?([A-Za-z0-9+/=_\-]{32,})['"]?'''
+keywords = ["SIGNING_KEY", "signing_key", "SIGNING_SECRET"]
+entropy = 4.0
+allowlist = ['SIGNING_KEY=your_key', 'signing_key=example']
+tags = ["signing", "generic"]

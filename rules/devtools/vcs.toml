@@ -1,0 +1,92 @@
+# Source code hosting and version control secrets
+# Covers Bitbucket, GitLab (extended), Azure DevOps, CodeCommit
+
+[[rules]]
+id = "bitbucket-app-password"
+description = "Bitbucket App Password for repository access"
+severity = "high"
+category = "devtools"
+regex = '''(?i)bitbucket[._-]?(?:app[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9]{20,})['"]?'''
+keywords = ["bitbucket"]
+entropy = 4.0
+tags = ["bitbucket", "vcs", "devtools"]
+
+[[rules]]
+id = "bitbucket-client-id"
+description = "Bitbucket OAuth client ID"
+severity = "medium"
+category = "devtools"
+regex = '''(?i)bitbucket[._-]?(?:client[._-]?)?(?:id|key)\s*[=:]\s*['"]?([a-z0-9]{32})['"]?'''
+keywords = ["bitbucket"]
+entropy = 3.0
+tags = ["bitbucket", "oauth", "devtools"]
+
+[[rules]]
+id = "bitbucket-client-secret"
+description = "Bitbucket OAuth client secret"
+severity = "high"
+category = "devtools"
+regex = '''(?i)bitbucket[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([a-z0-9=_\-]{64})['"]?'''
+keywords = ["bitbucket"]
+entropy = 4.0
+tags = ["bitbucket", "oauth", "devtools"]
+
+[[rules]]
+id = "azure-devops-pat"
+description = "Azure DevOps personal access token"
+severity = "critical"
+category = "devtools"
+regex = '''(?i)(?:azure[._-]?devops|ado)[._-]?(?:pat|(?:personal[._-]?)?access[._-]?token)\s*[=:]\s*['"]?([a-z0-9]{52})['"]?'''
+keywords = ["azure_devops", "ADO_PAT", "TF_TOKEN"]
+entropy = 4.5
+tags = ["azure-devops", "ado", "devtools"]
+
+[[rules]]
+id = "codecommit-https-credentials"
+description = "AWS CodeCommit HTTPS Git credentials (generated)"
+severity = "high"
+category = "devtools"
+regex = '''(?i)codecommit[._-]?(?:password|credential|secret)\s*[=:]\s*['"]?([A-Za-z0-9+/=]{20,})['"]?'''
+keywords = ["codecommit"]
+entropy = 4.0
+tags = ["codecommit", "aws", "vcs", "devtools"]
+
+[[rules]]
+id = "perforce-passwd"
+description = "Perforce Helix Core user password"
+severity = "high"
+category = "devtools"
+regex = '''(?i)(?:p4|perforce)[._-]?(?:passwd|password)\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["P4PASSWD", "perforce"]
+entropy = 3.0
+tags = ["perforce", "helix", "vcs", "devtools"]
+
+[[rules]]
+id = "sourcegraph-access-token"
+description = "Sourcegraph code search API token (sgp_ prefix)"
+severity = "high"
+category = "devtools"
+regex = '''sgp_[a-f0-9]{40}|sgph_[A-Za-z0-9_-]{42}'''
+keywords = ["sgp_", "sgph_"]
+entropy = 4.0
+tags = ["sourcegraph", "devtools"]
+
+[[rules]]
+id = "gitea-token"
+description = "Gitea personal access token"
+severity = "high"
+category = "devtools"
+regex = '''(?i)gitea[._-]?(?:personal[._-]?)?(?:access[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["gitea"]
+entropy = 4.0
+tags = ["gitea", "vcs", "devtools"]
+
+[[rules]]
+id = "linear-api-key"
+description = "Linear project management API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)linear[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(lin_api_[a-zA-Z0-9]{40})['"]?'''
+keywords = ["linear", "lin_api_"]
+entropy = 4.0
+tags = ["linear", "project-management", "saas"]

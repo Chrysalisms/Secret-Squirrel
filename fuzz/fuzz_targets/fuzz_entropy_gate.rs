@@ -41,10 +41,10 @@ fuzz_target!(|data: &[u8]| {
         );
         // Invariant: candidate offset + length must be within the original content
         assert!(
-            candidate.offset + candidate.length <= content.len(),
+            candidate.offset as usize + candidate.length <= content.len(),
             "candidate range [{}, {}) exceeds input length {}",
             candidate.offset,
-            candidate.offset + candidate.length,
+            candidate.offset as usize + candidate.length,
             content.len()
         );
     }

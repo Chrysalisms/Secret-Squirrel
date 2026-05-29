@@ -1,0 +1,90 @@
+# Database ORM and migration tool secrets
+# Covers Prisma, TypeORM, SQLAlchemy connection strings; db schema migration tools
+
+[[rules]]
+id = "prisma-database-url"
+description = "Prisma ORM DATABASE_URL with embedded credentials"
+severity = "critical"
+category = "database"
+regex = '''DATABASE_URL\s*=\s*['"]?(?:postgres(?:ql)?|mysql|mongodb\+srv?|sqlserver|sqlite)[^:]+:[^:]+:([^@\s'"]{8,})@'''
+keywords = ["DATABASE_URL", "prisma", "PRISMA"]
+entropy = 2.5
+allowlist = [
+    'DATABASE_URL=postgresql://user:password@',
+    'DATABASE_URL=mysql://user:password@',
+    'DATABASE_URL=postgresql://username:password@',
+    'DATABASE_URL="postgresql://user:pass@',
+]
+tags = ["prisma", "database", "orm"]
+
+[[rules]]
+id = "mongodb-atlas-connection-string"
+description = "MongoDB Atlas cluster connection string with embedded password"
+severity = "critical"
+category = "database"
+regex = '''mongodb(?:\+srv)?://[A-Za-z0-9_]+:([^@\s'"]{8,})@[a-z0-9\-]+\.mongodb\.net'''
+keywords = ["mongodb+srv", "mongodb.net", "MONGODB_URI", "MONGO_URL"]
+entropy = 3.0
+tags = ["mongodb", "atlas", "database"]
+
+[[rules]]
+id = "redis-connection-url"
+description = "Redis/Valkey connection URL with embedded password"
+severity = "high"
+category = "database"
+regex = '''rediss?://(?:user:)?([^@\s'"]{8,})@[a-zA-Z0-9\._\-]+:\d+'''
+keywords = ["redis://", "rediss://", "REDIS_URL"]
+entropy = 3.0
+allowlist = ['redis://localhost', 'redis://127.0.0.1', 'redis://:password@']
+tags = ["redis", "valkey", "database"]
+
+[[rules]]
+id = "rabbitmq-connection-url"
+description = "RabbitMQ AMQP connection URL with credentials"
+severity = "high"
+category = "database"
+regex = '''amqps?://[A-Za-z0-9_]+:([^@\s'"]{8,})@[a-zA-Z0-9\._\-]+'''
+keywords = ["amqp://", "amqps://", "RABBITMQ_URL", "AMQP_URL"]
+entropy = 3.0
+allowlist = ['amqp://guest:guest@', 'amqp://user:password@']
+tags = ["rabbitmq", "amqp", "messaging"]
+
+[[rules]]
+id = "confluent-cloud-api-secret"
+description = "Confluent Cloud Kafka REST API secret"
+severity = "critical"
+category = "database"
+regex = '''(?i)confluent[._-]?(?:cloud[._-]?|kafka[._-]?)?(?:api[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9/+]{64})['"]?'''
+keywords = ["confluent", "CONFLUENT_SECRET"]
+entropy = 4.5
+tags = ["confluent", "kafka", "cloud"]
+
+[[rules]]
+id = "upstash-redis-rest-token"
+description = "Upstash serverless Redis REST API token"
+severity = "high"
+category = "database"
+regex = '''(?i)upstash[._-]?(?:redis[._-]?)?(?:rest[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{100,200})['"]?'''
+keywords = ["upstash", "UPSTASH_REDIS"]
+entropy = 5.0
+tags = ["upstash", "redis", "serverless"]
+
+[[rules]]
+id = "turso-database-auth-token"
+description = "Turso edge SQLite database auth token"
+severity = "high"
+category = "database"
+regex = '''(?i)turso[._-]?(?:database[._-]?|db[._-]?)?(?:auth[._-]?)?token\s*[=:]\s*['"]?(eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)['"]?'''
+keywords = ["turso", "TURSO_AUTH_TOKEN"]
+entropy = 5.0
+tags = ["turso", "sqlite", "serverless", "database"]
+
+[[rules]]
+id = "xata-api-key"
+description = "Xata serverless database API key (xau_ prefix)"
+severity = "high"
+category = "database"
+regex = '''xau_[A-Za-z0-9_\-]{64}'''
+keywords = ["xau_", "xata"]
+entropy = 4.5
+tags = ["xata", "database", "serverless"]

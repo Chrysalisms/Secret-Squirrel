@@ -1,0 +1,82 @@
+# Fintech and financial service API secrets
+# Covers Plaid, Yodlee, Dwolla, MangoPay, Adyen, PayPal (extended)
+
+[[rules]]
+id = "plaid-client-secret"
+description = "Plaid financial data API client secret"
+severity = "critical"
+category = "payments"
+regex = '''(?i)plaid[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{30,40})['"]?'''
+keywords = ["plaid", "PLAID_SECRET"]
+entropy = 4.0
+tags = ["plaid", "fintech", "banking"]
+
+[[rules]]
+id = "yodlee-api-secret"
+description = "Yodlee / Envestnet financial data API secret"
+severity = "high"
+category = "payments"
+regex = '''(?i)yodlee[._-]?(?:api[._-]?)?(?:secret|password|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,48})['"]?'''
+keywords = ["yodlee"]
+entropy = 4.0
+tags = ["yodlee", "fintech", "banking"]
+
+[[rules]]
+id = "dwolla-client-secret"
+description = "Dwolla ACH payment API client secret"
+severity = "critical"
+category = "payments"
+regex = '''(?i)dwolla[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{43})['"]?'''
+keywords = ["dwolla"]
+entropy = 4.0
+tags = ["dwolla", "ach", "payments"]
+
+[[rules]]
+id = "mangopay-api-key"
+description = "MangoPay payment API key for Europe"
+severity = "high"
+category = "payments"
+regex = '''(?i)mangopay[._-]?(?:api[._-]?)?(?:key|token|secret|passphrase)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{30,50})['"]?'''
+keywords = ["mangopay"]
+entropy = 4.0
+tags = ["mangopay", "payments", "europe"]
+
+[[rules]]
+id = "mollie-api-key"
+description = "Mollie European payment gateway API key (test_ or live_ prefix)"
+severity = "critical"
+category = "payments"
+regex = '''(?:test|live)_[A-Za-z0-9]{32,40}'''
+keywords = ["mollie", "test_", "live_", "MOLLIE_API"]
+entropy = 4.0
+tags = ["mollie", "payments", "europe"]
+
+[[rules]]
+id = "klarna-api-credentials"
+description = "Klarna Buy Now Pay Later API secret"
+severity = "high"
+category = "payments"
+regex = '''(?i)klarna[._-]?(?:api[._-]?)?(?:secret|password|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["klarna", "KLARNA_API"]
+entropy = 4.0
+tags = ["klarna", "bnpl", "payments"]
+
+[[rules]]
+id = "payoneer-api-key"
+description = "Payoneer payment API key"
+severity = "high"
+category = "payments"
+regex = '''(?i)payoneer[._-]?(?:api[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["payoneer"]
+entropy = 4.0
+tags = ["payoneer", "payments", "fintech"]
+
+[[rules]]
+id = "wise-api-token"
+description = "Wise (TransferWise) international payments API token"
+severity = "high"
+category = "payments"
+regex = '''(?i)(?:wise|transferwise)[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["wise", "transferwise", "WISE_TOKEN"]
+entropy = 3.0
+tags = ["wise", "transferwise", "payments", "fintech"]

@@ -1,0 +1,106 @@
+# Secret Squirrel — Cloudflare Rules
+# Cloudflare-specific secret detection rules
+
+# ==============================================================================
+# Cloudflare — Global API Key
+# ==============================================================================
+
+[[rules]]
+id = "cloudflare-global-api-key"
+description = "Cloudflare Global API Key (legacy, full account access)"
+regex = '''(?i)(?:cloudflare[_\-\.\s]{0,10}(?:global[_\-\.\s]{0,10})?(?:api[_\-\.\s]{0,5})?key|CF_API_KEY|CLOUDFLARE_API_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{37})["']?'''
+keywords = ["CF_API_KEY", "CLOUDFLARE_API_KEY", "cloudflare_api_key", "cloudflare-api-key"]
+severity = "critical"
+category = "cloud"
+tags = ["cloudflare", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'CF_API_KEY=YOUR_API_KEY',
+    'CLOUDFLARE_API_KEY=<',
+    'CLOUDFLARE_API_KEY=$\{',
+    'cloudflare_api_key = ""',
+]
+remediation = "Rotate the Global API Key at https://dash.cloudflare.com/profile/api-tokens. Prefer scoped API Tokens over the Global Key."
+
+# ==============================================================================
+# Cloudflare — API Token (v2, scoped)
+# ==============================================================================
+
+[[rules]]
+id = "cloudflare-api-token"
+description = "Cloudflare API Token (v2 scoped token)"
+regex = '''(?i)(?:cloudflare[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?token|CF_API_TOKEN|CLOUDFLARE_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{40})["']?'''
+keywords = ["CF_API_TOKEN", "CLOUDFLARE_TOKEN", "cloudflare_token", "cloudflare-token"]
+severity = "critical"
+category = "cloud"
+tags = ["cloudflare", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'CF_API_TOKEN=YOUR_TOKEN',
+    'CLOUDFLARE_TOKEN=<',
+    'CLOUDFLARE_TOKEN=$\{',
+    'cloudflare_token = ""',
+]
+remediation = "Revoke at https://dash.cloudflare.com/profile/api-tokens and create a replacement with minimum required permissions."
+
+# ==============================================================================
+# Cloudflare — Origin CA Key
+# ==============================================================================
+
+[[rules]]
+id = "cloudflare-ca-key"
+description = "Cloudflare Origin CA Key (v1.0- format)"
+regex = '''v1\.0-[a-f0-9]{24}-[a-f0-9]{146}'''
+keywords = ["v1.0-", "cloudflare", "origin-ca"]
+severity = "critical"
+category = "cloud"
+tags = ["cloudflare", "tls", "certificate", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'v1.0-EXAMPLE',
+    'v1.0-000000000000000000000000',
+    'YOUR_CA_KEY',
+]
+remediation = "Revoke the Origin CA key at https://dash.cloudflare.com/profile/api-tokens and reissue origin certificates."
+
+# ==============================================================================
+# Cloudflare — Workers KV Namespace ID
+# ==============================================================================
+
+[[rules]]
+id = "cloudflare-worker-kv-namespace-id"
+description = "Cloudflare Workers KV Namespace ID"
+regex = '''(?i)(?:kv[_\-]?namespace[_\-]?id|KV_NAMESPACE_ID|CLOUDFLARE_KV_NAMESPACE)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["KV_NAMESPACE_ID", "kv_namespace_id", "CLOUDFLARE_KV_NAMESPACE"]
+severity = "medium"
+category = "cloud"
+tags = ["cloudflare", "workers", "kv", "cloud"]
+entropy_threshold = 2.5
+allowlist = [
+    'KV_NAMESPACE_ID=YOUR_NAMESPACE_ID',
+    'KV_NAMESPACE_ID=00000000000000000000000000000000',
+    'KV_NAMESPACE_ID=<',
+    'KV_NAMESPACE_ID=$\{',
+]
+remediation = "KV Namespace IDs are not themselves secrets but combined with API tokens allow data access. Rotate any associated Cloudflare API tokens."
+
+# ==============================================================================
+# Cloudflare — R2 Access Key
+# ==============================================================================
+
+[[rules]]
+id = "cloudflare-r2-access-key"
+description = "Cloudflare R2 Storage Access Key ID and Secret"
+regex = '''(?i)(?:r2[_\-]?(?:access[_\-]?key[_\-]?(?:id)?|secret[_\-]?(?:access[_\-]?)?key)|CF_R2_ACCESS_KEY|CF_R2_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{40,60})["']?'''
+keywords = ["r2_access_key", "CF_R2_ACCESS_KEY", "CF_R2_SECRET", "r2_secret"]
+severity = "critical"
+category = "cloud"
+tags = ["cloudflare", "r2", "storage", "cloud"]
+entropy_threshold = 4.0
+allowlist = [
+    'CF_R2_ACCESS_KEY=YOUR_ACCESS_KEY',
+    'CF_R2_SECRET=<',
+    'CF_R2_SECRET=$\{',
+    'r2_access_key = ""',
+]
+remediation = "Rotate R2 access keys at https://dash.cloudflare.com → R2 → Manage R2 API tokens. Use Cloudflare Workers with Managed Tokens instead of static credentials."

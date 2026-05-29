@@ -1,0 +1,122 @@
+# Extended CRM and sales platform rules
+# Covers HubSpot, Salesforce, Pipedrive, Zoho CRM, Copper, Freshsales
+
+[[rules]]
+id = "hubspot-api-key-v2"
+description = "HubSpot private app access token (pat- prefix)"
+severity = "critical"
+category = "saas"
+regex = '''pat-[a-z]{2}1-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'''
+keywords = ["pat-eu1-", "pat-na1-", "hubspot", "HUBSPOT_TOKEN"]
+entropy = 3.0
+tags = ["hubspot", "crm", "saas"]
+
+[[rules]]
+id = "pipedrive-api-key"
+description = "Pipedrive CRM API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)pipedrive[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["pipedrive", "PIPEDRIVE_TOKEN"]
+entropy = 4.5
+tags = ["pipedrive", "crm", "saas"]
+
+[[rules]]
+id = "zoho-crm-api-key"
+description = "Zoho CRM / One Auth API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)zoho[._-]?(?:crm[._-]?|one[._-]?)?(?:api[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["zoho", "ZOHO_API", "ZOHO_TOKEN"]
+entropy = 4.0
+tags = ["zoho", "crm", "saas"]
+
+[[rules]]
+id = "copper-crm-api-key"
+description = "Copper CRM API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)copper[._-]?(?:crm[._-]?|api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["copper", "COPPER_API"]
+entropy = 4.0
+tags = ["copper", "crm", "saas"]
+
+[[rules]]
+id = "freshsales-api-key"
+description = "Freshsales / Freshworks CRM API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)fresh(?:sales|works)[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32})['"]?'''
+keywords = ["freshsales", "freshworks", "FRESHSALES_API"]
+entropy = 4.0
+tags = ["freshsales", "crm", "saas"]
+
+[[rules]]
+id = "notion-api-secret"
+description = "Notion integration secret (secret_ prefix)"
+severity = "high"
+category = "saas"
+regex = '''secret_[A-Za-z0-9]{43}'''
+keywords = ["secret_", "notion", "NOTION_SECRET"]
+entropy = 4.5
+tags = ["notion", "productivity", "saas"]
+
+[[rules]]
+id = "monday-api-token"
+description = "Monday.com work OS API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)monday[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?(eyJhbGciOiJIUzI1NiJ9\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)['"]?'''
+keywords = ["monday", "MONDAY_TOKEN"]
+entropy = 5.0
+tags = ["monday", "project-management", "saas"]
+
+[[rules]]
+id = "servicenow-api-key"
+description = "ServiceNow ITSM platform API credentials"
+severity = "high"
+category = "saas"
+regex = '''(?i)servicenow[._-]?(?:api[._-]?|rest[._-]?)?(?:key|token|password)\s*[=:]\s*['"]?([A-Za-z0-9_\-!@#]{16,})['"]?'''
+keywords = ["servicenow", "SNOW_PASSWORD", "SERVICENOW_API"]
+entropy = 3.5
+tags = ["servicenow", "itsm", "saas"]
+
+[[rules]]
+id = "pagerduty-api-key"
+description = "PagerDuty incident response API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)pagerduty[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9+_\-]{20})['"]?'''
+keywords = ["pagerduty", "PAGERDUTY_TOKEN"]
+entropy = 3.5
+tags = ["pagerduty", "incident-response", "monitoring"]
+
+[[rules]]
+id = "opsgenie-api-key"
+description = "OpsGenie / Atlassian incident management API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)opsgenie[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["opsgenie", "OPSGENIE_API"]
+entropy = 3.0
+tags = ["opsgenie", "atlassian", "incident"]
+
+[[rules]]
+id = "victorops-api-key"
+description = "VictorOps / Splunk On-Call API key"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)(?:victorops|splunk[._-]?on[._-]?call)[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["victorops", "VICTOROPS_API"]
+entropy = 4.0
+tags = ["victorops", "incident", "monitoring"]
+
+[[rules]]
+id = "statuspage-api-key"
+description = "Atlassian Statuspage API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)statuspage[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32})['"]?'''
+keywords = ["statuspage", "STATUSPAGE_API"]
+entropy = 4.0
+tags = ["statuspage", "atlassian", "saas"]

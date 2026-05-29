@@ -1,0 +1,85 @@
+# Secret Squirrel — PayPal / Braintree Rules
+# PayPal and Braintree payment platform secret detection rules
+
+# ==============================================================================
+# PayPal / Braintree — Access Token
+# ==============================================================================
+
+[[rules]]
+id = "paypal-braintree-access-token"
+description = "PayPal Braintree gateway access token"
+regex = '''\baccess_token\$production\$[a-z0-9]{16}\$[a-f0-9]{32}\b'''
+keywords = ["access_token$production$", "braintree", "BRAINTREE_ACCESS_TOKEN"]
+severity = "critical"
+category = "payments"
+tags = ["paypal", "braintree", "payments"]
+entropy_threshold = 3.5
+allowlist = [
+    'access_token$production$EXAMPLE',
+    'access_token$sandbox$',
+    'YOUR_ACCESS_TOKEN',
+]
+remediation = "Revoke at https://sandbox.braintreegateway.com/merchants → API → Generate new API credentials. Braintree tokens provide full gateway access including refunds."
+
+# ==============================================================================
+# PayPal — Client ID
+# ==============================================================================
+
+[[rules]]
+id = "paypal-client-id"
+description = "PayPal REST API client ID"
+regex = '''(?i)(?:paypal[_\-\.\s]{0,10}(?:client[_\-\.\s]{0,5})?(?:id|app[_\-\.\s]{0,5}id)|PAYPAL_CLIENT_ID|PAYPAL_APP_ID)\s{0,5}[:=]\s{0,5}["']?([A-Za-z0-9_\-]{50,80})["']?'''
+keywords = ["PAYPAL_CLIENT_ID", "PAYPAL_APP_ID", "paypal_client_id"]
+severity = "medium"
+category = "payments"
+tags = ["paypal", "payments", "oauth"]
+entropy_threshold = 3.0
+allowlist = [
+    'PAYPAL_CLIENT_ID=YOUR_CLIENT_ID',
+    'PAYPAL_CLIENT_ID=<',
+    'PAYPAL_CLIENT_ID=$\{',
+    'paypal_client_id = ""',
+]
+remediation = "Client IDs are semi-public but combined with client secrets allow full API access. Rotate both at https://developer.paypal.com/developer/applications/."
+
+# ==============================================================================
+# PayPal — Client Secret
+# ==============================================================================
+
+[[rules]]
+id = "paypal-client-secret"
+description = "PayPal REST API client secret"
+regex = '''(?i)(?:paypal[_\-\.\s]{0,10}(?:client[_\-\.\s]{0,5})?secret|PAYPAL_CLIENT_SECRET|PAYPAL_SECRET)\s{0,5}[:=]\s{0,5}["']?([A-Za-z0-9_\-]{50,80})["']?'''
+keywords = ["PAYPAL_CLIENT_SECRET", "PAYPAL_SECRET", "paypal_client_secret"]
+severity = "critical"
+category = "payments"
+tags = ["paypal", "payments", "oauth"]
+entropy_threshold = 4.0
+allowlist = [
+    'PAYPAL_CLIENT_SECRET=YOUR_SECRET',
+    'PAYPAL_SECRET=<',
+    'PAYPAL_CLIENT_SECRET=$\{',
+    'paypal_client_secret = ""',
+]
+remediation = "Rotate at https://developer.paypal.com/developer/applications/ → App → Credentials → Generate secret. Update all server-side PayPal SDK integrations."
+
+# ==============================================================================
+# PayPal — Webhook ID
+# ==============================================================================
+
+[[rules]]
+id = "paypal-webhook-id"
+description = "PayPal webhook ID (used to verify webhook signatures)"
+regex = '''(?i)(?:paypal[_\-\.\s]{0,10}webhook[_\-\.\s]{0,10}(?:id)?|PAYPAL_WEBHOOK_ID)\s{0,5}[:=]\s{0,5}["']?([A-Z0-9]{17})["']?'''
+keywords = ["PAYPAL_WEBHOOK_ID", "paypal_webhook_id", "paypal_webhook"]
+severity = "medium"
+category = "payments"
+tags = ["paypal", "payments", "webhook"]
+entropy_threshold = 2.5
+allowlist = [
+    'PAYPAL_WEBHOOK_ID=YOUR_WEBHOOK_ID',
+    'PAYPAL_WEBHOOK_ID=<',
+    'PAYPAL_WEBHOOK_ID=$\{',
+    'paypal_webhook_id = ""',
+]
+remediation = "Webhook IDs alone are not credentials, but combined with client secrets they can be used to bypass signature verification. Rotate all associated credentials at https://developer.paypal.com."

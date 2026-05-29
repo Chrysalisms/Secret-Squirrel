@@ -1,0 +1,82 @@
+# E-commerce and retail platform secrets
+# Covers BigCommerce, PrestaShop, Magento, WooCommerce, Shopify Partners
+
+[[rules]]
+id = "bigcommerce-api-credentials"
+description = "BigCommerce store management API credentials"
+severity = "high"
+category = "payments"
+regex = '''(?i)bigcommerce[._-]?(?:api[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["bigcommerce", "BC_API"]
+entropy = 4.0
+tags = ["bigcommerce", "ecommerce", "saas"]
+
+[[rules]]
+id = "woocommerce-consumer-secret"
+description = "WooCommerce REST API consumer secret"
+severity = "high"
+category = "payments"
+regex = '''cs_[a-f0-9]{40}'''
+keywords = ["cs_", "woocommerce", "consumer_secret", "WC_SECRET"]
+entropy = 4.5
+tags = ["woocommerce", "wordpress", "ecommerce"]
+
+[[rules]]
+id = "magento-integration-token"
+description = "Magento 2 integration access token"
+severity = "high"
+category = "payments"
+regex = '''(?i)magento[._-]?(?:integration[._-]?|access[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["magento", "MAGENTO_TOKEN"]
+entropy = 4.0
+tags = ["magento", "ecommerce"]
+
+[[rules]]
+id = "shopify-partner-token"
+description = "Shopify Partners API or Public App token"
+severity = "critical"
+category = "payments"
+regex = '''shppa_[a-fA-F0-9]{32}|shpat_[a-fA-F0-9]{32}'''
+keywords = ["shppa_", "shpat_", "shopify_partner"]
+entropy = 4.0
+tags = ["shopify", "ecommerce", "partner"]
+
+[[rules]]
+id = "prestashop-api-key"
+description = "PrestaShop web service API key"
+severity = "high"
+category = "payments"
+regex = '''(?i)prestashop[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Z0-9]{32})['"]?'''
+keywords = ["prestashop"]
+entropy = 3.5
+tags = ["prestashop", "ecommerce"]
+
+[[rules]]
+id = "patreon-access-token"
+description = "Patreon creator platform OAuth access token"
+severity = "high"
+category = "payments"
+regex = '''(?i)patreon[._-]?(?:access[._-]?|creator[._-]?|api[._-]?)?token\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{32,40})['"]?'''
+keywords = ["patreon", "PATREON_TOKEN"]
+entropy = 4.0
+tags = ["patreon", "creator-economy", "payments"]
+
+[[rules]]
+id = "recharge-api-key"
+description = "Recharge.com subscription billing API key"
+severity = "high"
+category = "payments"
+regex = '''(?i)recharge[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64})['"]?'''
+keywords = ["recharge", "RECHARGE_API"]
+entropy = 4.5
+tags = ["recharge", "subscriptions", "ecommerce"]
+
+[[rules]]
+id = "chargebee-api-key"
+description = "Chargebee subscription management API key"
+severity = "critical"
+category = "payments"
+regex = '''(?i)chargebee[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(live|test)_[A-Za-z0-9_]{32,48}['"]?'''
+keywords = ["chargebee", "CHARGEBEE_API"]
+entropy = 4.0
+tags = ["chargebee", "subscriptions", "billing"]

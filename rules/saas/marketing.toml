@@ -1,0 +1,102 @@
+# Advertising and marketing automation secrets
+# Covers Google Ads, Meta Ads, LinkedIn Ads, TikTok Ads, Mailchimp (extended)
+
+[[rules]]
+id = "google-ads-developer-token"
+description = "Google Ads API developer token"
+severity = "high"
+category = "saas"
+regex = '''(?i)google[._-]?ads[._-]?(?:developer[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{22})['"]?'''
+keywords = ["google_ads", "GOOGLE_ADS_DEV_TOKEN", "developer_token"]
+entropy = 3.0
+tags = ["google", "ads", "marketing"]
+
+[[rules]]
+id = "google-ads-client-secret"
+description = "Google Ads OAuth client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)google[._-]?ads[._-]?(?:oauth[._-]?|client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,64})['"]?'''
+keywords = ["google_ads", "GOOGLE_ADS_SECRET"]
+entropy = 4.0
+tags = ["google", "ads", "oauth"]
+
+[[rules]]
+id = "tiktok-api-key"
+description = "TikTok for Business / TikTok Ads API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)tiktok[._-]?(?:ads[._-]?|business[._-]?)?(?:api[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["tiktok", "TIKTOK_API"]
+entropy = 4.0
+tags = ["tiktok", "ads", "social-media"]
+
+[[rules]]
+id = "reddit-api-secret"
+description = "Reddit API application secret for OAuth"
+severity = "high"
+category = "saas"
+regex = '''(?i)reddit[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{27})['"]?'''
+keywords = ["reddit", "REDDIT_SECRET"]
+entropy = 4.0
+tags = ["reddit", "social-media", "oauth"]
+
+[[rules]]
+id = "mailerlite-api-key"
+description = "MailerLite email marketing API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)mailerlite[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32,40})['"]?'''
+keywords = ["mailerlite", "MAILERLITE_API"]
+entropy = 4.0
+tags = ["mailerlite", "email", "marketing"]
+
+[[rules]]
+id = "activecampaign-api-key"
+description = "ActiveCampaign email marketing API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)activecampaign[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["activecampaign", "ACTIVECAMPAIGN_KEY"]
+entropy = 4.5
+tags = ["activecampaign", "email", "crm", "marketing"]
+
+[[rules]]
+id = "convertkit-api-secret"
+description = "ConvertKit email automation API secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)convertkit[._-]?(?:api[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["convertkit", "CK_SECRET"]
+entropy = 4.0
+tags = ["convertkit", "email", "marketing"]
+
+[[rules]]
+id = "klaviyo-private-api-key"
+description = "Klaviyo email and SMS marketing private API key"
+severity = "critical"
+category = "saas"
+regex = '''pk_[a-f0-9]{34}'''
+keywords = ["klaviyo", "pk_"]
+entropy = 4.0
+tags = ["klaviyo", "email", "marketing"]
+
+[[rules]]
+id = "sendgrid-api-key"
+description = "Twilio SendGrid email API key (SG. prefix)"
+severity = "critical"
+category = "saas"
+regex = '''SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}'''
+keywords = ["SG.", "sendgrid", "SENDGRID_API_KEY"]
+entropy = 4.5
+tags = ["sendgrid", "twilio", "email", "saas"]
+
+[[rules]]
+id = "customerio-api-key"
+description = "Customer.io messaging platform API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)customer[._-]?io[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,32})['"]?'''
+keywords = ["customerio", "CUSTOMERIO_API"]
+entropy = 3.5
+tags = ["customerio", "email", "crm", "saas"]

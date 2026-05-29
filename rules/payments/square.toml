@@ -1,0 +1,64 @@
+# Secret Squirrel — Square Extended Rules
+# Additional Square payment platform secret detection rules beyond default.toml
+
+# ==============================================================================
+# Square — OAuth Secret
+# ==============================================================================
+
+[[rules]]
+id = "square-oauth-secret"
+description = "Square OAuth application secret"
+regex = '''(?i)(?:square[_\-\.\s]{0,10}(?:oauth[_\-\.\s]{0,5})?(?:application[_\-\.\s]{0,5})?secret|SQUARE_OAUTH_SECRET|SQUARE_APP_SECRET)\s{0,5}[:=]\s{0,5}["']?(sq0csp-[a-zA-Z0-9_\-]{43})["']?'''
+keywords = ["sq0csp-", "SQUARE_OAUTH_SECRET", "SQUARE_APP_SECRET"]
+severity = "critical"
+category = "payments"
+tags = ["square", "payments", "oauth"]
+entropy_threshold = 4.0
+allowlist = [
+    'sq0csp-EXAMPLE',
+    'SQUARE_OAUTH_SECRET=YOUR_SECRET',
+    'SQUARE_APP_SECRET=<',
+    'sq0csp-xxxx',
+]
+remediation = "Rotate at https://developer.squareup.com/apps → OAuth → Reset secret. All existing OAuth access tokens become invalid after rotation."
+
+# ==============================================================================
+# Square — Application Secret (client secret)
+# ==============================================================================
+
+[[rules]]
+id = "square-application-secret"
+description = "Square application secret / client secret key"
+regex = '''\bsq0csp-[a-zA-Z0-9_\-]{43}\b'''
+keywords = ["sq0csp-"]
+severity = "critical"
+category = "payments"
+tags = ["square", "payments"]
+entropy_threshold = 4.0
+allowlist = [
+    'sq0csp-EXAMPLE',
+    'sq0csp-xxxxxx',
+    'sq0csp-YOUR_SECRET',
+]
+remediation = "Rotate at https://developer.squareup.com/apps and update all server-side integrations. Never expose this key client-side."
+
+# ==============================================================================
+# Square — Webhook Signature Key
+# ==============================================================================
+
+[[rules]]
+id = "square-webhook-signature-key"
+description = "Square webhook signature key for payload verification"
+regex = '''(?i)(?:square[_\-\.\s]{0,10}webhook[_\-\.\s]{0,10}(?:signature[_\-\.\s]{0,5})?key|SQUARE_WEBHOOK_SIGNATURE_KEY|SQUARE_WEBHOOK_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{32,64})["']?'''
+keywords = ["SQUARE_WEBHOOK_SIGNATURE_KEY", "SQUARE_WEBHOOK_KEY", "square_webhook"]
+severity = "high"
+category = "payments"
+tags = ["square", "payments", "webhook"]
+entropy_threshold = 3.5
+allowlist = [
+    'SQUARE_WEBHOOK_SIGNATURE_KEY=YOUR_KEY',
+    'SQUARE_WEBHOOK_KEY=<',
+    'SQUARE_WEBHOOK_SIGNATURE_KEY=$\{',
+    'square_webhook_key = ""',
+]
+remediation = "Regenerate the webhook signature key at https://developer.squareup.com/apps → Webhooks and update your webhook handler's signature verification."

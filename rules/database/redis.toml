@@ -1,0 +1,70 @@
+# Secret Squirrel — Redis Rules
+# Redis database/cache secret detection rules
+
+# ==============================================================================
+# Redis — Connection String with Password
+# ==============================================================================
+
+[[rules]]
+id = "redis-connection-string"
+description = "Redis connection string with embedded password (redis://:password@host)"
+regex = '''rediss?://:[^@\s"']{3,100}@[a-zA-Z0-9\.\-]{1,100}(?::\d{1,5})?(?:/\d{1,2})?'''
+keywords = ["redis://", "REDIS_URL", "REDIS_URI", "REDIS_CONNECTION"]
+severity = "critical"
+category = "database"
+tags = ["redis", "cache", "connection-string"]
+entropy_threshold = 2.5
+allowlist = [
+    'redis://:password@',
+    'redis://:YOUR_PASSWORD@',
+    'redis://localhost',
+    'redis://:changeme@',
+    'redis://\$\{',
+    'redis://:@',
+]
+remediation = "Rotate the Redis password with CONFIG SET requirepass <new-password> and update all connection strings. Use Redis ACL users in Redis 6+ for fine-grained access control."
+
+# ==============================================================================
+# Redis — TLS URL
+# ==============================================================================
+
+[[rules]]
+id = "redis-tls-url"
+description = "Redis TLS connection URL (rediss://) with credentials"
+regex = '''rediss://[^:@\s"']{1,100}:[^@\s"']{3,100}@[a-zA-Z0-9\.\-]{1,100}(?::\d{1,5})?'''
+keywords = ["rediss://", "REDIS_TLS_URL", "redis-tls"]
+severity = "critical"
+category = "database"
+tags = ["redis", "tls", "cache", "connection-string"]
+entropy_threshold = 2.5
+allowlist = [
+    'rediss://user:password@',
+    'rediss://default:YOUR_PASSWORD@',
+    'rediss://\$\{',
+    'rediss://localhost',
+]
+remediation = "Rotate the Redis password and ensure TLS certificate verification is enabled. Use Upstash or Redis Cloud ACL tokens for managed Redis services."
+
+# ==============================================================================
+# Redis — AUTH Command Pattern
+# ==============================================================================
+
+[[rules]]
+id = "redis-auth-command"
+description = "Redis AUTH command with hardcoded password in scripts or config"
+regex = '''(?i)(?:AUTH\s{1,5}|requirepass\s{1,5}|redis[_\-]?(?:auth[_\-]?)?(?:password|pass|pwd)\s{0,5}[:=]\s{0,5}["']?)(?!\$\{)(?!<)(?!YOUR_)(?!changeme)(?!password)([^\s"']{8,100})'''
+keywords = ["AUTH ", "requirepass", "redis_auth", "REDIS_PASSWORD", "REDIS_AUTH"]
+severity = "critical"
+category = "database"
+tags = ["redis", "auth", "password", "cache"]
+entropy_threshold = 2.5
+allowlist = [
+    'AUTH YOUR_PASSWORD',
+    'AUTH changeme',
+    'AUTH password',
+    'requirepass YOUR_REDIS_PASSWORD',
+    'requirepass changeme',
+    'REDIS_PASSWORD=<',
+    'REDIS_PASSWORD=$\{',
+]
+remediation = "Rotate with `redis-cli -h host CONFIG SET requirepass <new-password>` and update all connection strings. Store the password in a secrets manager."

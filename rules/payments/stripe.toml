@@ -1,0 +1,144 @@
+# Secret Squirrel — Stripe Extended Rules
+# Additional Stripe payment processing secret detection rules beyond default.toml
+
+# ==============================================================================
+# Stripe — Secret Key (live)
+# ==============================================================================
+
+[[rules]]
+id = "stripe-secret-key"
+description = "Stripe live secret key (sk_live_ prefix)"
+regex = '''\bsk_live_[a-zA-Z0-9]{24,99}\b'''
+keywords = ["sk_live_"]
+severity = "critical"
+category = "payments"
+tags = ["stripe", "payments", "live"]
+entropy_threshold = 4.0
+allowlist = [
+    'sk_live_EXAMPLE',
+    'sk_live_xxxx',
+    'sk_live_YOUR_KEY',
+]
+remediation = "Roll immediately at https://dashboard.stripe.com/apikeys — Stripe supports zero-downtime key rotation. Enable restricted keys and limit IP allowlists."
+
+# ==============================================================================
+# Stripe — Publishable Key (live)
+# ==============================================================================
+
+[[rules]]
+id = "stripe-publishable-key"
+description = "Stripe live publishable key (pk_live_ prefix)"
+regex = '''\bpk_live_[a-zA-Z0-9]{24,99}\b'''
+keywords = ["pk_live_"]
+severity = "medium"
+category = "payments"
+tags = ["stripe", "payments", "live", "publishable"]
+entropy_threshold = 3.0
+allowlist = [
+    'pk_live_EXAMPLE',
+    'pk_live_xxxx',
+    'pk_live_YOUR_KEY',
+]
+remediation = "Publishable keys are low-risk (client-side only), but if exposed alongside a secret key, rotate both at https://dashboard.stripe.com/apikeys."
+
+# ==============================================================================
+# Stripe — Restricted Key (live)
+# ==============================================================================
+
+[[rules]]
+id = "stripe-restricted-key"
+description = "Stripe live restricted API key (rk_live_ prefix)"
+regex = '''\brk_live_[a-zA-Z0-9]{24,99}\b'''
+keywords = ["rk_live_"]
+severity = "critical"
+category = "payments"
+tags = ["stripe", "payments", "live", "restricted"]
+entropy_threshold = 4.0
+allowlist = [
+    'rk_live_EXAMPLE',
+    'rk_live_xxxx',
+    'rk_live_YOUR_KEY',
+]
+remediation = "Roll at https://dashboard.stripe.com/apikeys. Even restricted keys can perform scoped payment operations; rotate immediately."
+
+# ==============================================================================
+# Stripe — Webhook Secret
+# ==============================================================================
+
+[[rules]]
+id = "stripe-webhook-secret"
+description = "Stripe webhook endpoint signing secret (whsec_ prefix)"
+regex = '''\bwhsec_[a-zA-Z0-9]{32,64}\b'''
+keywords = ["whsec_"]
+severity = "high"
+category = "payments"
+tags = ["stripe", "payments", "webhook"]
+entropy_threshold = 3.5
+allowlist = [
+    'whsec_EXAMPLE',
+    'whsec_xxxx',
+    'whsec_YOUR_SECRET',
+]
+remediation = "Roll the webhook secret at https://dashboard.stripe.com/webhooks → click endpoint → Roll secret. Update the secret in your webhook handler."
+
+# ==============================================================================
+# Stripe — Connect OAuth Token
+# ==============================================================================
+
+[[rules]]
+id = "stripe-connect-oauth-token"
+description = "Stripe Connect OAuth access token for connected accounts"
+regex = '''\bacct_[a-zA-Z0-9]{16}\b'''
+keywords = ["acct_", "stripe_connect", "STRIPE_ACCOUNT"]
+severity = "high"
+category = "payments"
+tags = ["stripe", "connect", "oauth"]
+entropy_threshold = 2.5
+allowlist = [
+    'acct_EXAMPLE',
+    'acct_1234567890abcdef',
+    'YOUR_ACCOUNT_ID',
+]
+remediation = "Revoke Connect OAuth tokens at https://dashboard.stripe.com/settings/connect. Account IDs (acct_) are not secret but are needed to make API calls on behalf of connected accounts."
+
+# ==============================================================================
+# Stripe — Test Secret Key
+# ==============================================================================
+
+[[rules]]
+id = "stripe-test-secret-key"
+description = "Stripe test mode secret key (sk_test_ prefix)"
+regex = '''\bsk_test_[a-zA-Z0-9]{24,99}\b'''
+keywords = ["sk_test_"]
+severity = "low"
+category = "payments"
+tags = ["stripe", "payments", "test"]
+entropy_threshold = 3.5
+allowlist = [
+    'sk_test_EXAMPLE',
+    'sk_test_xxxx',
+    'sk_test_YOUR_KEY',
+    '4eC39HqLyjWDarjtT7mis',
+]
+remediation = "Test keys don't process real charges but can expose test data. Rotate at https://dashboard.stripe.com/test/apikeys and use environment variables instead of hardcoding."
+
+# ==============================================================================
+# Stripe — Test Publishable Key
+# ==============================================================================
+
+[[rules]]
+id = "stripe-test-publishable-key"
+description = "Stripe test mode publishable key (pk_test_ prefix)"
+regex = '''\bpk_test_[a-zA-Z0-9]{24,99}\b'''
+keywords = ["pk_test_"]
+severity = "info"
+category = "payments"
+tags = ["stripe", "payments", "test", "publishable"]
+entropy_threshold = 2.5
+allowlist = [
+    'pk_test_EXAMPLE',
+    'pk_test_xxxx',
+    'pk_test_YOUR_KEY',
+    '4eC39HqLyjWDarjtT7mis',
+]
+remediation = "Test publishable keys are low-risk but should be rotated at https://dashboard.stripe.com/test/apikeys to maintain hygiene. Never use test keys in production."

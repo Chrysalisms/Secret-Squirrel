@@ -1,0 +1,82 @@
+# Secret Squirrel — SSH Key Rules
+# SSH private key and configuration secret detection rules
+
+# ==============================================================================
+# SSH — OpenSSH Private Key (Modern Format)
+# ==============================================================================
+
+[[rules]]
+id = "ssh-private-key"
+description = "OpenSSH private key (modern format, covers RSA, Ed25519, ECDSA)"
+regex = '''-----BEGIN OPENSSH PRIVATE KEY-----[\s\S]{50,5000}-----END OPENSSH PRIVATE KEY-----'''
+keywords = ["BEGIN OPENSSH PRIVATE KEY", "ssh", "id_rsa", "id_ed25519"]
+severity = "critical"
+category = "crypto"
+tags = ["ssh", "openssh", "private-key", "crypto"]
+entropy_threshold = 4.5
+allowlist = [
+    'EXAMPLE_SSH_KEY',
+    'YOUR_PRIVATE_KEY',
+    'placeholder',
+]
+remediation = "Generate a replacement: `ssh-keygen -t ed25519 -C 'your@email.com' -f new_key`. Remove the old key from all authorized_keys files and update all dependent systems."
+
+# ==============================================================================
+# SSH — DSA Private Key (Legacy)
+# ==============================================================================
+
+[[rules]]
+id = "ssh-dsa-private-key"
+description = "SSH DSA private key (id_dsa, legacy format)"
+regex = '''-----BEGIN DSA PRIVATE KEY-----[\s\S]{50,2000}-----END DSA PRIVATE KEY-----'''
+keywords = ["BEGIN DSA PRIVATE KEY", "id_dsa"]
+severity = "critical"
+category = "crypto"
+tags = ["ssh", "dsa", "private-key", "legacy", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'EXAMPLE_DSA_KEY',
+    'YOUR_DSA_PRIVATE_KEY',
+    'placeholder',
+]
+remediation = "DSA keys are cryptographically weak. Migrate to Ed25519: `ssh-keygen -t ed25519`. Remove the old DSA key from all authorized_keys files immediately."
+
+# ==============================================================================
+# SSH — Ed25519 Private Key (bare assignment)
+# ==============================================================================
+
+[[rules]]
+id = "ssh-ed25519-private-key"
+description = "SSH Ed25519 private key base64 blob assigned to an environment variable"
+regex = '''(?i)(?:ssh[_\-]?(?:ed25519[_\-]?)?(?:private[_\-]?)?key|SSH_PRIVATE_KEY|SSH_KEY|ED25519_PRIVATE_KEY)\s{0,5}[:=]\s{0,5}["']?(-----BEGIN OPENSSH PRIVATE KEY-----)'''
+keywords = ["SSH_PRIVATE_KEY", "SSH_KEY", "ED25519_PRIVATE_KEY", "id_ed25519"]
+severity = "critical"
+category = "crypto"
+tags = ["ssh", "ed25519", "private-key", "crypto"]
+entropy_threshold = 4.5
+allowlist = [
+    'SSH_PRIVATE_KEY=YOUR_KEY',
+    'SSH_KEY=<',
+    'ED25519_PRIVATE_KEY=$\{',
+    'SSH_PRIVATE_KEY=\$\{\{ secrets.SSH_PRIVATE_KEY \}\}',
+]
+remediation = "Rotate the SSH key pair: `ssh-keygen -t ed25519 -f new_key`. Update all authorized_keys files and secrets manager entries. For CI/CD, store via secrets, not plaintext variables."
+
+# ==============================================================================
+# SSH — known_hosts Entry with Private Key Marker
+# ==============================================================================
+
+[[rules]]
+id = "ssh-known-hosts-entry"
+description = "SSH known_hosts entry with a hashed or plain hostname (informational — confirms SSH usage)"
+regex = '''\|1\|[A-Za-z0-9+/]{27}=\|[A-Za-z0-9+/]{27}=\s+ssh-(?:rsa|ed25519|ecdsa)[a-zA-Z0-9 +/=]{50,300}'''
+keywords = ["known_hosts", "|1|", "ssh-rsa", "ssh-ed25519"]
+severity = "info"
+category = "crypto"
+tags = ["ssh", "known-hosts", "crypto"]
+entropy_threshold = 3.0
+allowlist = [
+    'EXAMPLE_KNOWN_HOST',
+    'placeholder',
+]
+remediation = "known_hosts entries themselves are not secret. However, if found alongside private keys, investigate the source. Manage known_hosts via ssh-keyscan in CI/CD rather than committing the file."

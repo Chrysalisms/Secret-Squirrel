@@ -62,8 +62,10 @@ pub struct Router {
 impl Router {
     /// Initialise the router from a [`GpuConfig`].
     ///
-    /// If `config.enabled` is `false` or the GPU feature is disabled, the
-    /// GPU engine is skipped and `self.gpu` will be `None`.
+    /// GPU is auto-activated when hardware is present — no explicit `enabled`
+    /// flag is required.  If no GPU adapter is found at runtime the engine
+    /// falls back to CPU automatically.  Passing `enabled: false` in the
+    /// config still forces CPU-only (used e.g. in WSL or CI environments).
     pub async fn new(config: &GpuConfig) -> Self {
         // Initialise the CPU engine (always available).
         let cpu = CpuEngine::new(0).unwrap_or_else(|e| {
@@ -71,23 +73,31 @@ impl Router {
             panic!("Failed to initialise CPU engine: {e}");
         });
 
-        // Attempt GPU initialisation if enabled.
+        // Attempt GPU initialisation.
+        // When the `gpu` feature is compiled in we always probe for a GPU
+        // adapter.  `GpuEngine::new()` returns `None` if no suitable adapter
+        // is found, which gracefully falls back to CPU.
+        // The `config.enabled` flag is respected as an escape hatch so that
+        // operators can force CPU-only mode via config/CLI even when a GPU is
+        // physically present (e.g., to avoid GPU contention in shared envs).
         let gpu = if config.enabled {
             #[cfg(feature = "gpu")]
             {
                 let engine = GpuEngine::new().await;
                 if engine.is_none() {
-                    warn!("No GPU adapter found — using CPU-only mode");
+                    warn!("No GPU adapter found — falling back to CPU-only mode");
+                } else {
+                    debug!("GPU adapter initialised successfully");
                 }
                 engine
             }
             #[cfg(not(feature = "gpu"))]
             {
-                debug!("GPU feature disabled at compile time");
+                debug!("GPU feature disabled at compile time — CPU-only mode");
                 None
             }
         } else {
-            debug!("GPU disabled in config");
+            debug!("GPU disabled via config — CPU-only mode");
             None
         };
 

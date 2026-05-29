@@ -1,0 +1,107 @@
+# Secret Squirrel — Twilio Extended Rules
+# Additional Twilio secret detection rules beyond default.toml
+
+# ==============================================================================
+# Twilio — Account SID
+# ==============================================================================
+
+[[rules]]
+id = "twilio-account-sid"
+description = "Twilio Account SID (AC prefix, 34 chars)"
+regex = '''\bAC[a-f0-9]{32}\b'''
+keywords = ["AC", "TWILIO_ACCOUNT_SID", "twilio"]
+severity = "medium"
+category = "saas"
+tags = ["twilio", "account-sid", "saas"]
+entropy_threshold = 2.5
+allowlist = [
+    'ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+    'AC00000000000000000000000000000000',
+    'ACexample',
+    'YOUR_ACCOUNT_SID',
+]
+remediation = "Account SIDs are semi-public identifiers. Combined with auth tokens they provide full account access. Rotate auth tokens at https://console.twilio.com → API keys."
+
+# ==============================================================================
+# Twilio — Auth Token
+# ==============================================================================
+
+[[rules]]
+id = "twilio-auth-token"
+description = "Twilio account primary auth token (32 hex characters)"
+regex = '''(?i)(?:twilio[_\-\.\s]{0,10}auth[_\-\.\s]{0,10}token|TWILIO_AUTH_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["TWILIO_AUTH_TOKEN", "twilio_auth_token", "twilio-auth-token"]
+severity = "critical"
+category = "saas"
+tags = ["twilio", "auth-token", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'TWILIO_AUTH_TOKEN=YOUR_AUTH_TOKEN',
+    'TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    'TWILIO_AUTH_TOKEN=<',
+    'TWILIO_AUTH_TOKEN=$\{',
+]
+remediation = "Rotate at https://console.twilio.com → Account → API keys & tokens → Rotate primary auth token. Use API keys instead of the primary auth token in production."
+
+# ==============================================================================
+# Twilio — API Key SID
+# ==============================================================================
+
+[[rules]]
+id = "twilio-api-key-sid"
+description = "Twilio API Key SID (SK prefix, 34 chars)"
+regex = '''\bSK[a-f0-9]{32}\b'''
+keywords = ["SK", "TWILIO_API_KEY", "twilio"]
+severity = "high"
+category = "saas"
+tags = ["twilio", "api-key", "saas"]
+entropy_threshold = 3.0
+allowlist = [
+    'SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    'SKEXAMPLE',
+    'YOUR_API_KEY_SID',
+    'SK00000000000000000000000000000000',
+]
+remediation = "Revoke at https://console.twilio.com → API keys & tokens and generate a replacement key pair."
+
+# ==============================================================================
+# Twilio — API Key Secret
+# ==============================================================================
+
+[[rules]]
+id = "twilio-api-key-secret"
+description = "Twilio API Key secret (paired with API Key SID)"
+regex = '''(?i)(?:twilio[_\-\.\s]{0,10}api[_\-\.\s]{0,5}(?:key[_\-\.\s]{0,5})?secret|TWILIO_API_SECRET|TWILIO_API_KEY_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{32})["']?'''
+keywords = ["TWILIO_API_SECRET", "TWILIO_API_KEY_SECRET", "twilio_api_secret"]
+severity = "critical"
+category = "saas"
+tags = ["twilio", "api-secret", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'TWILIO_API_SECRET=YOUR_API_SECRET',
+    'TWILIO_API_KEY_SECRET=<',
+    'TWILIO_API_SECRET=$\{',
+    'twilio_api_secret = ""',
+]
+remediation = "Revoke the API key pair at https://console.twilio.com → API keys & tokens. The secret cannot be retrieved after initial creation."
+
+# ==============================================================================
+# Twilio — Signing Key Secret
+# ==============================================================================
+
+[[rules]]
+id = "twilio-signing-key-secret"
+description = "Twilio Signing Key secret (for webhook request validation)"
+regex = '''(?i)(?:twilio[_\-\.\s]{0,10}signing[_\-\.\s]{0,10}(?:key[_\-\.\s]{0,5})?secret|TWILIO_SIGNING_KEY_SECRET|TWILIO_SIGNING_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{32})["']?'''
+keywords = ["TWILIO_SIGNING_KEY_SECRET", "TWILIO_SIGNING_SECRET", "twilio_signing"]
+severity = "high"
+category = "saas"
+tags = ["twilio", "signing-key", "webhook", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'TWILIO_SIGNING_KEY_SECRET=YOUR_SECRET',
+    'TWILIO_SIGNING_SECRET=<',
+    'TWILIO_SIGNING_SECRET=$\{',
+    'twilio_signing_key_secret = ""',
+]
+remediation = "Revoke the signing key at https://console.twilio.com → API keys & tokens and update your webhook validation middleware."

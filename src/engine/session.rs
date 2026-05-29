@@ -209,6 +209,12 @@ impl ScanSession {
         self.findings.iter().filter(move |f| f.severity >= threshold)
     }
 
+    /// Mutable iterator over all findings — used for post-scan annotation
+    /// (cross-file correlation, validation results).
+    pub fn findings_mut(&mut self) -> impl Iterator<Item = &mut Finding> {
+        self.findings.iter_mut()
+    }
+
     /// Return the number of unique findings after deduplication.
     pub fn unique_finding_count(&self) -> usize {
         self.findings.len()

@@ -1,0 +1,98 @@
+# Mobile / App development secrets
+# Covers iOS, Android, Firebase App config, Google Maps API
+
+[[rules]]
+id = "google-maps-api-key"
+description = "Google Maps Platform API key"
+severity = "high"
+category = "mobile"
+regex = '''(?i)(?:google[._-]?maps?[._-]?(?:api[._-]?)?|maps[._-]?api[._-]?)key\s*[=:]\s*['"]?(AIza[A-Za-z0-9\-_]{35})['"]?'''
+allowlist = [
+    '=$\{',
+    '=AIzaSyABCDEF',
+    '=AIzaSyXXXXXX',
+]
+entropy = 4.0
+tags = ["google-maps", "mobile", "web"]
+
+[[rules]]
+id = "firebase-config-api-key"
+description = "Firebase project configuration API key (embedded in mobile app or web)"
+severity = "high"
+category = "mobile"
+regex = '''["']apiKey["']\s*:\s*["'](AIza[A-Za-z0-9\-_]{35})["']'''
+allowlist = [
+    '"apiKey": "AIzaSyABCDEF',
+    '"apiKey": "AIzaSyXXXXXX',
+]
+entropy = 4.0
+tags = ["firebase", "mobile", "web"]
+
+[[rules]]
+id = "expo-push-token"
+description = "Expo push notification token"
+severity = "medium"
+category = "mobile"
+regex = '''ExponentPushToken\[([A-Za-z0-9_-]{22})\]'''
+allowlist = []
+entropy = 3.5
+tags = ["expo", "push-notifications", "mobile"]
+
+[[rules]]
+id = "android-keystore-password"
+description = "Android keystore or signing key password"
+severity = "critical"
+category = "mobile"
+regex = '''(?i)(?:android[._-]?)?(?:keystore|key[._-]?store|signing)[._-]?(?:store[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=android',
+    '=your-',
+    '=REPLACE',
+    '=<',
+    '=keystorePassword',
+    '=changeit',
+    '=password',
+]
+entropy = 3.0
+tags = ["android", "keystore", "mobile"]
+
+[[rules]]
+id = "ios-push-certificate"
+description = "iOS APNs push notification certificate (embedded p8 or pem)"
+severity = "critical"
+category = "mobile"
+regex = '''-----BEGIN PRIVATE KEY-----\s*([A-Za-z0-9+/\s]{50,})-----END PRIVATE KEY-----'''
+allowlist = []
+entropy = 5.0
+tags = ["ios", "apns", "mobile", "certificate"]
+
+[[rules]]
+id = "apple-developer-team-id"
+description = "Apple Developer Team ID with key ID context (p8 private key usage)"
+severity = "high"
+category = "mobile"
+regex = '''(?i)(?:apple[._-]?)?(?:team[._-]?id|team_id)\s*[=:]\s*['"]?([A-Z0-9]{10})['"]?'''
+allowlist = [
+    '=$\{',
+    '=XXXXXXXXXX',
+    '=REPLACE',
+    '=<',
+    '=YOUR_TEAM',
+    '=0000000000',
+]
+entropy = 2.5
+tags = ["apple", "ios", "mobile"]
+
+[[rules]]
+id = "onesignal-app-id"
+description = "OneSignal push notification app ID with API key context"
+severity = "high"
+category = "mobile"
+regex = '''(?i)onesignal[._-]?(?:rest[._-]?api[._-]?|app[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9\-]{36})['"]?'''
+allowlist = [
+    '=$\{',
+    '=00000000-0000-0000-0000-000000000000',
+]
+entropy = 3.0
+tags = ["onesignal", "push-notifications", "mobile"]

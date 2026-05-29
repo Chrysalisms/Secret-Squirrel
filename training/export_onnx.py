@@ -22,9 +22,18 @@ import json
 from pathlib import Path
 
 import torch
-import onnx
-import onnxruntime as ort
 import numpy as np
+
+# Optional: onnx / onnxruntime — not available for Python 3.14 yet.
+try:
+    import onnx as _onnx
+    import onnxruntime as _ort
+    HAS_ONNX = True
+except ImportError:
+    _onnx = None  # type: ignore
+    _ort  = None  # type: ignore
+    HAS_ONNX = False
+    print("[export] onnx/onnxruntime not installed — skipping model validation & ORT verification")
 
 from models import build_tiny, build_large, ALPHABET_SIZE
 from train import tokenize  # reuse exact tokenizer
@@ -94,41 +103,39 @@ def export(tier: str, verify: bool = True) -> Path:
     print(f"  Export complete → {onnx_path}")
 
     # ── 5. Validate ONNX model structure ──────────────────────────────────
-    print("Validating ONNX model structure...")
-    onnx_model = onnx.load(str(onnx_path))
-    onnx.checker.check_model(onnx_model)
-    print("  ✓ ONNX model is valid")
-
-    # Print input/output info
-    for inp in onnx_model.graph.input:
-        shape = [d.dim_value if d.dim_value > 0 else d.dim_param
-                 for d in inp.type.tensor_type.shape.dim]
-        dtype = inp.type.tensor_type.elem_type
-        print(f"  Input  '{inp.name}': shape={shape}, dtype={dtype}")
-    for out in onnx_model.graph.output:
-        shape = [d.dim_value if d.dim_value > 0 else d.dim_param
-                 for d in out.type.tensor_type.shape.dim]
-        dtype = out.type.tensor_type.elem_type
-        print(f"  Output '{out.name}': shape={shape}, dtype={dtype}")
+    if HAS_ONNX:
+        print("Validating ONNX model structure...")
+        onnx_model = _onnx.load(str(onnx_path))
+        _onnx.checker.check_model(onnx_model)
+        print("  ✓ ONNX model is valid")
+        for inp in onnx_model.graph.input:
+            shape = [d.dim_value if d.dim_value > 0 else d.dim_param
+                     for d in inp.type.tensor_type.shape.dim]
+            dtype = inp.type.tensor_type.elem_type
+            print(f"  Input  '{inp.name}': shape={shape}, dtype={dtype}")
+        for out in onnx_model.graph.output:
+            shape = [d.dim_value if d.dim_value > 0 else d.dim_param
+                     for d in out.type.tensor_type.shape.dim]
+            dtype = out.type.tensor_type.elem_type
+            print(f"  Output '{out.name}': shape={shape}, dtype={dtype}")
+    else:
+        print("  [Skipping ONNX structure validation — onnx not installed]")
 
     # ── 6. ORT inference verification ─────────────────────────────────────
-    if verify:
+    if verify and HAS_ONNX:
         print("\nRunning ORT inference verification...")
-        sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
-
-        # Test cases: (text, expected_label)
+        sess = _ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
         test_cases = [
-            ("AKIAIOSFODNN7EXAMPLE",                         1),  # AWS access key
-            ("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",   1),  # AWS secret
-            ("ghp_16C7e42F292c6912E7710c838347Ae178B4a",     1),  # GitHub PAT
-            ("sk_live_4eC39HqLyjWDarjtT1zdp7dc",             1),  # Stripe SK
-            ("hello world",                                   0),  # benign
-            ("config_path",                                   0),  # benign
-            ("https://example.com/api/v1",                   0),  # benign URL
-            ("1.2.3.4",                                       0),  # IP address
-            ("d41d8cd98f00b204e9800998ecf8427e",              0),  # MD5 hash (benign)
+            ("AKIAIOSFODNN7EXAMPLE",                         1),
+            ("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",   1),
+            ("ghp_16C7e42F292c6912E7710c838347Ae178B4a",     1),
+            ("sk_live_4eC39HqLyjWDarjtT1zdp7dc",             1),
+            ("hello world",                                   0),
+            ("config_path",                                   0),
+            ("https://example.com/api/v1",                   0),
+            ("1.2.3.4",                                       0),
+            ("d41d8cd98f00b204e9800998ecf8427e",              0),
         ]
-
         correct = 0
         print(f"  {'Text':<48} {'Expected':>8} {'Pred':>6} {'P(secret)':>10}")
         print(f"  {'-'*48} {'-'*8} {'-'*6} {'-'*10}")
@@ -144,13 +151,26 @@ def export(tier: str, verify: bool = True) -> Path:
             print(f"  {ok} {text[:46]:<46} {expected:>8} {pred:>6} {p_secret:>10.4f}")
             if pred == expected:
                 correct += 1
-
         acc = correct / len(test_cases)
         print(f"\n  Verification accuracy: {correct}/{len(test_cases)} = {acc:.1%}")
         if acc < 0.7:
             print("  ⚠ Low verification accuracy — model may need more training")
         else:
             print("  ✓ Verification passed")
+    elif verify:
+        # ORT not available — do a quick PyTorch forward pass check instead
+        print("\nRunning PyTorch forward-pass verification (onnxruntime not installed)...")
+        model.eval()
+        with torch.no_grad():
+            for text, expected in [
+                ("AKIAIOSFODNN7EXAMPLE", 1),
+                ("hello world", 0),
+            ]:
+                tokens = torch.tensor([tokenize(text, seq_len)], dtype=torch.long)
+                logits = model(tokens)[0]
+                pred = int(logits.argmax().item())
+                ok = "✓" if pred == expected else "✗"
+                print(f"  {ok} {text:<46} expected={expected} got={pred}")
 
     # ── 7. File size + SHA-256 ─────────────────────────────────────────────
     size_mb = onnx_path.stat().st_size / 1_048_576

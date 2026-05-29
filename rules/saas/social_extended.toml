@@ -1,0 +1,62 @@
+# Social media platform extended secrets
+# Covers Twitter/X, Instagram, Pinterest, LinkedIn, YouTube Data API
+
+[[rules]]
+id = "twitter-api-secret"
+description = "Twitter / X API secret key"
+severity = "critical"
+category = "saas"
+regex = '''(?i)twitter[._-]?(?:api[._-]?)?(?:secret|consumer[._-]?secret)\s*[=:]\s*['"]?([A-Za-z0-9]{50})['"]?'''
+keywords = ["twitter", "TWITTER_SECRET", "consumer_secret"]
+entropy = 4.5
+tags = ["twitter", "x", "social-media"]
+
+[[rules]]
+id = "twitter-access-token-secret"
+description = "Twitter / X OAuth 1.0a access token secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)twitter[._-]?(?:access[._-]?)?token[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9]{45})['"]?'''
+keywords = ["TWITTER_ACCESS_SECRET", "access_token_secret"]
+entropy = 4.5
+tags = ["twitter", "x", "oauth", "social-media"]
+
+[[rules]]
+id = "instagram-api-token"
+description = "Instagram Basic Display / Graph API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)instagram[._-]?(?:api[._-]?|access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_]{50,})['"]?'''
+keywords = ["instagram", "INSTAGRAM_TOKEN"]
+entropy = 4.0
+tags = ["instagram", "meta", "social-media"]
+
+[[rules]]
+id = "youtube-data-api-key"
+description = "YouTube Data API v3 key"
+severity = "high"
+category = "saas"
+regex = '''(?i)(?:youtube|yt)[._-]?(?:data[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(AIza[0-9A-Za-z\-_]{35})['"]?'''
+keywords = ["youtube", "YOUTUBE_API", "YT_API"]
+entropy = 3.5
+tags = ["youtube", "google", "social-media"]
+
+[[rules]]
+id = "tiktok-client-secret"
+description = "TikTok developer platform client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)tiktok[._-]?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9_]{32,64})['"]?'''
+keywords = ["tiktok", "TIKTOK_SECRET"]
+entropy = 4.0
+tags = ["tiktok", "social-media"]
+
+[[rules]]
+id = "mastodon-api-token"
+description = "Mastodon decentralized social network API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)mastodon[._-]?(?:api[._-]?|access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{43})['"]?'''
+keywords = ["mastodon", "MASTODON_TOKEN"]
+entropy = 4.5
+tags = ["mastodon", "fediverse", "social-media"]

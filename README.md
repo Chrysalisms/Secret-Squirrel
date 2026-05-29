@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 
-Secret Squirrel finds credentials, API keys, and secrets in your code before attackers do. It scans git history, directories, CI logs, Slack, Postman collections, Jupyter notebooks, databases, and more — with a four-stage inverted pipeline that is **10× faster** than traditional regex-first scanners while achieving **≥97% recall**.
+Secret Squirrel finds credentials, API keys, and secrets in your code before attackers do. It scans git history, directories, CI logs, Slack, Postman collections, Jupyter notebooks, databases, and more — with a four-stage pipeline anchored by Aho-Corasick keyword pre-filtering that is **10× faster** than naive regex-first scanners.
 
 ---
 
@@ -18,6 +18,7 @@ Secret Squirrel finds credentials, API keys, and secrets in your code before att
 | Cross-file correlation | ✅ | ❌ | ❌ | ❌ |
 | MCP server (AI agent integration) | ✅ | ❌ | ❌ | ❌ |
 | CNN classifier (optional) | ✅ | ❌ | ❌ | ❌ |
+| Live secret validation | ✅ | ❌ | ✅ | ❌ |
 | Source coverage | 15+ | 5 | 15+ | 3 |
 | Binary size | <15 MB | 40 MB | 75 MB | ~15 MB |
 | Peak RAM (1 GB repo) | ~400 MB | 4.2 GB | ~1.2 GB | ~500 MB |
@@ -218,14 +219,20 @@ Tools: `scan_text`, `scan_file`, `scan_diff`, `scan_repo`, `validate_finding`, `
 
 ---
 
-## Rule Coverage (800+ rules)
+## Rule Coverage (277+ rules across 43 TOML files)
 
-- **Cloud**: AWS, GCP, Azure, Cloudflare, DigitalOcean, Vercel, Netlify
-- **AI/ML**: OpenAI, Anthropic, Cohere, Mistral, HuggingFace, Replicate, Groq
-- **Payments**: Stripe, Square, PayPal
-- **SaaS**: GitHub, GitLab, Slack, Twilio, SendGrid, Datadog, PagerDuty
-- **Crypto**: RSA/EC keys, PEM certs, JWTs, seed phrases
-- **Generic**: Passwords, connection strings, bearer tokens
+| Category | Providers | Rules |
+|----------|-----------|-------|
+| **Cloud** | AWS (25+), GCP (7+), Azure (8+), Cloudflare (5+), DigitalOcean, Vercel, Netlify | 55+ |
+| **AI/ML** | OpenAI (4+), Anthropic (3+), Google AI (4+), Cohere, Mistral, Replicate, HuggingFace | 16+ |
+| **Payments** | Stripe (7+), Square (3+), PayPal (4+), Adyen | 16+ |
+| **SaaS** | GitHub (17+), GitLab (13+), Slack (5+), Twilio (5+), SendGrid, Datadog, PagerDuty, Jira, Salesforce, Zendesk | 39+ |
+| **Database** | PostgreSQL (4+), MySQL (3+), MongoDB (3+), Redis (3+), Elasticsearch | 13+ |
+| **DevTools** | NPM (4+), Docker (4+), Terraform (3+), Kubernetes | 15+ |
+| **Crypto** | RSA/EC/DSA/Ed25519/PKCS8 keys, PEM certs, JWT, PASETO, HMAC, SSH | 15+ |
+| **Generic** | Passwords, bearer tokens, connection strings, LDAP, SMTP | 16+ |
+| **Embedded (default)** | All of the above + more in `rules/default.toml` | 94 |
+| **Total** | | **277+** |
 
 ---
 

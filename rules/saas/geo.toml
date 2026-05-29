@@ -1,0 +1,62 @@
+# Geographic and mapping service secrets
+# Covers Google Maps, Mapbox, HERE, TomTom, Foursquare, Yelp
+
+[[rules]]
+id = "here-api-key"
+description = "HERE Location Services API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)here[._-]?(?:location[._-]?|maps[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,48})['"]?'''
+keywords = ["here", "HERE_API"]
+entropy = 4.0
+tags = ["here", "maps", "location"]
+
+[[rules]]
+id = "tomtom-api-key"
+description = "TomTom Maps API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)tomtom[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["tomtom"]
+entropy = 4.0
+tags = ["tomtom", "maps", "navigation"]
+
+[[rules]]
+id = "ipgeolocation-api-key"
+description = "IPGeolocation.io API key for IP-to-location lookups"
+severity = "medium"
+category = "saas"
+regex = '''(?i)(?:ipgeo|ipgeolocation)[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32,48})['"]?'''
+keywords = ["ipgeolocation", "ipgeo"]
+entropy = 4.0
+tags = ["ipgeolocation", "geolocation"]
+
+[[rules]]
+id = "weather-api-key"
+description = "OpenWeatherMap or weather service API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)(?:openweather|weather)[._-]?(?:map[._-]?|api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["openweathermap", "WEATHER_API"]
+entropy = 4.0
+tags = ["weather", "openweathermap"]
+
+[[rules]]
+id = "foursquare-api-key"
+description = "Foursquare Places API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)foursquare[._-]?(?:api[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([A-Za-z0-9_]{40,48})['"]?'''
+keywords = ["foursquare"]
+entropy = 4.0
+tags = ["foursquare", "location", "places"]
+
+[[rules]]
+id = "yelp-api-key"
+description = "Yelp Fusion API key for business data"
+severity = "medium"
+category = "saas"
+regex = '''(?i)yelp[._-]?(?:fusion[._-]?|api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{86,})['"]?'''
+keywords = ["yelp", "YELP_API"]
+entropy = 4.5
+tags = ["yelp", "business", "location"]

@@ -1,0 +1,92 @@
+# Customer support and CRM platform secrets
+# Covers Zendesk (extended), Freshdesk, HubSpot, Salesforce, Intercom
+
+[[rules]]
+id = "freshdesk-api-key"
+description = "Freshdesk / Freshworks customer support API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)freshdesk[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{25,32})['"]?'''
+keywords = ["freshdesk", "freshworks"]
+entropy = 4.0
+tags = ["freshdesk", "crm", "saas"]
+
+[[rules]]
+id = "hubspot-api-key"
+description = "HubSpot private app token or API key"
+severity = "high"
+category = "saas"
+regex = '''pat-[a-z]{2}-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'''
+keywords = ["hubspot", "pat-na-", "pat-eu-"]
+entropy = 3.0
+tags = ["hubspot", "crm", "saas"]
+
+[[rules]]
+id = "salesforce-connected-app-secret"
+description = "Salesforce Connected App client secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)salesforce[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-F0-9]{64})['"]?'''
+keywords = ["salesforce", "SALESFORCE_CLIENT"]
+entropy = 4.5
+tags = ["salesforce", "crm", "saas"]
+
+[[rules]]
+id = "intercom-access-token"
+description = "Intercom customer messaging access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)intercom[._-]?(?:access[._-]?)?(?:token|key)\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{32,})['"]?'''
+keywords = ["intercom", "INTERCOM_TOKEN"]
+entropy = 4.0
+tags = ["intercom", "crm", "saas"]
+
+[[rules]]
+id = "drift-api-token"
+description = "Drift customer messaging API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)drift[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{40,})['"]?'''
+keywords = ["drift"]
+entropy = 4.0
+tags = ["drift", "crm", "saas"]
+
+[[rules]]
+id = "typeform-api-token"
+description = "Typeform survey platform API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)typeform[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{43})['"]?'''
+keywords = ["typeform", "TYPEFORM_TOKEN"]
+entropy = 4.0
+tags = ["typeform", "saas"]
+
+[[rules]]
+id = "surveymonkey-access-token"
+description = "SurveyMonkey API access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)surveymonkey[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-\.]{50,100})['"]?'''
+keywords = ["surveymonkey"]
+entropy = 4.0
+tags = ["surveymonkey", "saas"]
+
+[[rules]]
+id = "zoho-oauth-token"
+description = "Zoho CRM OAuth access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)zoho[._-]?(?:crm[._-]?|oauth[._-]?)?(?:access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9\._\-]{50,100})['"]?'''
+keywords = ["zoho", "ZOHO_TOKEN"]
+entropy = 4.0
+tags = ["zoho", "crm", "saas"]
+
+[[rules]]
+id = "pipedrive-api-key"
+description = "Pipedrive CRM API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)pipedrive[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["pipedrive"]
+entropy = 4.0
+tags = ["pipedrive", "crm", "saas"]

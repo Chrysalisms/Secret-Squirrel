@@ -1,0 +1,86 @@
+# Secret Squirrel — Salesforce Rules
+# Salesforce CRM platform secret detection rules
+
+# ==============================================================================
+# Salesforce — Access Token
+# ==============================================================================
+
+[[rules]]
+id = "salesforce-access-token"
+description = "Salesforce OAuth2 access token"
+regex = '''(?i)(?:salesforce[_\-\.\s]{0,10}(?:access[_\-\.\s]{0,5})?(?:oauth[_\-\.\s]{0,5})?token|SF_ACCESS_TOKEN|SALESFORCE_TOKEN|SFDC_ACCESS_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9!_.]{50,200})["']?'''
+keywords = ["SF_ACCESS_TOKEN", "SALESFORCE_TOKEN", "SFDC_ACCESS_TOKEN", "salesforce_token"]
+severity = "critical"
+category = "saas"
+tags = ["salesforce", "crm", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'SF_ACCESS_TOKEN=YOUR_ACCESS_TOKEN',
+    'SALESFORCE_TOKEN=<',
+    'SF_ACCESS_TOKEN=$\{',
+    'salesforce_token = ""',
+]
+remediation = "Revoke at Salesforce Setup → Security → Session Management → Revoke session. Rotate the connected app consumer secret and audit API usage logs."
+
+# ==============================================================================
+# Salesforce — Refresh Token
+# ==============================================================================
+
+[[rules]]
+id = "salesforce-refresh-token"
+description = "Salesforce OAuth2 refresh token (long-lived)"
+regex = '''(?i)(?:salesforce[_\-\.\s]{0,10}refresh[_\-\.\s]{0,10}token|SF_REFRESH_TOKEN|SALESFORCE_REFRESH_TOKEN|SFDC_REFRESH_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9!_.]{50,200})["']?'''
+keywords = ["SF_REFRESH_TOKEN", "SALESFORCE_REFRESH_TOKEN", "SFDC_REFRESH_TOKEN"]
+severity = "critical"
+category = "saas"
+tags = ["salesforce", "crm", "oauth", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'SF_REFRESH_TOKEN=YOUR_REFRESH_TOKEN',
+    'SALESFORCE_REFRESH_TOKEN=<',
+    'SFDC_REFRESH_TOKEN=$\{',
+    'salesforce_refresh_token = ""',
+]
+remediation = "Revoke at Salesforce Setup → Connected Apps OAuth Usage → Revoke. Refresh tokens are long-lived and allow indefinite API access."
+
+# ==============================================================================
+# Salesforce — Connected App Consumer Key
+# ==============================================================================
+
+[[rules]]
+id = "salesforce-connected-app-consumer-key"
+description = "Salesforce connected app consumer key (OAuth2 client ID)"
+regex = '''(?i)(?:salesforce[_\-\.\s]{0,10}(?:connected[_\-\.\s]{0,5}app[_\-\.\s]{0,5})?(?:consumer[_\-\.\s]{0,5})?key|SF_CONSUMER_KEY|SALESFORCE_CONSUMER_KEY|SFDC_CLIENT_ID)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9._]{80,120})["']?'''
+keywords = ["SF_CONSUMER_KEY", "SALESFORCE_CONSUMER_KEY", "SFDC_CLIENT_ID", "consumer_key"]
+severity = "medium"
+category = "saas"
+tags = ["salesforce", "crm", "oauth", "saas"]
+entropy_threshold = 3.0
+allowlist = [
+    'SF_CONSUMER_KEY=YOUR_CONSUMER_KEY',
+    'SALESFORCE_CONSUMER_KEY=<',
+    'SF_CONSUMER_KEY=$\{',
+    'salesforce_consumer_key = ""',
+]
+remediation = "Consumer keys are semi-public but combined with consumer secrets allow OAuth impersonation. Rotate both at Salesforce Setup → Connected Apps → Manage Consumer Details."
+
+# ==============================================================================
+# Salesforce — Connected App Consumer Secret
+# ==============================================================================
+
+[[rules]]
+id = "salesforce-connected-app-secret"
+description = "Salesforce connected app consumer secret (OAuth2 client secret)"
+regex = '''(?i)(?:salesforce[_\-\.\s]{0,10}(?:connected[_\-\.\s]{0,5}app[_\-\.\s]{0,5})?(?:consumer[_\-\.\s]{0,5})?secret|SF_CONSUMER_SECRET|SALESFORCE_CONSUMER_SECRET|SFDC_CLIENT_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_]{64})["']?'''
+keywords = ["SF_CONSUMER_SECRET", "SALESFORCE_CONSUMER_SECRET", "SFDC_CLIENT_SECRET"]
+severity = "critical"
+category = "saas"
+tags = ["salesforce", "crm", "oauth", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'SF_CONSUMER_SECRET=YOUR_SECRET',
+    'SALESFORCE_CONSUMER_SECRET=<',
+    'SFDC_CLIENT_SECRET=$\{',
+    'salesforce_consumer_secret = ""',
+]
+remediation = "Rotate at Salesforce Setup → Connected Apps → Manage Consumer Details → Reset Consumer Secret. Update all server-side OAuth integrations."

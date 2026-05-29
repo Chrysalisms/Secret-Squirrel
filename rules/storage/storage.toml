@@ -1,0 +1,107 @@
+# S3-compatible / Object Storage secrets
+# Covers MinIO, Wasabi, Backblaze B2, Cloudflare R2, DigitalOcean Spaces
+
+[[rules]]
+id = "minio-access-key"
+description = "MinIO access key ID"
+severity = "high"
+category = "storage"
+regex = '''(?i)minio[._-]?(?:access[._-]?)?(?:key[._-]?id|access[._-]?key)\s*[=:]\s*['"]?([A-Z0-9]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=minioadmin',
+    '=AKIAIOSFODNN7EXAMPLE',
+    '=your-',
+]
+entropy = 3.0
+tags = ["minio", "s3-compatible", "storage"]
+
+[[rules]]
+id = "minio-secret-key"
+description = "MinIO secret access key"
+severity = "critical"
+category = "storage"
+regex = '''(?i)minio[._-]?(?:secret[._-]?)?(?:access[._-]?)?(?:secret|key)\s*[=:]\s*['"]?([A-Za-z0-9/+]{40,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=minioadmin',
+    '=wJalrXUtnFEMI',
+    '=your-',
+]
+entropy = 4.0
+tags = ["minio", "s3-compatible", "storage"]
+
+[[rules]]
+id = "backblaze-b2-key-id"
+description = "Backblaze B2 application key ID"
+severity = "high"
+category = "storage"
+regex = '''(?i)b2[._-]?(?:application[._-]?)?key[._-]?id\s*[=:]\s*['"]?([0-9a-f]{25})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 3.5
+tags = ["backblaze", "b2", "storage"]
+
+[[rules]]
+id = "backblaze-b2-app-key"
+description = "Backblaze B2 application key"
+severity = "critical"
+category = "storage"
+regex = '''(?i)b2[._-]?(?:application[._-]?)?key\s*[=:]\s*['"]?([A-Za-z0-9+/]{31})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 4.5
+tags = ["backblaze", "b2", "storage"]
+
+[[rules]]
+id = "cloudflare-r2-access-key"
+description = "Cloudflare R2 S3-compatible access key"
+severity = "high"
+category = "storage"
+regex = '''(?i)(?:cloudflare[._-]?)?r2[._-]?(?:access[._-]?)?(?:key[._-]?id|access[._-]?key)\s*[=:]\s*['"]?([A-Z0-9]{32})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+]
+entropy = 4.0
+tags = ["cloudflare", "r2", "storage"]
+
+[[rules]]
+id = "digitalocean-spaces-key"
+description = "DigitalOcean Spaces access key"
+severity = "high"
+category = "storage"
+regex = '''(?i)(?:do|spaces|digitalocean)[._-]?(?:spaces[._-]?)?(?:access[._-]?)?key\s*[=:]\s*['"]?([A-Z0-9]{20})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=DOXXXXXXXXXXXXXXXXXX',
+]
+entropy = 3.5
+tags = ["digitalocean", "spaces", "storage"]
+
+[[rules]]
+id = "wasabi-access-key"
+description = "Wasabi cloud storage access key"
+severity = "high"
+category = "storage"
+regex = '''(?i)wasabi[._-]?(?:access[._-]?)?(?:key[._-]?id|key)\s*[=:]\s*['"]?([A-Z0-9]{20})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 3.5
+tags = ["wasabi", "s3-compatible", "storage"]
+
+[[rules]]
+id = "linode-object-storage-key"
+description = "Linode / Akamai object storage key"
+severity = "high"
+category = "storage"
+regex = '''(?i)linode[._-]?(?:object[._-]?storage[._-]?)?(?:access[._-]?)?(?:key|secret)\s*[=:]\s*['"]?([A-Za-z0-9]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 3.5
+tags = ["linode", "akamai", "storage"]

@@ -1,0 +1,92 @@
+# Search and data indexing service secrets
+# Covers Elasticsearch, Solr, Algolia, Meilisearch, Typesense, Pinecone, Weaviate
+
+[[rules]]
+id = "algolia-search-api-key"
+description = "Algolia search API key (write/admin key)"
+severity = "high"
+category = "saas"
+regex = '''(?i)algolia[._-]?(?:admin[._-]?|write[._-]?|search[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["algolia", "ALGOLIA_ADMIN", "ALGOLIA_SEARCH"]
+entropy = 4.0
+tags = ["algolia", "search", "saas"]
+
+[[rules]]
+id = "elastic-apm-secret-token"
+description = "Elastic APM server secret token"
+severity = "high"
+category = "monitoring"
+regex = '''(?i)(?:elastic[._-]?)?apm[._-]?secret[._-]?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["ELASTIC_APM_SECRET_TOKEN", "apm_secret"]
+entropy = 4.0
+tags = ["elastic", "apm", "monitoring"]
+
+[[rules]]
+id = "meilisearch-master-key"
+description = "Meilisearch master key for search API"
+severity = "critical"
+category = "saas"
+regex = '''(?i)meilisearch[._-]?(?:master[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{16,})['"]?'''
+keywords = ["meilisearch", "MEILI_MASTER_KEY"]
+entropy = 4.0
+tags = ["meilisearch", "search", "saas"]
+
+[[rules]]
+id = "typesense-api-key"
+description = "Typesense search server API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)typesense[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{16,})['"]?'''
+keywords = ["typesense", "TYPESENSE_API_KEY"]
+entropy = 3.5
+tags = ["typesense", "search", "saas"]
+
+[[rules]]
+id = "pinecone-api-key"
+description = "Pinecone vector database API key"
+severity = "critical"
+category = "ai"
+regex = '''(?i)pinecone[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["pinecone", "PINECONE_API"]
+entropy = 3.0
+tags = ["pinecone", "vector-db", "ai"]
+
+[[rules]]
+id = "weaviate-api-key"
+description = "Weaviate vector database API key"
+severity = "high"
+category = "ai"
+regex = '''(?i)weaviate[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["weaviate", "WEAVIATE_API"]
+entropy = 4.0
+tags = ["weaviate", "vector-db", "ai"]
+
+[[rules]]
+id = "chroma-api-key"
+description = "Chroma vector database authentication token"
+severity = "high"
+category = "ai"
+regex = '''(?i)chroma[._-]?(?:auth[._-]?|api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{16,})['"]?'''
+keywords = ["chroma", "CHROMA_AUTH"]
+entropy = 3.5
+tags = ["chroma", "vector-db", "ai"]
+
+[[rules]]
+id = "qdrant-api-key"
+description = "Qdrant vector similarity search API key"
+severity = "high"
+category = "ai"
+regex = '''(?i)qdrant[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{16,})['"]?'''
+keywords = ["qdrant", "QDRANT_API"]
+entropy = 3.5
+tags = ["qdrant", "vector-db", "ai"]
+
+[[rules]]
+id = "elastic-cloud-endpoint"
+description = "Elasticsearch Cloud endpoint with embedded API key"
+severity = "critical"
+category = "cloud"
+regex = '''https://([A-Za-z0-9_\-]+:[A-Za-z0-9_\-=+/]{20,})@[a-z0-9\-]+\.es\.[a-z0-9\-]+\.cloud\.es\.io'''
+keywords = ["es.io", "elastic.cloud", "elasticsearch"]
+entropy = 4.0
+tags = ["elastic", "elasticsearch", "cloud"]

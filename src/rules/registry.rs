@@ -11,7 +11,7 @@
 //! custom rule file path at startup.
 
 use crate::error::{Result, SquirrelError};
-use crate::rules::compiler::{build_automaton, compile_rules, CompiledRule};
+use crate::rules::compiler::{compile_rules, CompiledRule};
 use crate::rules::parser::{
     detect_format, parse_betterleaks_config, parse_gitleaks_config, parse_squirrel_config,
     RuleCategory, RuleFormat,
@@ -34,6 +34,8 @@ pub struct RuleRegistry {
     rules: Vec<CompiledRule>,
     /// Aho-Corasick automaton built from all rule keywords.
     automaton: AhoCorasick,
+    /// Mapping from Aho-Corasick match index (keyword index) to rule index in `rules`.
+    keyword_to_rule: Vec<usize>,
 }
 
 impl RuleRegistry {
@@ -57,6 +59,84 @@ impl RuleRegistry {
         })?;
 
         info!(count = all_rules.len(), "loaded embedded default rules");
+
+        // ── Step 1.5: scan rules/ subdirectories at runtime ─────────────────
+        // Load any .toml files found in `rules/*/` directories.  We look in:
+        //   1. A `rules/` directory adjacent to the running binary.
+        //   2. A `rules/` directory in the current working directory.
+        // This allows category files (ai/, cloud/, etc.) to be loaded without
+        // requiring a recompile or include_str! for each individual file.
+        let rules_search_dirs: Vec<std::path::PathBuf> = {
+            let mut dirs = Vec::new();
+            // Current working directory rules/
+            if let Ok(cwd) = std::env::current_dir() {
+                dirs.push(cwd.join("rules"));
+            }
+            // Rules dir next to the binary
+            if let Ok(exe) = std::env::current_exe() {
+                if let Some(exe_dir) = exe.parent() {
+                    dirs.push(exe_dir.join("rules"));
+                }
+            }
+            dirs
+        };
+
+        for rules_dir in &rules_search_dirs {
+            if !rules_dir.is_dir() {
+                continue;
+            }
+            // Walk one level deep (ai/, cloud/, crypto/, etc.)
+            let subdirs = match std::fs::read_dir(rules_dir) {
+                Ok(rd) => rd,
+                Err(_) => continue,
+            };
+            for subdir_entry in subdirs.flatten() {
+                let subdir_path = subdir_entry.path();
+                if !subdir_path.is_dir() {
+                    continue;
+                }
+                let toml_files = match std::fs::read_dir(&subdir_path) {
+                    Ok(rd) => rd,
+                    Err(_) => continue,
+                };
+                for file_entry in toml_files.flatten() {
+                    let file_path = file_entry.path();
+                    if file_path.extension().and_then(|e| e.to_str()) != Some("toml") {
+                        continue;
+                    }
+                    match std::fs::read_to_string(&file_path) {
+                        Ok(content) => {
+                            match parse_squirrel_config(&content) {
+                                Ok(file_rules) => {
+                                    info!(
+                                        count = file_rules.len(),
+                                        path = %file_path.display(),
+                                        "loaded category rules"
+                                    );
+                                    // Merge: later rules with same ID override earlier ones.
+                                    let file_ids: std::collections::HashSet<_> =
+                                        file_rules.iter().map(|r| r.id.clone()).collect();
+                                    all_rules.retain(|r| !file_ids.contains(&r.id));
+                                    all_rules.extend(file_rules);
+                                }
+                                Err(e) => {
+                                    warn!(
+                                        path = %file_path.display(),
+                                        error = %e,
+                                        "failed to parse category rule file — skipping"
+                                    );
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            warn!(path = %file_path.display(), error = %e, "could not read category rule file");
+                        }
+                    }
+                }
+            }
+            // Only load from the first directory found
+            break;
+        }
 
         // ── Step 2: load user config if provided ─────────────────────────────
         if let Some(path) = user_config_path {
@@ -98,13 +178,28 @@ impl RuleRegistry {
 
         // ── Step 3: compile all rules ─────────────────────────────────────────
         let compiled = compile_rules(all_rules)?;
-        let automaton = build_automaton(&compiled);
+        
+        let mut keyword_to_rule = Vec::new();
+        let mut keywords = Vec::new();
+        for (rule_idx, rule) in compiled.iter().enumerate() {
+            for kw in &rule.keywords {
+                keywords.push(kw.as_str());
+                keyword_to_rule.push(rule_idx);
+            }
+        }
+        
+        let automaton = aho_corasick::AhoCorasickBuilder::new()
+            .ascii_case_insensitive(true)
+            .match_kind(aho_corasick::MatchKind::LeftmostFirst)
+            .build(&keywords)
+            .expect("failed to build AhoCorasick automaton");
 
         info!(compiled = compiled.len(), "rule compilation complete");
 
         Ok(Self {
             rules: compiled,
             automaton,
+            keyword_to_rule,
         })
     }
 
@@ -116,6 +211,11 @@ impl RuleRegistry {
     /// Returns the shared Aho-Corasick keyword automaton.
     pub fn automaton(&self) -> &AhoCorasick {
         &self.automaton
+    }
+
+    /// Returns the mapping from keyword match index to rule index.
+    pub fn keyword_to_rule(&self) -> &[usize] {
+        &self.keyword_to_rule
     }
 
     /// Returns rules filtered by category.
@@ -139,6 +239,7 @@ impl RuleRegistry {
         let new = Self::load(Some(path))?;
         self.rules = new.rules;
         self.automaton = new.automaton;
+        self.keyword_to_rule = new.keyword_to_rule;
         debug!(path = %path.display(), "rule registry reloaded");
         Ok(())
     }
@@ -189,8 +290,12 @@ mod tests {
     #[test]
     fn test_by_id_aws() {
         let registry = RuleRegistry::load(None).unwrap();
-        let rule = registry.by_id("aws-access-key-id");
-        assert!(rule.is_some(), "aws-access-key-id rule must be present");
+        // The actual AWS access key rule is "aws-access-token" in default.toml.
+        let rule = registry.by_id("aws-access-token");
+        assert!(rule.is_some(), "aws-access-token rule must be present");
+        // Also confirm the secret access key rule exists.
+        let sak = registry.by_id("aws-secret-access-key");
+        assert!(sak.is_some(), "aws-secret-access-key rule must be present");
     }
 
     #[test]

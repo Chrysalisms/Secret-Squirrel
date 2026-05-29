@@ -1,0 +1,86 @@
+# Secret Squirrel — Jira / Atlassian Extended Rules
+# Additional Atlassian / Jira / Confluence secret detection rules beyond default.toml
+
+# ==============================================================================
+# Atlassian — Jira API Token
+# ==============================================================================
+
+[[rules]]
+id = "atlassian-jira-api-token"
+description = "Atlassian Jira API token assigned to a Jira-specific environment variable"
+regex = '''(?i)(?:jira[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?(?:token|key)|JIRA_API_TOKEN|JIRA_TOKEN)\s{0,5}[:=]\s{0,5}["']?(ATATT3[A-Za-z0-9_\-=]{186})["']?'''
+keywords = ["JIRA_API_TOKEN", "JIRA_TOKEN", "jira_api_token", "jira-api-token"]
+severity = "critical"
+category = "saas"
+tags = ["atlassian", "jira", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'JIRA_API_TOKEN=YOUR_TOKEN',
+    'JIRA_TOKEN=ATATT3EXAMPLE',
+    'JIRA_API_TOKEN=<',
+    'JIRA_TOKEN=$\{',
+]
+remediation = "Revoke at https://id.atlassian.com/manage-profile/security/api-tokens. Jira tokens can read/write issues, projects, and project configurations."
+
+# ==============================================================================
+# Atlassian — Confluence API Token
+# ==============================================================================
+
+[[rules]]
+id = "atlassian-confluence-api-token"
+description = "Atlassian Confluence API token assigned to a Confluence-specific variable"
+regex = '''(?i)(?:confluence[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?(?:token|key)|CONFLUENCE_API_TOKEN|CONFLUENCE_TOKEN)\s{0,5}[:=]\s{0,5}["']?(ATATT3[A-Za-z0-9_\-=]{186})["']?'''
+keywords = ["CONFLUENCE_API_TOKEN", "CONFLUENCE_TOKEN", "confluence_api_token"]
+severity = "critical"
+category = "saas"
+tags = ["atlassian", "confluence", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'CONFLUENCE_API_TOKEN=YOUR_TOKEN',
+    'CONFLUENCE_TOKEN=ATATT3EXAMPLE',
+    'CONFLUENCE_API_TOKEN=<',
+    'CONFLUENCE_TOKEN=$\{',
+]
+remediation = "Revoke at https://id.atlassian.com/manage-profile/security/api-tokens. Confluence tokens can access all pages and spaces the user can see."
+
+# ==============================================================================
+# Atlassian — OAuth2 Client Secret
+# ==============================================================================
+
+[[rules]]
+id = "atlassian-oauth2-client-secret"
+description = "Atlassian OAuth 2.0 app client secret"
+regex = '''(?i)(?:atlassian[_\-\.\s]{0,10}(?:oauth[_\-\.\s]{0,5}(?:2[_\-\.\s]{0,5})?)?(?:client[_\-\.\s]{0,5})?secret|ATLASSIAN_CLIENT_SECRET|ATLASSIAN_OAUTH_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{32,64})["']?'''
+keywords = ["ATLASSIAN_CLIENT_SECRET", "ATLASSIAN_OAUTH_SECRET", "atlassian_client_secret"]
+severity = "critical"
+category = "saas"
+tags = ["atlassian", "oauth2", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'ATLASSIAN_CLIENT_SECRET=YOUR_SECRET',
+    'ATLASSIAN_OAUTH_SECRET=<',
+    'ATLASSIAN_CLIENT_SECRET=$\{',
+    'atlassian_client_secret = ""',
+]
+remediation = "Rotate at https://developer.atlassian.com/console/myapps → OAuth 2.0 credentials → Rotate secret. All user tokens for this app become invalid."
+
+# ==============================================================================
+# Atlassian — Forge App Token
+# ==============================================================================
+
+[[rules]]
+id = "atlassian-forge-token"
+description = "Atlassian Forge app developer or deploy token"
+regex = '''(?i)(?:forge[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?(?:token|key)|FORGE_TOKEN|FORGE_API_TOKEN|ATLASSIAN_FORGE_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{40,120})["']?'''
+keywords = ["FORGE_TOKEN", "FORGE_API_TOKEN", "ATLASSIAN_FORGE_TOKEN", "forge_token"]
+severity = "critical"
+category = "saas"
+tags = ["atlassian", "forge", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'FORGE_TOKEN=YOUR_TOKEN',
+    'ATLASSIAN_FORGE_TOKEN=<',
+    'FORGE_TOKEN=$\{',
+    'forge_token = ""',
+]
+remediation = "Rotate at https://id.atlassian.com/manage-profile/security/api-tokens. Forge tokens can deploy and manage Forge apps across Atlassian cloud products."

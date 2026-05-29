@@ -1,0 +1,122 @@
+# High entropy string detectors — catches secrets with recognizable prefixes
+# but unknown service. Covers custom tokens with strong entropy signals.
+
+[[rules]]
+id = "high-entropy-bearer-token"
+description = "HTTP Bearer token with high entropy (32+ chars)"
+severity = "medium"
+category = "generic"
+regex = '''(?i)(?:Authorization|Auth):\s*Bearer\s+([A-Za-z0-9_\-.+=\/]{32,})'''
+keywords = ["Authorization: Bearer", "auth: bearer", "Bearer"]
+entropy = 4.5
+allowlist = [
+    'Authorization: Bearer <token>',
+    'Authorization: Bearer YOUR_TOKEN',
+    'Authorization: Bearer TOKEN',
+]
+tags = ["bearer", "http", "auth", "generic"]
+
+[[rules]]
+id = "generic-api-key-header"
+description = "Generic HTTP API key in X-API-Key header"
+severity = "medium"
+category = "generic"
+regex = '''(?i)X-API-Key:\s*([A-Za-z0-9_\-]{20,})'''
+keywords = ["X-API-Key:", "x-api-key"]
+entropy = 4.0
+allowlist = ['X-API-Key: YOUR_KEY', 'X-API-Key: <api_key>']
+tags = ["api-key", "http", "header", "generic"]
+
+[[rules]]
+id = "high-entropy-password-field"
+description = "Password field assignment with high-entropy value"
+severity = "medium"
+category = "generic"
+regex = '''(?i)(?:^|[^a-z])password\s*[=:]\s*['"]([A-Za-z0-9!@#$%^&*_+\-=\/\\]{16,})['"]'''
+keywords = ["password=", "password:", "PASSWORD="]
+entropy = 3.5
+allowlist = [
+    "password='changeme'",
+    'password="password"',
+    "password='password'",
+    'password="changeme"',
+    'password="yourpassword"',
+    'password="admin"',
+    'password="secret"',
+    'password="<password>"',
+    'password="PASSWORD"',
+]
+tags = ["password", "generic"]
+
+[[rules]]
+id = "high-entropy-secret-field"
+description = "Secret field assignment with high-entropy value"
+severity = "medium"
+category = "generic"
+regex = '''(?i)(?:^|[^a-z])secret\s*[=:]\s*['"]([A-Za-z0-9!@#$%^&*_+\-=\/\\]{24,})['"]'''
+keywords = ["secret=", "secret:", "SECRET="]
+entropy = 4.0
+allowlist = [
+    'secret="your_secret"',
+    "secret='your_secret'",
+    'secret="changeme"',
+    'secret="secret"',
+    'secret="<secret>"',
+]
+tags = ["secret", "generic"]
+
+[[rules]]
+id = "high-entropy-credential"
+description = "Credential field with high entropy value"
+severity = "low"
+category = "generic"
+regex = '''(?i)(?:credential|cred)[s]?\s*[=:]\s*['"]([A-Za-z0-9+/=_\-]{32,})['"]'''
+keywords = ["credentials", "credential="]
+entropy = 4.5
+allowlist = ['credentials="your_credentials"', 'credential=<value>']
+tags = ["credentials", "generic"]
+
+[[rules]]
+id = "private-key-base64"
+description = "Possible base64-encoded private key material"
+severity = "high"
+category = "crypto"
+regex = '''(?i)(?:private[._-]?key|priv[._-]?key|pem[._-]?key)\s*[=:]\s*['"]?([A-Za-z0-9+/]{44,}={0,2})['"]?'''
+keywords = ["private_key", "priv_key", "pem_key", "PRIVATE_KEY"]
+entropy = 5.0
+allowlist = ['private_key=YOUR_PRIVATE_KEY', 'private_key="<key>"']
+tags = ["private-key", "crypto", "generic"]
+
+[[rules]]
+id = "hex-encoded-secret"
+description = "Hex-encoded 128-bit or 256-bit secret"
+severity = "medium"
+category = "generic"
+regex = '''(?i)(?:secret|key|token|seed)\s*[=:]\s*['"]?([a-f0-9]{32}|[a-f0-9]{64})['"]?'''
+keywords = ["secret=", "token=", "seed="]
+entropy = 3.5
+allowlist = [
+    'secret=aaaa',
+    'key=0000',
+    'token=1111',
+    'key=deadbeef',
+]
+tags = ["hex", "secret", "generic"]
+
+[[rules]]
+id = "dotenv-api-key-unrecognized"
+description = ".env file API key variable with unrecognized prefix"
+severity = "low"
+category = "generic"
+regex = '''(?i)^[A-Z][A-Z0-9_]+_(?:API_KEY|SECRET|TOKEN|PASSWORD)=['"]?([A-Za-z0-9_\-+=.]{20,})['"]?$'''
+keywords = ["API_KEY=", "SECRET=", "TOKEN=", "_PASSWORD="]
+entropy = 4.0
+allowlist = [
+    'API_KEY=your_api_key',
+    'SECRET=your_secret',
+    'TOKEN=your_token',
+    'API_KEY=<key>',
+    'PASSWORD=changeme',
+    'PASSWORD=yourpassword',
+]
+tags = ["dotenv", "env-var", "generic"]

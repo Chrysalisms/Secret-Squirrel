@@ -1,0 +1,13 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-auth0oauth"
+description = "Parity rule for auth0oauth"
+severity = "high"
+category = "identity"
+keywords = ["auth0oauth"]
+regex = '''(?i)auth0oauth.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

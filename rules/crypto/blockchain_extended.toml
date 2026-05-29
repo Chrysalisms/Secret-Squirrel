@@ -1,0 +1,82 @@
+# Crypto and blockchain extended — wallet keys, DeFi protocol tokens
+# Covers Bitcoin WIF, Ethereum keystore, Solana keypair, wallet seeds
+
+[[rules]]
+id = "bitcoin-wif-private-key"
+description = "Bitcoin Wallet Import Format (WIF) private key"
+severity = "critical"
+category = "crypto"
+regex = '''[5KL][1-9A-HJ-NP-Za-km-z]{51}'''
+keywords = ["bitcoin", "BTC", "wif", "private_key"]
+entropy = 5.5
+tags = ["bitcoin", "crypto", "wallet", "wif"]
+
+[[rules]]
+id = "bitcoin-xpriv-key"
+description = "Bitcoin HD wallet extended private key (xprv prefix)"
+severity = "critical"
+category = "crypto"
+regex = '''xprv[A-Za-z0-9]{107,111}'''
+keywords = ["xprv", "bitcoin", "HD wallet"]
+entropy = 5.0
+tags = ["bitcoin", "hd-wallet", "crypto"]
+
+[[rules]]
+id = "mnemonic-seed-phrase"
+description = "BIP-39 mnemonic seed phrase (12 or 24 words)"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)(?:mnemonic|seed[._-]?phrase|seed[._-]?words)\s*[=:]\s*['"]?(?:[a-z]+\s+){11,23}[a-z]+['"]?'''
+keywords = ["mnemonic", "seed phrase", "MNEMONIC", "seed_phrase"]
+entropy = 3.5
+tags = ["mnemonic", "seed", "crypto", "bip39"]
+
+[[rules]]
+id = "ethereum-keystore-json"
+description = "Ethereum JSON keystore v3 file contents"
+severity = "critical"
+category = "crypto"
+regex = '''"version"\s*:\s*3\s*,\s*"id"\s*:\s*"[0-9a-f\-]{36}"'''
+keywords = ["keystore", '"version":3', '"crypto":{']
+entropy = 3.0
+tags = ["ethereum", "keystore", "crypto"]
+
+[[rules]]
+id = "tron-private-key"
+description = "TRON blockchain private key"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)tron[._-]?private[._-]?key\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["tron", "TRX_PRIVATE", "TRON_KEY"]
+entropy = 4.5
+tags = ["tron", "crypto", "wallet"]
+
+[[rules]]
+id = "binance-api-secret"
+description = "Binance exchange API secret"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)binance[._-]?(?:api[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9]{64})['"]?'''
+keywords = ["binance", "BINANCE_SECRET"]
+entropy = 4.5
+tags = ["binance", "crypto", "exchange"]
+
+[[rules]]
+id = "coinbase-api-secret"
+description = "Coinbase exchange or Advanced Trade API secret"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)coinbase[._-]?(?:api[._-]?|advanced[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9/+=]{64,88})['"]?'''
+keywords = ["coinbase", "COINBASE_SECRET"]
+entropy = 4.5
+tags = ["coinbase", "crypto", "exchange"]
+
+[[rules]]
+id = "metamask-export-private-key"
+description = "MetaMask exported private key (hex without 0x)"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)metamask[._-]?(?:private[._-]?)?(?:key|export)\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["metamask", "METAMASK_KEY"]
+entropy = 4.5
+tags = ["metamask", "ethereum", "wallet", "crypto"]

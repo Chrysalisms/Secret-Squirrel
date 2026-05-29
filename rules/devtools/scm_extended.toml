@@ -1,0 +1,43 @@
+# Source code management and version control extended
+# Covers GitHub Actions secrets, GitLab CI tokens, Azure DevOps, Bitbucket
+
+[[rules]]
+id = "github-personal-access-token-fine"
+description = "GitHub fine-grained personal access token (github_pat_ prefix)"
+severity = "critical"
+category = "devtools"
+regex = '''github_pat_[A-Za-z0-9_]{22}_[A-Za-z0-9_]{59}'''
+keywords = ["github_pat_", "fine-grained", "GITHUB_TOKEN"]
+entropy = 4.5
+tags = ["github", "pat", "devtools"]
+
+[[rules]]
+id = "github-deploy-key"
+description = "GitHub repository deploy key (SSH private key)"
+severity = "critical"
+category = "devtools"
+regex = '''-----BEGIN (?:OPENSSH|RSA) PRIVATE KEY-----[\s\S]{100,}-----END (?:OPENSSH|RSA) PRIVATE KEY-----'''
+keywords = ["OPENSSH PRIVATE KEY", "RSA PRIVATE KEY", "deploy_key"]
+entropy = 5.0
+tags = ["github", "ssh", "deploy", "devtools"]
+
+[[rules]]
+id = "gitea-api-token"
+description = "Gitea self-hosted Git service API token"
+severity = "high"
+category = "devtools"
+regex = '''(?i)gitea[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["gitea", "GITEA_TOKEN"]
+entropy = 4.5
+tags = ["gitea", "git", "devtools"]
+
+[[rules]]
+id = "gerrit-api-password"
+description = "Gerrit code review HTTP password"
+severity = "medium"
+category = "devtools"
+regex = '''(?i)gerrit[._-]?(?:http[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9_+/=]{12,})['"]?'''
+keywords = ["gerrit", "GERRIT_PASSWORD"]
+entropy = 3.5
+tags = ["gerrit", "code-review", "devtools"]
+

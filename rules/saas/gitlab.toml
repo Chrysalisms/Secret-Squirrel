@@ -1,0 +1,104 @@
+# Secret Squirrel — GitLab Extended Rules
+# Additional GitLab secret detection rules beyond default.toml
+
+# ==============================================================================
+# GitLab — Deploy Token
+# ==============================================================================
+
+[[rules]]
+id = "gitlab-deploy-token"
+description = "GitLab Deploy Token (for registry and repository access)"
+regex = '''\bgldt-[a-zA-Z0-9\-_]{20}\b'''
+keywords = ["gldt-"]
+severity = "critical"
+category = "devtools"
+tags = ["gitlab", "deploy-token", "devtools"]
+entropy_threshold = 3.0
+allowlist = [
+    'gldt-EXAMPLE',
+    'gldt-xxxx',
+    'gldt-YOUR_TOKEN',
+]
+remediation = "Revoke at GitLab → Project or Group → Settings → Repository → Deploy tokens. Deploy tokens can access container registries and clone repositories."
+
+# ==============================================================================
+# GitLab — Project Access Token
+# ==============================================================================
+
+[[rules]]
+id = "gitlab-project-access-token"
+description = "GitLab Project Access Token"
+regex = '''\bglpat-[a-zA-Z0-9\-_]{20}\b'''
+keywords = ["glpat-"]
+severity = "critical"
+category = "devtools"
+tags = ["gitlab", "project", "access-token", "devtools"]
+entropy_threshold = 3.0
+allowlist = [
+    'glpat-EXAMPLE',
+    'glpat-xxxx',
+    'glpat-YOUR_TOKEN',
+]
+remediation = "Revoke at GitLab → Project → Settings → Access Tokens. Project tokens have scoped access; audit project audit events for unauthorized API calls."
+
+# ==============================================================================
+# GitLab — Group Access Token
+# ==============================================================================
+
+[[rules]]
+id = "gitlab-group-access-token"
+description = "GitLab Group Access Token"
+regex = '''\bglgat-[a-zA-Z0-9\-_]{20}\b'''
+keywords = ["glgat-"]
+severity = "critical"
+category = "devtools"
+tags = ["gitlab", "group", "access-token", "devtools"]
+entropy_threshold = 3.0
+allowlist = [
+    'glgat-EXAMPLE',
+    'glgat-xxxx',
+    'glgat-YOUR_TOKEN',
+]
+remediation = "Revoke at GitLab → Group → Settings → Access Tokens. Group tokens can access all projects within the group."
+
+# ==============================================================================
+# GitLab — OAuth Application Secret
+# ==============================================================================
+
+[[rules]]
+id = "gitlab-oauth-application-secret"
+description = "GitLab OAuth application secret"
+regex = '''(?i)(?:gitlab[_\-\.\s]{0,10}(?:oauth[_\-\.\s]{0,5})?(?:application[_\-\.\s]{0,5})?secret|GITLAB_APP_SECRET|GITLAB_OAUTH_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{64})["']?'''
+keywords = ["GITLAB_APP_SECRET", "GITLAB_OAUTH_SECRET", "gitlab_oauth_secret"]
+severity = "critical"
+category = "devtools"
+tags = ["gitlab", "oauth", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    'GITLAB_APP_SECRET=YOUR_SECRET',
+    'GITLAB_OAUTH_SECRET=<',
+    'GITLAB_APP_SECRET=$\{',
+    'gitlab_app_secret = ""',
+]
+remediation = "Reset at GitLab → Admin → Applications → Reset secret. All existing user tokens for this OAuth app become invalid."
+
+# ==============================================================================
+# GitLab — CI Job Token
+# ==============================================================================
+
+[[rules]]
+id = "gitlab-ci-job-token"
+description = "GitLab CI/CD job token (CI_JOB_TOKEN) embedded outside of pipeline context"
+regex = '''(?i)(?:CI_JOB_TOKEN|GITLAB_CI_JOB_TOKEN|ci[_\-]job[_\-]token)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{20})["']?'''
+keywords = ["CI_JOB_TOKEN", "GITLAB_CI_JOB_TOKEN", "ci_job_token"]
+severity = "high"
+category = "devtools"
+tags = ["gitlab", "ci", "job-token", "devtools"]
+entropy_threshold = 3.0
+allowlist = [
+    'CI_JOB_TOKEN=$CI_JOB_TOKEN',
+    'CI_JOB_TOKEN=$\{CI_JOB_TOKEN}',
+    'CI_JOB_TOKEN=YOUR_TOKEN',
+    'CI_JOB_TOKEN=<',
+]
+remediation = "GitLab CI job tokens expire automatically after the job completes. If hardcoded, remove immediately and use the predefined CI_JOB_TOKEN variable instead."

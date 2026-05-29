@@ -1,0 +1,71 @@
+# Secret Squirrel — MySQL Rules
+# MySQL database secret detection rules
+
+# ==============================================================================
+# MySQL — Connection String
+# ==============================================================================
+
+[[rules]]
+id = "mysql-connection-string"
+description = "MySQL connection string with embedded credentials"
+regex = '''mysql(?:2|x)?://[^:@\s"']{1,100}:[^@\s"']{3,100}@[a-zA-Z0-9\.\-]{1,100}(?::\d{1,5})?(?:/[a-zA-Z0-9_\-]{1,100})?'''
+keywords = ["mysql://", "mysql2://", "mysql"]
+severity = "critical"
+category = "database"
+tags = ["mysql", "database", "connection-string"]
+entropy_threshold = 2.5
+allowlist = [
+    'mysql://user:password@',
+    'mysql://username:password@',
+    'mysql://root:password@',
+    'mysql://localhost',
+    'mysql://\$\{',
+    'mysql://example',
+]
+remediation = "Rotate the database password and use environment variables or a secrets manager. Enable MySQL TLS and consider using IAM database authentication."
+
+# ==============================================================================
+# MySQL — JDBC URL
+# ==============================================================================
+
+[[rules]]
+id = "mysql-jdbc-url"
+description = "MySQL JDBC URL with password parameter"
+regex = '''jdbc:mysql://[^\s"']{1,200}(?:password|passwd)=[^\s&"']{3,100}'''
+keywords = ["jdbc:mysql://"]
+severity = "critical"
+category = "database"
+tags = ["mysql", "jdbc", "database"]
+entropy_threshold = 2.5
+allowlist = [
+    'password=YOUR_PASSWORD',
+    'password=changeme',
+    'password=$\{',
+    'password=<',
+    'password=\$\{',
+]
+remediation = "Move JDBC credentials out of the connection URL and into application server DataSource configuration or a secrets manager."
+
+# ==============================================================================
+# MySQL — Environment Variable Password
+# ==============================================================================
+
+[[rules]]
+id = "mysql-env-password"
+description = "MySQL password in environment variable assignment (MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD)"
+regex = '''(?i)(?:MYSQL_(?:ROOT_)?PASSWORD|MYSQL_PWD|MYSQL_PASS)\s{0,5}=\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)[^\s"']{3,100}["']?'''
+keywords = ["MYSQL_ROOT_PASSWORD", "MYSQL_PASSWORD", "MYSQL_PWD", "MYSQL_PASS"]
+severity = "critical"
+category = "database"
+tags = ["mysql", "environment", "password", "database"]
+entropy_threshold = 2.5
+allowlist = [
+    'MYSQL_ROOT_PASSWORD=YOUR_PASSWORD',
+    'MYSQL_PASSWORD=changeme',
+    'MYSQL_ROOT_PASSWORD=password',
+    'MYSQL_ROOT_PASSWORD=rootpassword',
+    'MYSQL_PWD=<',
+    'MYSQL_PASSWORD=$\{',
+    'MYSQL_PASSWORD=secret',
+]
+remediation = "Remove the hardcoded password and use Docker secrets or Kubernetes secrets. Rotate the MySQL root password and restrict root login to localhost only."

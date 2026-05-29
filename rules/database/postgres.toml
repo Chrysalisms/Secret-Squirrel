@@ -1,0 +1,92 @@
+# Secret Squirrel — PostgreSQL Rules
+# PostgreSQL database secret detection rules
+
+# ==============================================================================
+# PostgreSQL — Connection String
+# ==============================================================================
+
+[[rules]]
+id = "postgres-connection-string"
+description = "PostgreSQL connection string with embedded credentials"
+regex = '''postgres(?:ql)?://[^:@\s"']{1,100}:[^@\s"']{3,100}@[a-zA-Z0-9\.\-]{1,100}(?::\d{1,5})?/[a-zA-Z0-9_\-]{1,100}'''
+keywords = ["postgres://", "postgresql://", "postgres"]
+severity = "critical"
+category = "database"
+tags = ["postgres", "database", "connection-string"]
+entropy_threshold = 2.5
+allowlist = [
+    'postgres://user:password@',
+    'postgres://username:password@',
+    'postgres://localhost',
+    'postgresql://user:password@',
+    'postgres://\$\{',
+    'postgres://example',
+]
+remediation = "Rotate the database password and move the connection string to a secrets manager (AWS Secrets Manager, Vault, etc.). Use IAM authentication or connection poolers like PgBouncer."
+
+# ==============================================================================
+# PostgreSQL — JDBC URL
+# ==============================================================================
+
+[[rules]]
+id = "postgres-jdbc-url"
+description = "PostgreSQL JDBC URL with password parameter"
+regex = '''jdbc:postgresql://[^\s"']{1,200}(?:password|passwd)=[^\s&"']{3,100}'''
+keywords = ["jdbc:postgresql://", "jdbc:postgres"]
+severity = "critical"
+category = "database"
+tags = ["postgres", "jdbc", "database"]
+entropy_threshold = 2.5
+allowlist = [
+    'password=YOUR_PASSWORD',
+    'password=changeme',
+    'password=$\{',
+    'password=<',
+    'password=\$\{',
+]
+remediation = "Move JDBC credentials to environment variables or application server DataSource configuration. Use connection pool frameworks that read from secrets managers."
+
+# ==============================================================================
+# PostgreSQL — Environment Variable Password
+# ==============================================================================
+
+[[rules]]
+id = "postgres-env-password"
+description = "PostgreSQL password in environment variable assignment (POSTGRES_PASSWORD, PG_PASSWORD, PGPASSWORD)"
+regex = '''(?i)(?:POSTGRES(?:_DB)?_PASSWORD|PG_PASSWORD|PGPASSWORD)\s{0,5}=\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)[^\s"']{3,100}["']?'''
+keywords = ["POSTGRES_PASSWORD", "PG_PASSWORD", "PGPASSWORD", "POSTGRES_DB_PASSWORD"]
+severity = "critical"
+category = "database"
+tags = ["postgres", "environment", "password", "database"]
+entropy_threshold = 2.5
+allowlist = [
+    'POSTGRES_PASSWORD=YOUR_PASSWORD',
+    'POSTGRES_PASSWORD=changeme',
+    'POSTGRES_PASSWORD=password',
+    'POSTGRES_PASSWORD=postgres',
+    'PGPASSWORD=<',
+    'PGPASSWORD=$\{',
+    'PG_PASSWORD=secret',
+]
+remediation = "Remove the hardcoded password and inject via Docker secrets, Kubernetes secrets, or a secrets manager. Never commit .env files with real passwords."
+
+# ==============================================================================
+# PostgreSQL — .pgpass Format
+# ==============================================================================
+
+[[rules]]
+id = "postgres-pgpass-format"
+description = "PostgreSQL .pgpass file entry with password"
+regex = '''[a-zA-Z0-9\.\-\*]{1,100}:\d{1,5}:[a-zA-Z0-9_\-\*]{1,100}:[a-zA-Z0-9_\-\*]{1,100}:[^\s:]{3,100}$'''
+keywords = [".pgpass", "pgpass"]
+severity = "critical"
+category = "database"
+tags = ["postgres", "pgpass", "database"]
+entropy_threshold = 2.0
+allowlist = [
+    'localhost:5432:*:*:password',
+    '\*:\*:\*:\*:YOUR_PASSWORD',
+    '\*:\*:\*:\*:changeme',
+    'hostname:port:database:user:password',
+]
+remediation = "Ensure .pgpass is not tracked in version control (add to .gitignore). Use IAM or certificate-based authentication where possible."

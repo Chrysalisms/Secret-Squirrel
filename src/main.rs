@@ -160,6 +160,17 @@ enum Commands {
 
     /// Print version and enabled feature flags
     Version,
+
+    /// Start the MCP server (HTTP or stdio)
+    Serve {
+        /// Port to listen on (default: 3779)
+        #[arg(long, default_value = "3779", value_name = "PORT")]
+        port: u16,
+
+        /// Use stdio transport instead of HTTP
+        #[arg(long)]
+        stdio: bool,
+    },
 }
 
 // ── Protect subcommands ──────────────────────────────────────────────────────
@@ -328,13 +339,13 @@ async fn main() -> Result<()> {
         LogFormatArg::Json => {
             tracing_subscriber::registry()
                 .with(env_filter)
-                .with(fmt::layer().json())
+                .with(fmt::layer().json().with_writer(std::io::stderr))
                 .init();
         }
         LogFormatArg::Text => {
             tracing_subscriber::registry()
                 .with(env_filter)
-                .with(fmt::layer().compact())
+                .with(fmt::layer().compact().with_writer(std::io::stderr))
                 .init();
         }
     }
@@ -425,6 +436,8 @@ async fn main() -> Result<()> {
             );
             0
         }
+
+        Commands::Serve { port, stdio } => run_serve(port, stdio).await?,
     };
 
     std::process::exit(exit_code);
@@ -442,11 +455,26 @@ async fn run_detect(
     source: PathBuf,
     config: SquirrelConfig,
     fail_on: Severity,
-    _extra_rules: Option<PathBuf>,
+    extra_rules: Option<PathBuf>,
 ) -> Result<i32> {
     use secret_squirrel::engine::session::ScanSession;
     use secret_squirrel::report::get_reporter;
     use std::io::BufWriter;
+    use secret_squirrel::engine::router::Router;
+    use secret_squirrel::engine::pipeline::Pipeline;
+    use secret_squirrel::rules::registry::RuleRegistry;
+    use secret_squirrel::scoring::fusion::FusionEngine;
+    use secret_squirrel::scoring::markov::MarkovScorer;
+    use secret_squirrel::scoring::hard_negatives::HardNegativeMatcher;
+    use secret_squirrel::scoring::correlation::CorrelationEngine;
+    use secret_squirrel::sources::{SyncSource, dir::DirSource};
+    use secret_squirrel::types::{Finding, Location, RedactedString, hash_secret};
+    #[cfg(feature = "semantic")]
+    use secret_squirrel::semantic::SemanticAnalyzer;
+    use uuid::Uuid;
+    use chrono::Utc;
+    #[cfg(feature = "cnn")]
+    use secret_squirrel::scoring::cnn::{ModelTier, classifier::CnnClassifier};
 
     tracing::info!(
         source = ?source,
@@ -454,15 +482,322 @@ async fn run_detect(
         "Starting scan"
     );
 
-    println!("Scanning: {}", source.display());
+    eprintln!("Scanning: {}", source.display());
 
-    // Create session (will run full pipeline once engine is wired)
-    let session = ScanSession::new(config.clone());
+    // ── 1. Initialization ───────────────────────────────────────────────────
+    let registry = RuleRegistry::load(extra_rules.as_deref())?;
 
-    // TODO Phase 1: invoke full pipeline here
-    let findings = session.findings;
+    // Router: auto-activates GPU when hardware is present (config.gpu.enabled
+    // defaults to true). GpuEngine::new() returns None on headless/CPU-only
+    // hosts and the router falls back to CPU transparently.
+    let router = Router::new(&config.gpu).await;
+    let pipeline = Pipeline::new(router, config.pipeline.clone());
 
-    // Write output
+
+    let fusion_engine = FusionEngine::new(&config.scoring);
+    let markov = MarkovScorer::new();
+    // Semantic analyzer — works with the `semantic` feature flag.
+    // Falls back to a zero-cost stub (always None adjustment) without it.
+    #[cfg(feature = "semantic")]
+    let semantic_analyzer = SemanticAnalyzer::new();
+    #[cfg(feature = "semantic")]
+    let semantic_enabled = config.scan.semantic;
+    // Hard negative matcher — penalizes placeholder/example strings.
+    let hard_neg = HardNegativeMatcher::new();
+
+    // ── CNN classifier (optional, requires `cnn` feature + model file) ───────
+    // Gracefully degrades to None if the ORT shared library or model file is
+    // not present — scan continues with Markov+heuristic scoring only.
+    //
+    // Note: config::ModelTier::Default == Markov-only (no CNN).
+    //       Map to scoring::cnn::ModelTier for CnnClassifier::from_tier().
+    #[cfg(feature = "cnn")]
+    let mut cnn_classifier: Option<CnnClassifier> = {
+        // Map config::ModelTier → scoring::cnn::ModelTier
+        use secret_squirrel::config::ModelTier as CfgTier;
+        let cnn_tier = match &config.scan.model_tier {
+            CfgTier::Default => ModelTier::None,
+            CfgTier::Tiny     => ModelTier::Tiny,
+            CfgTier::Large    => ModelTier::Large,
+            CfgTier::Enhanced => ModelTier::Enhanced,
+            CfgTier::Maximum  => ModelTier::Maximum,
+        };
+        if cnn_tier != ModelTier::None {
+            // Look for model in: ./models/, ~/.squirrel/models/
+            let model_dirs: Vec<std::path::PathBuf> = vec![
+                std::path::PathBuf::from("models"),
+                dirs::home_dir()
+                    .unwrap_or_default()
+                    .join(".squirrel")
+                    .join("models"),
+            ];
+            let mut loaded = None;
+            for dir in &model_dirs {
+                match CnnClassifier::from_tier(cnn_tier.clone(), dir) {
+                    Ok(clf) => {
+                        tracing::info!(dir = %dir.display(), "CNN model loaded");
+                        loaded = Some(clf);
+                        break;
+                    }
+                    Err(e) => {
+                        tracing::debug!("CNN not loaded from {:?}: {}", dir, e);
+                    }
+                }
+            }
+            if loaded.is_none() {
+                tracing::warn!("CNN model not found — run `squirrel model pull {:?}` to enable", cnn_tier);
+            }
+            loaded
+        } else {
+            None
+        }
+    };
+    #[cfg(not(feature = "cnn"))]
+    let _cnn_classifier: Option<()> = None; // cnn feature disabled — CNN inference skipped
+    
+    let mut session = ScanSession::new(config.clone());
+
+    // ── 2. Scanning ─────────────────────────────────────────────────────────
+    // For Phase 1, we treat the source as a directory or file using DirSource.
+    let dir_source = DirSource::new(
+        source.clone(),
+        config.scan.max_file_size,
+        &config.sources,
+    );
+
+    use rayon::prelude::*;
+    use std::sync::Mutex;
+
+    #[cfg(feature = "cnn")]
+    let cnn_classifier_mutex = cnn_classifier.map(Mutex::new);
+
+    let nonce = session.nonce.clone();
+    
+    let all_findings: Vec<Finding> = std::thread::scope(|s| {
+        let (tx, rx) = crossbeam_channel::bounded(1024);
+
+        s.spawn(move || {
+            for f in dir_source.fragments() {
+                if tx.send(f).is_err() {
+                    break;
+                }
+            }
+        });
+
+        rx.into_iter()
+            .par_bridge()
+            .filter_map(|fragment_res| {
+                let fragment = match fragment_res {
+                    Ok(f) => f,
+                    Err(e) => {
+                        tracing::warn!("Failed to read fragment: {}", e);
+                        return None;
+                    }
+                };
+
+                let matches = match pipeline.process_fragment_with_rules(
+                    &fragment,
+                    registry.automaton(),
+                    registry.rules(),
+                    registry.keyword_to_rule(),
+                ) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        tracing::error!("Pipeline failed on fragment {}: {}", fragment.metadata.path, e);
+                        return None;
+                    }
+                };
+
+            let mut local_findings = Vec::new();
+
+            for pm in matches {
+                let rule = if let Some(r) = registry.by_id(&pm.rule_id) {
+                    r
+                } else {
+                    continue;
+                };
+
+                let secret_str = &pm.matched_text;
+                let markov_score = markov.score(secret_str);
+
+                #[cfg(feature = "cnn")]
+                let cnn_score: Option<f32> = if let Some(ref clf_mutex) = cnn_classifier_mutex {
+                    if let Ok(mut clf) = clf_mutex.lock() {
+                        match clf.classify(secret_str) {
+                            Ok(p) => Some(p as f32),
+                            Err(e) => {
+                                tracing::debug!("CNN inference failed: {}", e);
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                #[cfg(not(feature = "cnn"))]
+                let cnn_score: Option<f32> = None;
+
+                #[cfg(feature = "semantic")]
+                let ast_adjustment: Option<f32> = if semantic_enabled {
+                    let file_ext = std::path::Path::new(&fragment.metadata.path)
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("");
+                    let ctx = semantic_analyzer.analyze(
+                        &fragment.content,
+                        pm.match_start,
+                        file_ext,
+                    );
+                    Some(ctx.confidence_adjustment())
+                } else {
+                    None
+                };
+                #[cfg(not(feature = "semantic"))]
+                let ast_adjustment: Option<f32> = None;
+
+                let mut fused_score = fusion_engine.compute(
+                    &pm,
+                    markov_score,
+                    cnn_score,
+                    ast_adjustment,
+                    &fragment.metadata,
+                );
+
+                use secret_squirrel::scoring::hard_negatives::HARD_NEGATIVE_PENALTY;
+                let hn_on_value = hard_neg.penalty(secret_str);
+                let context_bytes: &[u8] = &pm.source.source.context[..];
+                let context_str = std::str::from_utf8(context_bytes).unwrap_or("");
+                let hn_on_context = hard_neg.penalty(context_str);
+                let hn_penalty = hn_on_value.min(hn_on_context);
+
+                if (hn_penalty - HARD_NEGATIVE_PENALTY).abs() < 1e-6 {
+                    tracing::debug!(
+                        matched = %secret_str,
+                        rule    = %pm.rule_id,
+                        "hard-negative exact match suppressed"
+                    );
+                    continue;
+                } else if hn_penalty < 0.0 {
+                    tracing::debug!(
+                        matched = %secret_str,
+                        penalty = hn_penalty,
+                        "hard-negative heuristic penalty applied"
+                    );
+                    fused_score.confidence = (fused_score.confidence + hn_penalty).max(0.0);
+                }
+
+                if fused_score.confidence < config.scan.confidence_threshold {
+                    continue;
+                }
+
+                let mut line = 1;
+                for b in &fragment.content[..pm.match_start.min(fragment.content.len())] {
+                    if *b == b'\n' {
+                        line += 1;
+                    }
+                }
+
+                let secret = RedactedString::new(secret_str.clone());
+                let secret_hash = hash_secret(&secret, &nonce);
+
+                let context = String::from_utf8_lossy(&pm.source.source.context).into_owned();
+
+                let finding = Finding {
+                    id: Uuid::new_v4().to_string(),
+                    rule_id: rule.id.clone(),
+                    description: rule.description.clone(),
+                    secret,
+                    secret_hash,
+                    match_context: context,
+                    location: Location {
+                        path: fragment.metadata.path.clone(),
+                        start_line: line,
+                        end_line: line,
+                        start_col: 0,
+                        end_col: secret_str.len() as u32,
+                        byte_offset: pm.match_start as u64,
+                    },
+                    score: fused_score,
+                    severity: rule.severity,
+                    chain: None,
+                    validation: None,
+                    remediation: rule.remediation.clone(),
+                    detected_at: Utc::now(),
+                };
+
+                local_findings.push(finding);
+            }
+            Some(local_findings)
+        })
+        .flatten()
+        .collect()
+    });
+
+    for finding in all_findings {
+        session.add_finding(finding);
+    }
+
+    session.finalize();
+
+    // ── 2b. Cross-file credential chain correlation ──────────────────────────
+    if config.scan.correlate {
+        tracing::info!("Running cross-file correlation engine");
+        let budget = 64 * 1024 * 1024; // 64 MB
+        let mut corr = CorrelationEngine::new(budget);
+        for finding in session.findings_mut() {
+            // Extract variable name: first identifier in match context
+            let var_name = extract_variable_name(&finding.match_context);
+            corr.add_finding(finding, var_name.as_deref());
+        }
+        let chains = corr.resolve_chains();
+        tracing::info!(chains = chains.len(), "correlation complete");
+        // Apply chain confidence boost and annotate findings
+        for chain in chains {
+            for finding in session.findings_mut() {
+                if finding.id == chain.origin_id
+                    || chain.propagation_ids.contains(&finding.id)
+                    || chain.usage_ids.contains(&finding.id)
+                {
+                    finding.score.confidence =
+                        (finding.score.confidence + chain.chain_confidence).min(1.0);
+                    finding.chain = Some(chain.clone());
+                }
+            }
+        }
+    }
+
+    // ── 2c. Live validation ──────────────────────────────────────────────────
+    if config.scan.validate {
+        use secret_squirrel::validate::engine::ValidationEngine;
+        use secret_squirrel::types::{ValidationRef};
+        tracing::info!("Running live secret validation");
+        let val_engine = ValidationEngine::new();
+        for finding in session.findings_mut() {
+            // Only validate high-confidence findings to avoid rate limiting.
+            if finding.score.confidence >= 0.65 {
+                if let Some(result) = val_engine.validate_finding(finding).await {
+                    tracing::debug!(
+                        finding_id = %finding.id,
+                        provider = %result.provider,
+                        status = ?result.status,
+                        "validation result"
+                    );
+                    finding.validation = Some(ValidationRef {
+                        status: result.status,
+                        provider: result.provider,
+                        validated_at: result.validated_at,
+                        reason: Some(result.reason),
+                    });
+                }
+            }
+        }
+    }
+
+    // ── 3. Reporting ────────────────────────────────────────────────────────
+    let findings: Vec<Finding> = session.filtered_findings().cloned().collect();
+
     let mut writer: Box<dyn std::io::Write> = match &config.output.output_path {
         Some(path) => {
             let file = std::fs::File::create(path)?;
@@ -480,7 +815,6 @@ async fn run_detect(
         tracing::info!(count = findings.len(), "Scan complete");
     }
 
-    // Exit 1 if any finding meets or exceeds the --fail-on threshold
     let has_failures = findings.iter().any(|f| f.severity >= fail_on);
     Ok(if has_failures { 1 } else { 0 })
 }
@@ -492,8 +826,107 @@ async fn run_validate(finding_id: String) -> Result<i32> {
     Ok(0)
 }
 
+/// Start the MCP server in either HTTP or stdio mode.
+#[allow(unused_variables)]
+async fn run_serve(port: u16, stdio: bool) -> Result<i32> {
+    if stdio {
+        #[cfg(feature = "mcp-server")]
+        {
+            secret_squirrel::mcp::server::run_stdio().await?;
+        }
+        #[cfg(not(feature = "mcp-server"))]
+        {
+            eprintln!("MCP server not compiled in. Rebuild with --features mcp-server");
+            return Ok(2);
+        }
+    } else {
+        #[cfg(feature = "mcp-server")]
+        {
+            eprintln!("🐿️  Secret Squirrel MCP server listening on http://0.0.0.0:{}", port);
+            eprintln!("   POST http://0.0.0.0:{}/mcp/v1  — JSON-RPC 2.0", port);
+            eprintln!("   GET  http://0.0.0.0:{}/health  — Health check", port);
+            secret_squirrel::mcp::server::run_http(port).await?;
+        }
+        #[cfg(not(feature = "mcp-server"))]
+        {
+            eprintln!("MCP server not compiled in. Rebuild with --features mcp-server");
+            return Ok(2);
+        }
+    }
+    Ok(0)
+}
+
+/// Extract the variable name (identifier) from a match context string.
+///
+/// Scans for the first `[A-Za-z_][A-Za-z0-9_]+` identifier that precedes an
+/// assignment (`=` or `:`) operator, which is typically the key/variable name.
+/// Falls back to `None` if no identifier is found.
+fn extract_variable_name(context: &str) -> Option<String> {
+    // Find the first `=` or `:` in the context and look backwards for an identifier.
+    let bytes = context.as_bytes();
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'=' || b == b':' {
+            // Scan backwards from i, skipping whitespace, to find identifier end.
+            let end = bytes[..i]
+                .iter()
+                .rposition(|&c| c.is_ascii_alphanumeric() || c == b'_')?;
+            // Scan backwards to find identifier start.
+            let start = bytes[..=end]
+                .iter()
+                .rposition(|&c| !(c.is_ascii_alphanumeric() || c == b'_'))
+                .map(|p| p + 1)
+                .unwrap_or(0);
+            let ident = std::str::from_utf8(&bytes[start..=end]).ok()?;
+            // Filter out trivially short or numeric identifiers.
+            if ident.len() >= 2 && !ident.chars().next().unwrap_or('0').is_ascii_digit() {
+                return Some(ident.to_uppercase()); // normalise to SCREAMING_CASE
+            }
+        }
+    }
+    None
+}
+
 /// The pre-commit hook script written by `protect install`.
-const PRE_COMMIT_HOOK: &str = "#!/bin/sh\n# Secret Squirrel pre-commit hook\n# Scans staged files for credentials before commit\nset -e\n\nexec squirrel detect --source git-staged --exit-code 1\n";
+const PRE_COMMIT_HOOK: &str = "\
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────────────────────
+# Secret Squirrel pre-commit hook
+# Scans staged files for credentials before each commit.
+#
+# Bypass (use sparingly): git commit --no-verify
+# Remove hook:           squirrel protect uninstall
+# Adjust confidence:     edit SQUIRREL_CONFIDENCE below
+# ─────────────────────────────────────────────────────────────────────────────
+
+SQUIRREL_CONFIDENCE=\"${SQUIRREL_CONFIDENCE:-0.5}\"
+SQUIRREL_BIN=\"${SQUIRREL_BIN:-squirrel}\"
+
+if ! command -v \"$SQUIRREL_BIN\" >/dev/null 2>&1; then
+    echo \"[squirrel] ⚠️  squirrel not found in PATH — skipping secret scan.\"
+    echo \"[squirrel] Install: cargo install secret-squirrel\"
+    exit 0
+fi
+
+echo \"[squirrel] Scanning staged files for secrets (confidence >= $SQUIRREL_CONFIDENCE)...\"
+
+\"$SQUIRREL_BIN\" detect \\
+    --source git-staged \\
+    --confidence \"$SQUIRREL_CONFIDENCE\" \\
+    --format table \\
+    --exit-code 1
+
+EXIT=$?
+if [ $EXIT -ne 0 ]; then
+    echo \"\"
+    echo \"[squirrel] ❌ Commit blocked — secrets detected in staged files.\"
+    echo \"[squirrel]    Fix the issues above, then run: git add <files> && git commit\"
+    echo \"[squirrel]    To bypass (not recommended): git commit --no-verify\"
+    exit 1
+fi
+
+echo \"[squirrel] ✅ No secrets detected — commit allowed.\"
+exit 0
+";
 
 /// Walk up from `start` to find the nearest `.git` directory.
 fn find_git_dir(start: &std::path::Path) -> Option<std::path::PathBuf> {

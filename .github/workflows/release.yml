@@ -3,150 +3,166 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
-
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-  BINARY_NAME: squirrel
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.1.0)'
+        required: true
 
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
 jobs:
-  # ── Build Artifacts ─────────────────────────────────────────────────────────
   build:
     name: Build ${{ matrix.target }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64 (static musl via cross)
           - target: x86_64-unknown-linux-musl
-            runner: ubuntu-latest
-            use_cross: true
-            archive: tar.gz
-
-          # Linux aarch64 (static musl via cross)
+            os: ubuntu-22.04
+            artifact: squirrel-linux-x86_64
+            cross: false
           - target: aarch64-unknown-linux-musl
-            runner: ubuntu-latest
-            use_cross: true
-            archive: tar.gz
-
-          # macOS x86_64 (native)
+            os: ubuntu-22.04
+            artifact: squirrel-linux-aarch64
+            cross: true
           - target: x86_64-apple-darwin
-            runner: macos-latest
-            use_cross: false
-            archive: tar.gz
-
-          # macOS arm64 (native)
+            os: macos-13
+            artifact: squirrel-macos-x86_64
+            cross: false
           - target: aarch64-apple-darwin
-            runner: macos-latest
-            use_cross: false
-            archive: tar.gz
-
-          # Windows x86_64 (native MSVC)
+            os: macos-14
+            artifact: squirrel-macos-aarch64
+            cross: false
           - target: x86_64-pc-windows-msvc
-            runner: windows-latest
-            use_cross: false
-            archive: zip
+            os: windows-2022
+            artifact: squirrel-windows-x86_64
+            cross: false
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust stable
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      # ── cross (Linux musl only) ────────────────────────────────────────────
-      - name: Install cross
-        if: matrix.use_cross == true
-        run: cargo install cross --git https://github.com/cross-rs/cross --locked
+      - name: Install musl tools (Linux)
+        if: contains(matrix.target, 'linux-musl')
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y musl-tools
 
-      # ── Cargo cache ───────────────────────────────────────────────────────
+      - name: Install cross (for cross-compilation)
+        if: matrix.cross == true
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
       - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/
-          key: ${{ runner.os }}-${{ matrix.target }}-release-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.target }}-release-
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      # ── Build ─────────────────────────────────────────────────────────────
-      - name: Build (cross)
-        if: matrix.use_cross == true
-        run: cross build --release --target ${{ matrix.target }}
+      - name: Build release binary (native)
+        if: matrix.cross == false
+        run: cargo build --release --target ${{ matrix.target }} --locked
+        env:
+          RUSTFLAGS: "-C target-feature=+crt-static"
 
-      - name: Build (cargo)
-        if: matrix.use_cross == false
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build release binary (cross)
+        if: matrix.cross == true
+        run: cross build --release --target ${{ matrix.target }} --locked
 
-      # ── Package: Linux / macOS → tar.gz ───────────────────────────────────
-      - name: Package (tar.gz)
-        if: matrix.archive == 'tar.gz'
-        shell: bash
+      - name: Package binary (Unix)
+        if: runner.os != 'Windows'
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          ARCHIVE="squirrel-${TAG}-${{ matrix.target }}.tar.gz"
-          cp "target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}" .
-          tar czf "${ARCHIVE}" "${{ env.BINARY_NAME }}"
-          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+          BINARY=target/${{ matrix.target }}/release/squirrel
+          tar czf ${{ matrix.artifact }}.tar.gz -C $(dirname $BINARY) squirrel
+          sha256sum ${{ matrix.artifact }}.tar.gz > ${{ matrix.artifact }}.tar.gz.sha256
 
-      # ── Package: Windows → zip ─────────────────────────────────────────────
-      - name: Package (zip)
-        if: matrix.archive == 'zip'
-        shell: pwsh
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
         run: |
-          $tag  = $env:GITHUB_REF_NAME
-          $archive = "squirrel-$tag-x86_64-windows.zip"
-          Copy-Item "target\${{ matrix.target }}\release\${{ env.BINARY_NAME }}.exe" .
-          Compress-Archive -Path "${{ env.BINARY_NAME }}.exe" -DestinationPath $archive
-          "ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $binary = "target\${{ matrix.target }}\release\squirrel.exe"
+          Compress-Archive -Path $binary -DestinationPath "${{ matrix.artifact }}.zip"
+          $hash = (Get-FileHash "${{ matrix.artifact }}.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  ${{ matrix.artifact }}.zip" | Out-File -FilePath "${{ matrix.artifact }}.zip.sha256"
 
-      # ── Upload archive as workflow artifact ────────────────────────────────
-      - name: Upload build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.target }}
-          path: ${{ env.ARCHIVE }}
-          if-no-files-found: error
-          retention-days: 1
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}.*
+          retention-days: 3
 
-  # ── Publish GitHub Release ───────────────────────────────────────────────────
   release:
-    name: Publish Release
+    name: Create GitHub Release
     needs: build
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     steps:
-      - name: Download all build artifacts
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
-          merge-multiple: true
 
-      - name: Generate SHA-256 checksums
-        shell: bash
+      - name: Flatten artifacts
         run: |
-          cd artifacts
-          sha256sum * > checksums.txt
-          cat checksums.txt
+          mkdir -p release/
+          find artifacts/ -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release/ \;
+          ls -la release/
 
-      - name: Publish to GitHub Releases
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}
+          # Extract section for this version from CHANGELOG.md
+          awk "/^## \[${VERSION#v}\]/{found=1; next} /^## \[/{if(found) exit} found{print}" CHANGELOG.md > release_notes.md
+          echo "## Install" >> release_notes.md
+          echo "" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo '# Linux / macOS' >> release_notes.md
+          echo 'curl -sSf https://raw.githubusercontent.com/Chrysalisms/Secret-Squirrel/main/install.sh | sh' >> release_notes.md
+          echo '# Or with Cargo' >> release_notes.md
+          echo 'cargo install secret-squirrel' >> release_notes.md
+          echo '```' >> release_notes.md
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Secret Squirrel ${{ github.ref_name }}"
+          tag_name: ${{ github.ref_name || github.event.inputs.tag }}
+          name: Secret Squirrel ${{ github.ref_name || github.event.inputs.tag }}
+          body_path: release_notes.md
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          generate_release_notes: true
-          files: |
-            artifacts/*.tar.gz
-            artifacts/*.zip
-            artifacts/checksums.txt
+          prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
+          files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-crate:
+    name: Publish to crates.io
+    needs: release
+    runs-on: ubuntu-22.04
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish to crates.io
+        run: cargo publish --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

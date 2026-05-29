@@ -10,6 +10,7 @@
 
 use libfuzzer_sys::fuzz_target;
 use std::io::Write;
+use secret_squirrel::sources::SyncSource;
 
 fuzz_target!(|data: &[u8]| {
     // Strategy A: Feed raw bytes directly as a "ZIP file" to test header parsing

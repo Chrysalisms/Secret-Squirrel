@@ -1,0 +1,130 @@
+# CI/CD service secrets
+# Covers CircleCI, Travis CI, Jenkins, Buildkite, GitHub Actions, GitLab CI
+
+[[rules]]
+id = "circleci-token"
+description = "CircleCI personal API token"
+severity = "high"
+category = "ci"
+regex = '''(?i)circle[_-]?(?:ci[_-]?)?(?:api[_-]?)?token\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+    '=0000000000000000000000000000000000000000',
+]
+entropy = 4.0
+tags = ["circleci", "ci-cd"]
+
+[[rules]]
+id = "travis-ci-token"
+description = "Travis CI API token"
+severity = "high"
+category = "ci"
+regex = '''(?i)travis[_-]?(?:ci[_-]?)?(?:api[_-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9\-_]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+]
+entropy = 4.0
+tags = ["travis-ci", "ci-cd"]
+
+[[rules]]
+id = "buildkite-api-token"
+description = "Buildkite API access token"
+severity = "high"
+category = "ci"
+regex = '''(?i)buildkite[_-]?(?:api[_-]?)?token\s*[=:]\s*['"]?([a-z0-9]{40})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 4.0
+tags = ["buildkite", "ci-cd"]
+
+[[rules]]
+id = "jenkins-api-token"
+description = "Jenkins user API token"
+severity = "high"
+category = "ci"
+regex = '''(?i)jenkins[_-]?(?:api[_-]?|user[_-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9]{32,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+    '=11AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+]
+entropy = 4.0
+tags = ["jenkins", "ci-cd"]
+
+[[rules]]
+id = "github-actions-secret"
+description = "GitHub Actions secret referenced directly in a workflow (possible accidental exposure)"
+severity = "medium"
+category = "ci"
+regex = '''\$\{\{[^}]*secrets\.[A-Z_]+[^}]*\}\}'''
+allowlist = [
+    # ${{ secrets.X }} in workflow YAML files is expected and intentional
+    '.github/workflows',
+    '.github/workflow',
+    'workflow.yml',
+    'workflow.yaml',
+]
+entropy = 0.0
+path_allowlist = [
+    '(?i)\.github[\\/]workflows[\\/]',
+    '(?i)workflow[s]?\.ya?ml$',
+]
+tags = ["github-actions", "ci-cd"]
+
+[[rules]]
+id = "drone-ci-secret"
+description = "Drone CI / Woodpecker CI secret"
+severity = "high"
+category = "ci"
+regex = '''(?i)drone[_-]?(?:secret|token|password)\s*[=:]\s*['"]?([A-Za-z0-9\-_]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+]
+entropy = 3.5
+tags = ["drone", "woodpecker", "ci-cd"]
+
+[[rules]]
+id = "codecov-token"
+description = "Codecov upload token"
+severity = "medium"
+category = "ci"
+regex = '''(?i)codecov[_-]?token\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+allowlist = [
+    '=$\{',
+    '=00000000-0000-0000-0000-000000000000',
+]
+entropy = 3.0
+tags = ["codecov", "ci-cd"]
+
+[[rules]]
+id = "sonarqube-token"
+description = "SonarQube / SonarCloud authentication token"
+severity = "high"
+category = "ci"
+regex = '''(?i)sonar(?:qube|cloud)?[_-]?token\s*[=:]\s*['"]?(sqp_[a-f0-9]{40}|squ_[a-f0-9]{40}|sqa_[a-f0-9]{40}|[a-f0-9]{40})['"]?'''
+allowlist = [
+    '=$\{',
+    '=sqp_0000000000000000000000000000000000000000',
+]
+entropy = 4.0
+tags = ["sonarqube", "sonarcloud", "ci-cd"]
+
+[[rules]]
+id = "artifactory-api-key"
+description = "JFrog Artifactory API key"
+severity = "high"
+category = "ci"
+regex = '''(?i)(?:artifactory|jfrog)[_-]?(?:api[_-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{40,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+]
+entropy = 4.5
+tags = ["artifactory", "jfrog", "ci-cd"]

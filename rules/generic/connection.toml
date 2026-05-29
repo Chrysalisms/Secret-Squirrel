@@ -1,0 +1,113 @@
+# Secret Squirrel — Connection String Rules
+# Database and service connection string pattern detection rules
+
+# ==============================================================================
+# ODBC / DSN Connection String
+# ==============================================================================
+
+[[rules]]
+id = "dsn-odbc-connection"
+description = "ODBC DSN connection string with password"
+regex = '''(?i)Driver=\{[^}]{1,100}\}[^;]{0,200}(?:Pwd|Password)\s{0,3}=\s{0,3}(?!\s*;)(?!\$\{)(?!<)(?!YOUR_)(?!changeme)([^;]{3,100})'''
+keywords = ["Driver={", "Pwd=", "Password=", "DSN=", "ODBC"]
+severity = "critical"
+category = "generic"
+tags = ["odbc", "dsn", "connection-string", "database", "generic"]
+entropy_threshold = 2.5
+allowlist = [
+    'Password=YOUR_PASSWORD',
+    'Pwd=changeme',
+    'Password=<',
+    'Pwd=$\{',
+    'Password=\{password\}',
+]
+remediation = "Move ODBC connection strings to Windows Credential Manager or a secrets manager. Use integrated security (Trusted_Connection=yes) where possible."
+
+# ==============================================================================
+# Spring Boot — Datasource URL with Credentials
+# ==============================================================================
+
+[[rules]]
+id = "spring-datasource-url"
+description = "Spring Boot datasource URL containing embedded username or password"
+regex = '''(?i)spring\.datasource\.url\s{0,5}=\s{0,5}(?:jdbc:)?[a-z]{2,20}://[^:\s]{1,100}:[^@\s]{3,100}@[^\s]{1,200}'''
+keywords = ["spring.datasource.url", "spring_datasource_url"]
+severity = "critical"
+category = "generic"
+tags = ["spring", "java", "datasource", "connection-string", "generic"]
+entropy_threshold = 2.5
+allowlist = [
+    'spring.datasource.url=jdbc:h2:mem:',
+    'spring.datasource.url=jdbc:mysql://localhost',
+    'spring.datasource.url=$\{DATABASE_URL}',
+    'spring.datasource.url=$\{',
+]
+remediation = "Use separate spring.datasource.username and spring.datasource.password properties with environment variable injection. Never embed credentials in the JDBC URL."
+
+# ==============================================================================
+# DATABASE_URL Environment Variable
+# ==============================================================================
+
+[[rules]]
+id = "database-url-env"
+description = "DATABASE_URL environment variable with embedded credentials (Heroku/Railway/Render style)"
+regex = '''(?i)DATABASE_URL\s{0,5}=\s{0,5}["']?[a-z][a-z0-9+.]{1,15}://[^:@\s"']{1,100}:[^@\s"']{3,100}@[a-zA-Z0-9\.\-]{1,100}'''
+keywords = ["DATABASE_URL", "database_url"]
+severity = "critical"
+category = "generic"
+tags = ["database", "url", "credentials", "environment", "generic"]
+entropy_threshold = 2.5
+allowlist = [
+    'DATABASE_URL=postgres://user:password@',
+    'DATABASE_URL=mysql://username:password@',
+    'DATABASE_URL=$\{',
+    'DATABASE_URL=<',
+    'DATABASE_URL=postgresql://localhost',
+    'DATABASE_URL=sqlite:',
+]
+remediation = "Never commit .env files with DATABASE_URL containing real credentials. Use platform-native secret injection (Heroku Config Vars, Railway variables, etc.) and add .env to .gitignore."
+
+# ==============================================================================
+# LDAP — Bind Password
+# ==============================================================================
+
+[[rules]]
+id = "ldap-bind-password"
+description = "LDAP bind password in connection configuration"
+regex = '''(?i)(?:ldap[_\-\.\s]{0,10}(?:bind[_\-\.\s]{0,10})?(?:password|pass|pwd|cred)|LDAP_BIND_PASSWORD|LDAP_PASSWORD|LDAP_ADMIN_PASSWORD)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!changeme)([^\s"']{4,200})["']?'''
+keywords = ["LDAP_BIND_PASSWORD", "LDAP_PASSWORD", "LDAP_ADMIN_PASSWORD", "ldap_bind_password"]
+severity = "critical"
+category = "generic"
+tags = ["ldap", "directory", "password", "generic"]
+entropy_threshold = 2.5
+allowlist = [
+    'LDAP_BIND_PASSWORD=YOUR_PASSWORD',
+    'LDAP_PASSWORD=changeme',
+    'LDAP_ADMIN_PASSWORD=<',
+    'LDAP_BIND_PASSWORD=$\{',
+    'ldap_password = ""',
+]
+remediation = "Rotate the LDAP bind account password. Use a service account with minimal read-only permissions for LDAP queries. Store credentials in a secrets manager."
+
+# ==============================================================================
+# SMTP — Password Assignment
+# ==============================================================================
+
+[[rules]]
+id = "smtp-password-assignment"
+description = "SMTP authentication password hardcoded in configuration"
+regex = '''(?i)(?:smtp[_\-\.\s]{0,10}(?:auth[_\-\.\s]{0,10})?(?:password|pass|pwd)|SMTP_PASSWORD|SMTP_PASS|MAIL_PASSWORD|EMAIL_PASSWORD)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!changeme)([^\s"']{4,200})["']?'''
+keywords = ["SMTP_PASSWORD", "SMTP_PASS", "MAIL_PASSWORD", "EMAIL_PASSWORD", "smtp_password"]
+severity = "critical"
+category = "generic"
+tags = ["smtp", "email", "password", "generic"]
+entropy_threshold = 2.5
+allowlist = [
+    'SMTP_PASSWORD=YOUR_PASSWORD',
+    'MAIL_PASSWORD=changeme',
+    'EMAIL_PASSWORD=<',
+    'SMTP_PASS=$\{',
+    'smtp_password = ""',
+    'SMTP_PASSWORD=secret',
+]
+remediation = "Rotate the email account password or app-specific password. Use OAuth 2.0 (Gmail/Outlook) or API-based email services (SendGrid, SES) instead of SMTP auth where possible."

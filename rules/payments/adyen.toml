@@ -1,0 +1,45 @@
+# Secret Squirrel — Adyen Rules
+# Adyen payment platform secret detection rules
+
+# ==============================================================================
+# Adyen — API Key
+# ==============================================================================
+
+[[rules]]
+id = "adyen-api-key"
+description = "Adyen live or test API key"
+regex = '''(?i)(?:adyen[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|ADYEN_API_KEY)\s{0,5}[:=]\s{0,5}["']?(AQE[a-zA-Z0-9]{40,120})["']?'''
+keywords = ["ADYEN_API_KEY", "adyen_api_key", "AQE"]
+severity = "critical"
+category = "payments"
+tags = ["adyen", "payments"]
+entropy_threshold = 4.0
+allowlist = [
+    'ADYEN_API_KEY=YOUR_API_KEY',
+    'ADYEN_API_KEY=AQEyhmfxK04',
+    'AQEEXAMPLEApiKey',
+    'ADYEN_API_KEY=<',
+    'ADYEN_API_KEY=$\{',
+]
+remediation = "Revoke at https://ca-live.adyen.com/ca/ca/config/api-credentials.shtml and generate a new API credential. Update POS and ecommerce integrations."
+
+# ==============================================================================
+# Adyen — Client Key
+# ==============================================================================
+
+[[rules]]
+id = "adyen-client-key"
+description = "Adyen client key for Drop-in / Components (frontend)"
+regex = '''(?i)(?:adyen[_\-\.\s]{0,10}(?:client[_\-\.\s]{0,5})?key|ADYEN_CLIENT_KEY)\s{0,5}[:=]\s{0,5}["']?(test_[a-zA-Z0-9]{30,60}|live_[a-zA-Z0-9]{30,60})["']?'''
+keywords = ["ADYEN_CLIENT_KEY", "adyen_client_key"]
+severity = "medium"
+category = "payments"
+tags = ["adyen", "payments", "frontend"]
+entropy_threshold = 3.5
+allowlist = [
+    'ADYEN_CLIENT_KEY=YOUR_CLIENT_KEY',
+    'ADYEN_CLIENT_KEY=test_EXAMPLE',
+    'ADYEN_CLIENT_KEY=<',
+    'ADYEN_CLIENT_KEY=$\{',
+]
+remediation = "Client keys are intended for client-side use, but rotation is still recommended. Regenerate at https://ca-live.adyen.com/ca/ca/config/api-credentials.shtml and restrict to your domains."

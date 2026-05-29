@@ -1,0 +1,142 @@
+# Productivity / Collaboration SaaS secrets
+# Covers Airtable, Algolia, Asana, Atlassian/Jira/Confluence, Contentful, Beamer
+
+[[rules]]
+id = "airtable-api-key"
+description = "Airtable API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:airtable)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{17})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["airtable"]
+entropy = 3.0
+tags = ["airtable", "productivity", "saas"]
+
+[[rules]]
+id = "airtable-personal-access-token"
+description = "Airtable Personal Access Token"
+severity = "critical"
+category = "saas"
+regex = '''\b(pat[[:alnum:]]{14}\.[a-f0-9]{64})\b'''
+keywords = ["airtable"]
+entropy = 4.5
+tags = ["airtable", "productivity", "saas"]
+
+[[rules]]
+id = "algolia-api-key"
+description = "Algolia API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:algolia)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["algolia"]
+entropy = 3.0
+tags = ["algolia", "search", "saas"]
+
+[[rules]]
+id = "asana-client-id"
+description = "Asana client ID"
+severity = "medium"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:asana)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([0-9]{16})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["asana"]
+entropy = 2.0
+tags = ["asana", "project-management", "saas"]
+
+[[rules]]
+id = "asana-client-secret"
+description = "Asana client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:asana)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["asana"]
+entropy = 3.5
+tags = ["asana", "project-management", "saas"]
+
+[[rules]]
+id = "atlassian-api-token"
+description = "Atlassian API token (Jira/Confluence)"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:ATLASSIAN|atlassian|CONFLUENCE|confluence|JIRA|jira)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{20}[a-f0-9]{4})(?:[\x60'"\s;]|\\[nr]|$)|\b(ATATT3[A-Za-z0-9_\-=]{186})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["atlassian", "confluence", "jira", "atatt3"]
+entropy = 3.5
+tags = ["atlassian", "jira", "confluence", "project-management"]
+
+[[rules]]
+id = "contentful-delivery-api-token"
+description = "Contentful delivery API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:contentful)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{43})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["contentful"]
+entropy = 3.0
+tags = ["contentful", "cms", "saas"]
+
+[[rules]]
+id = "beamer-api-token"
+description = "Beamer API token"
+severity = "medium"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:beamer)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}(b_[a-z0-9=_\-]{44})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["beamer"]
+entropy = 3.0
+tags = ["beamer", "notifications", "saas"]
+
+[[rules]]
+id = "discord-api-token"
+description = "Discord API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:discord)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["discord"]
+entropy = 4.0
+tags = ["discord", "gaming", "saas"]
+
+[[rules]]
+id = "discord-client-secret"
+description = "Discord client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:discord)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["discord"]
+entropy = 3.0
+tags = ["discord", "gaming", "saas"]
+
+[[rules]]
+id = "coinbase-access-token"
+description = "Coinbase access token"
+severity = "critical"
+category = "payments"
+regex = '''(?i)[\w.-]{0,50}?(?:coinbase)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9_\-]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["coinbase"]
+entropy = 4.0
+tags = ["coinbase", "crypto", "payments"]
+
+[[rules]]
+id = "dropbox-api-key"
+description = "Dropbox API key or access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)[\w.-]{0,50}?(?:dropbox)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9_\-]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["dropbox"]
+entropy = 4.0
+tags = ["dropbox", "storage", "saas"]
+
+[[rules]]
+id = "databricks-api-token"
+description = "Databricks API token (dapi prefix)"
+severity = "high"
+category = "saas"
+regex = '''\b(dapi[a-f0-9]{32}(?:-\d)?)(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["dapi"]
+entropy = 3.0
+tags = ["databricks", "data-platform", "saas"]
+
+[[rules]]
+id = "doppler-api-token"
+description = "Doppler API token (dp.pt. prefix)"
+severity = "high"
+category = "saas"
+regex = '''dp\.pt\.(?i)[a-z0-9]{43}'''
+keywords = ["dp.pt."]
+entropy = 2.0
+tags = ["doppler", "secrets-management", "saas"]

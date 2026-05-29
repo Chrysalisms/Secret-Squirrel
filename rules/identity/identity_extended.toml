@@ -1,0 +1,107 @@
+# API gateway and serverless platform secrets
+# Covers AWS Lambda, Firebase, Kong, Apigee, Auth0, Okta
+
+[[rules]]
+id = "firebase-api-key"
+description = "Google Firebase API key (web/mobile app configuration)"
+severity = "medium"
+category = "cloud"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+keywords = ["AIza", "firebase", "FIREBASE_API_KEY"]
+entropy = 3.5
+allowlist = [
+    'AIzaSyCXXX',
+    'AIzaSyXXXX',
+    'AIzaSyYOUR',
+]
+tags = ["firebase", "google", "cloud"]
+
+[[rules]]
+id = "firebase-service-account"
+description = "Firebase / GCP service account private key in JSON format"
+severity = "critical"
+category = "cloud"
+regex = '''"type"\s*:\s*"service_account"[\s\S]{0,300}"private_key_id"\s*:\s*"[a-f0-9]{40}"'''
+keywords = ["type\": \"service_account\"", "service_account"]
+entropy = 3.0
+tags = ["firebase", "gcp", "service-account", "cloud"]
+
+[[rules]]
+id = "kong-api-key"
+description = "Kong API gateway API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)kong[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{32,64})['"]?'''
+keywords = ["kong"]
+entropy = 4.0
+tags = ["kong", "api-gateway", "cloud"]
+
+[[rules]]
+id = "auth0-client-secret"
+description = "Auth0 application client secret"
+severity = "critical"
+category = "identity"
+regex = '''(?i)auth0[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["auth0", "AUTH0_SECRET", "AUTH0_CLIENT_SECRET"]
+entropy = 4.0
+tags = ["auth0", "okta", "identity", "oauth"]
+
+[[rules]]
+id = "auth0-domain-api-token"
+description = "Auth0 Management API token (JWT)"
+severity = "critical"
+category = "identity"
+regex = '''(?i)auth0[._-]?(?:management[._-]?|api[._-]?)?token\s*[=:]\s*['"]?(eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)['"]?'''
+keywords = ["auth0", "AUTH0_TOKEN"]
+entropy = 5.0
+tags = ["auth0", "identity", "jwt"]
+
+[[rules]]
+id = "okta-api-token"
+description = "Okta API token for identity management"
+severity = "critical"
+category = "identity"
+regex = '''(?i)okta[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?(00[a-zA-Z0-9_\-]{40})['"]?'''
+keywords = ["okta", "OKTA_API_TOKEN"]
+entropy = 4.5
+tags = ["okta", "identity", "sso"]
+
+[[rules]]
+id = "clerk-secret-key"
+description = "Clerk authentication platform secret key (sk_live_/sk_test_ prefix)"
+severity = "critical"
+category = "identity"
+regex = '''(?:sk_live|sk_test)_[a-zA-Z0-9]{40,100}'''
+keywords = ["sk_live_", "sk_test_", "CLERK_SECRET"]
+entropy = 4.5
+tags = ["clerk", "identity", "auth"]
+
+[[rules]]
+id = "supertokens-api-key"
+description = "SuperTokens authentication API key"
+severity = "high"
+category = "identity"
+regex = '''(?i)supertokens[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?'''
+keywords = ["supertokens"]
+entropy = 4.0
+tags = ["supertokens", "identity", "auth"]
+
+[[rules]]
+id = "workos-api-key"
+description = "WorkOS enterprise SSO API key"
+severity = "high"
+category = "identity"
+regex = '''sk_[a-z0-9]{1,10}_[A-Za-z0-9]{32}'''
+keywords = ["workos", "sk_test_", "sk_live_"]
+entropy = 4.0
+tags = ["workos", "identity", "sso"]
+
+[[rules]]
+id = "firebase-cloud-messaging-key"
+description = "Firebase Cloud Messaging (FCM) legacy server key"
+severity = "high"
+category = "mobile"
+regex = '''AAAA[A-Za-z0-9_\-]{7}:[A-Za-z0-9_\-]{140}'''
+keywords = ["AAAA", "firebase", "fcm"]
+entropy = 5.0
+tags = ["firebase", "fcm", "push-notifications", "mobile"]

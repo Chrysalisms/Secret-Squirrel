@@ -1,0 +1,62 @@
+# Extended identity and authentication secrets
+# Covers Auth0 (extended), Okta (extended), AWS SSO, PingIdentity, LDAP
+
+[[rules]]
+id = "auth0-management-api-token"
+description = "Auth0 Management API bearer token"
+severity = "critical"
+category = "identity"
+regex = '''(?i)auth0[._-]?(?:management[._-]?|mgmt[._-]?)?(?:api[._-]?)?token\s*[=:]\s*['"]?(eyJhbGciOiJSUzI1NiIs[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)['"]?'''
+keywords = ["auth0", "AUTH0_MANAGEMENT_TOKEN"]
+entropy = 5.0
+tags = ["auth0", "identity", "saas"]
+
+[[rules]]
+id = "ping-identity-client-secret"
+description = "PingIdentity / PingFederate OAuth client secret"
+severity = "high"
+category = "identity"
+regex = '''(?i)ping(?:identity|federate)[._-]?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["pingidentity", "pingfederate", "PING_SECRET"]
+entropy = 4.0
+tags = ["ping", "identity", "oauth"]
+
+[[rules]]
+id = "microsoft-oauth-client-secret"
+description = "Microsoft 365 / Azure AD OAuth application client secret"
+severity = "critical"
+category = "identity"
+regex = '''(?i)(?:microsoft|ms)[._-]?(?:graph[._-]?|azure[._-]?|ad[._-]?)?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9~._\-]{34})['"]?'''
+keywords = ["MICROSOFT_CLIENT_SECRET", "MS_CLIENT_SECRET"]
+entropy = 4.0
+tags = ["microsoft", "azure", "oauth", "identity"]
+
+[[rules]]
+id = "google-oauth-refresh-token"
+description = "Google OAuth2 refresh token"
+severity = "critical"
+category = "identity"
+regex = '''1//[A-Za-z0-9_\-]{40,96}'''
+keywords = ["google", "GOOGLE_REFRESH_TOKEN", "refresh_token"]
+entropy = 5.0
+tags = ["google", "oauth", "identity"]
+
+[[rules]]
+id = "saml-private-key"
+description = "SAML IdP signing private key"
+severity = "critical"
+category = "identity"
+regex = '''-----BEGIN (?:RSA|EC|PRIVATE) KEY-----[\s\S]{50,}-----END (?:RSA|EC|PRIVATE) KEY-----'''
+keywords = ["SAML", "saml_private", "idp_key"]
+entropy = 4.5
+tags = ["saml", "identity", "crypto"]
+
+[[rules]]
+id = "fido2-rpid-secret"
+description = "FIDO2 / WebAuthn relying party secret"
+severity = "high"
+category = "identity"
+regex = '''(?i)(?:fido2|webauthn)[._-]?(?:rp[._-]?|relying[._-]?party[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["fido2", "webauthn", "FIDO2_SECRET"]
+entropy = 4.0
+tags = ["fido2", "webauthn", "identity"]

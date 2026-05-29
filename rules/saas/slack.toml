@@ -1,0 +1,103 @@
+# Secret Squirrel — Slack Extended Rules
+# Additional Slack secret detection rules beyond default.toml
+
+# ==============================================================================
+# Slack — Bot Token
+# ==============================================================================
+
+[[rules]]
+id = "slack-bot-token"
+description = "Slack bot token (xoxb- prefix)"
+regex = '''\bxoxb-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24}\b'''
+keywords = ["xoxb-"]
+severity = "critical"
+category = "saas"
+tags = ["slack", "bot", "token", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'xoxb-XXXX-XXXX-XXXX',
+    'xoxb-000000000000-000000000000-EXAMPLE',
+    'xoxb-YOUR_BOT_TOKEN',
+]
+remediation = "Revoke at https://api.slack.com/apps → OAuth & Permissions → Revoke All OAuth Tokens and reinstall the app."
+
+# ==============================================================================
+# Slack — User Token
+# ==============================================================================
+
+[[rules]]
+id = "slack-user-token"
+description = "Slack user OAuth token (xoxp- prefix) — acts on behalf of a user"
+regex = '''\bxoxp-[0-9]{10,13}-[0-9]{10,13}-[0-9]{10,13}-[a-f0-9]{32}\b'''
+keywords = ["xoxp-"]
+severity = "critical"
+category = "saas"
+tags = ["slack", "user", "token", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'xoxp-XXXX-XXXX-XXXX-XXXX',
+    'xoxp-000000000000-000000000000-000000000000-EXAMPLE',
+    'xoxp-YOUR_USER_TOKEN',
+]
+remediation = "Revoke at https://api.slack.com/apps → OAuth & Permissions → Revoke All OAuth Tokens. User tokens act on behalf of real users; audit workspace audit logs for unauthorized messages."
+
+# ==============================================================================
+# Slack — Workspace Token
+# ==============================================================================
+
+[[rules]]
+id = "slack-workspace-token"
+description = "Slack workspace (legacy) OAuth token (xoxa- prefix)"
+regex = '''\bxoxa-2-[0-9]{10,13}-[0-9]{10,13}-[a-f0-9]{64}\b'''
+keywords = ["xoxa-"]
+severity = "critical"
+category = "saas"
+tags = ["slack", "workspace", "token", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'xoxa-2-XXXX-XXXX-XXXX',
+    'xoxa-2-000000000000-000000000000-EXAMPLE',
+    'xoxa-YOUR_WORKSPACE_TOKEN',
+]
+remediation = "Legacy workspace tokens provide broad access. Revoke at https://api.slack.com/apps and migrate to granular bot token scopes."
+
+# ==============================================================================
+# Slack — Signing Secret
+# ==============================================================================
+
+[[rules]]
+id = "slack-signing-secret"
+description = "Slack app signing secret (used to verify webhook payloads)"
+regex = '''(?i)(?:slack[_\-\.\s]{0,10}(?:signing[_\-\.\s]{0,5})?secret|SLACK_SIGNING_SECRET|SLACK_APP_SIGNING_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["SLACK_SIGNING_SECRET", "SLACK_APP_SIGNING_SECRET", "slack_signing_secret"]
+severity = "high"
+category = "saas"
+tags = ["slack", "webhook", "signing", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'SLACK_SIGNING_SECRET=YOUR_SIGNING_SECRET',
+    'SLACK_SIGNING_SECRET=00000000000000000000000000000000',
+    'SLACK_SIGNING_SECRET=<',
+    'SLACK_SIGNING_SECRET=$\{',
+]
+remediation = "Rotate at https://api.slack.com/apps → Basic Information → App Credentials → Signing Secret. Update your request verification middleware."
+
+# ==============================================================================
+# Slack — App-Level Token
+# ==============================================================================
+
+[[rules]]
+id = "slack-app-level-token"
+description = "Slack app-level token (xapp- prefix, used for Socket Mode)"
+regex = '''\bxapp-[0-9]{1,2}-[A-Z0-9]{10,13}-[0-9]{10,13}-[a-f0-9]{64}\b'''
+keywords = ["xapp-"]
+severity = "critical"
+category = "saas"
+tags = ["slack", "app-level", "socket-mode", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'xapp-EXAMPLE',
+    'xapp-1-XXXX-XXXX-XXXX',
+    'xapp-YOUR_APP_LEVEL_TOKEN',
+]
+remediation = "Revoke at https://api.slack.com/apps → Basic Information → App-Level Tokens. App-level tokens enable Socket Mode connections for real-time event streaming."

@@ -25,7 +25,7 @@ default = ["cli", "gpu", "cpu-simd"]
 cli = ["clap", "colored", "indicatif"]
 gpu = ["wgpu", "encase", "bytemuck"]
 cpu-simd = []
-mcp-server = ["rmcp", "tokio/full", "tokio-stream"]
+mcp-server = ["rmcp", "axum", "tokio/full", "tokio-stream"]
 github-action = ["ort", "mcp-server"]
 semantic = [
     "tree-sitter",
@@ -136,6 +136,7 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"], def
 
 # MCP server
 rmcp = { version = "1.7", features = ["server", "transport-io"], optional = true }
+axum = { version = "0.7", optional = true }
 
 # ONNX Runtime (CNN inference)
 ort = { version = "2.0.0-rc.12", features = ["load-dynamic"], optional = true }
@@ -161,6 +162,7 @@ async-trait = "0.1"
 
 # Storage (disk-backed correlation)
 redb = "2"
+uuid = { version = "1.20.0", features = ["v4"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }

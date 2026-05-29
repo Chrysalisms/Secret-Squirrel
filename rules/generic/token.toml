@@ -1,0 +1,114 @@
+# Secret Squirrel — Token Pattern Rules
+# Specific token and authentication header detection rules
+
+# ==============================================================================
+# Bearer Token — HTTP Authorization Header
+# ==============================================================================
+
+[[rules]]
+id = "bearer-token-header"
+description = "Authorization: Bearer token in HTTP headers hardcoded in source"
+regex = '''(?i)(?:Authorization|auth)\s{0,5}[:=]\s{0,5}["']?Bearer\s{1,5}([a-zA-Z0-9\-_\.]{20,500})["']?'''
+keywords = ["Authorization: Bearer", "Authorization: bearer", "Bearer "]
+severity = "high"
+category = "generic"
+tags = ["bearer", "http", "authorization", "token", "generic"]
+entropy_threshold = 3.5
+allowlist = [
+    'Authorization: Bearer YOUR_TOKEN',
+    'Authorization: Bearer <token>',
+    'Authorization: Bearer $\{',
+    'Bearer eyJhbGciOiJub25lIn0',
+    'Authorization: Bearer $TOKEN',
+    "Bearer '",
+]
+remediation = "Remove hardcoded bearer tokens and inject via environment variables or secrets manager at runtime. Identify the token issuer and rotate the credential."
+
+# ==============================================================================
+# API Key — Query Parameter
+# ==============================================================================
+
+[[rules]]
+id = "api-key-query-param"
+description = "API key hardcoded in a URL query parameter"
+regex = '''[?&](?:api[_\-]?key|apikey|key|access[_\-]?key)=(?!\s)(?!\$\{)(?!<)(?!YOUR_)(?!EXAMPLE)([a-zA-Z0-9\-_]{16,100})(?:[&\s"']|$)'''
+keywords = ["?api_key=", "&api_key=", "?apikey=", "?key=", "access_key="]
+severity = "high"
+category = "generic"
+tags = ["api-key", "url", "query-param", "generic"]
+entropy_threshold = 3.0
+allowlist = [
+    'api_key=YOUR_API_KEY',
+    'api_key=EXAMPLE_KEY',
+    'api_key=$\{',
+    'api_key=<',
+    'api_key=demo',
+    'api_key=test',
+]
+remediation = "Never include API keys in URLs; they appear in server logs, browser history, and Referer headers. Pass credentials via HTTP headers or request body instead."
+
+# ==============================================================================
+# X-API-Key — HTTP Header
+# ==============================================================================
+
+[[rules]]
+id = "x-api-key-header"
+description = "X-API-Key HTTP header with hardcoded value in source code"
+regex = '''(?i)(?:X-API-Key|X-Api-Key|x-api-key)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!EXAMPLE)([a-zA-Z0-9\-_]{16,100})["']?'''
+keywords = ["X-API-Key", "X-Api-Key", "x-api-key", "x_api_key"]
+severity = "high"
+category = "generic"
+tags = ["x-api-key", "http", "header", "generic"]
+entropy_threshold = 3.0
+allowlist = [
+    'X-API-Key: YOUR_API_KEY',
+    'X-API-Key: EXAMPLE',
+    'X-API-Key: <',
+    'X-API-Key: $\{',
+    'x_api_key = ""',
+]
+remediation = "Store the API key in a secrets manager and inject it at request time. Rotate the key with the issuing service's developer console."
+
+# ==============================================================================
+# Session Cookie — Long Hex Value
+# ==============================================================================
+
+[[rules]]
+id = "session-cookie"
+description = "Session cookie with long hex or base64 value hardcoded"
+regex = '''(?i)(?:session|sid|sess(?:ion)?[_\-]?id|PHPSESSID|JSESSIONID|connect\.sid)\s{0,5}=\s{0,5}["']?([a-f0-9]{32,128}|[a-zA-Z0-9\-_\.]{40,200})["']?'''
+keywords = ["session=", "PHPSESSID=", "JSESSIONID=", "connect.sid=", "session_id="]
+severity = "high"
+category = "generic"
+tags = ["session", "cookie", "auth", "generic"]
+entropy_threshold = 3.5
+allowlist = [
+    'session=YOUR_SESSION_ID',
+    'PHPSESSID=example',
+    'session=<',
+    'session=test',
+    'session=00000000000000000000000000000000',
+]
+remediation = "Invalidate the session immediately via the application's logout endpoint or session store. Rotate the session secret key to invalidate all existing sessions."
+
+# ==============================================================================
+# CSRF Token — Hardcoded
+# ==============================================================================
+
+[[rules]]
+id = "csrf-token-hardcoded"
+description = "CSRF token hardcoded in source code or template"
+regex = '''(?i)(?:csrf[_\-]?token|csrfmiddlewaretoken|_csrf|X-CSRF-TOKEN)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!EXAMPLE)([a-zA-Z0-9\-_\.]{20,100})["']?'''
+keywords = ["csrf_token", "CSRF_TOKEN", "csrfmiddlewaretoken", "X-CSRF-TOKEN", "_csrf"]
+severity = "medium"
+category = "generic"
+tags = ["csrf", "token", "security", "generic"]
+entropy_threshold = 3.0
+allowlist = [
+    'csrf_token=YOUR_TOKEN',
+    'csrf_token=<',
+    'X-CSRF-TOKEN: $\{',
+    'csrfmiddlewaretoken=example',
+    'csrf_token = ""',
+]
+remediation = "CSRF tokens are per-session values; if hardcoded they provide no protection. Ensure CSRF tokens are dynamically generated per-request by your web framework."

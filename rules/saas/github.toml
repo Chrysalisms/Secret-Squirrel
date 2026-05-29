@@ -1,0 +1,126 @@
+# Secret Squirrel — GitHub Extended Rules
+# Additional GitHub secret detection rules beyond default.toml
+
+# ==============================================================================
+# GitHub — Actions / Workflow Token
+# ==============================================================================
+
+[[rules]]
+id = "github-actions-token"
+description = "GitHub Actions GITHUB_TOKEN or workflow-scoped token"
+regex = '''(?i)(?:GITHUB_TOKEN|GH_TOKEN|ACTIONS_RUNTIME_TOKEN)\s{0,5}[:=]\s{0,5}["']?(ghs_[a-zA-Z0-9]{36}|ghp_[a-zA-Z0-9]{36})["']?'''
+keywords = ["GITHUB_TOKEN", "GH_TOKEN", "ACTIONS_RUNTIME_TOKEN"]
+severity = "high"
+category = "devtools"
+tags = ["github", "actions", "ci", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'GITHUB_TOKEN=\$\{\{ secrets.GITHUB_TOKEN \}\}',
+    'GH_TOKEN=YOUR_TOKEN',
+    'GITHUB_TOKEN=<',
+    'GITHUB_TOKEN=$\{',
+]
+remediation = "GitHub Actions tokens expire automatically after each workflow run. If exposed in logs, audit the workflow run for unauthorized steps. Rotate any PATs used as GH_TOKEN."
+
+# ==============================================================================
+# GitHub — Codespaces Token
+# ==============================================================================
+
+[[rules]]
+id = "github-codespaces-token"
+description = "GitHub Codespaces personal access token"
+regex = '''\bghu_[a-zA-Z0-9]{36}\b'''
+keywords = ["ghu_"]
+severity = "critical"
+category = "devtools"
+tags = ["github", "codespaces", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'ghu_EXAMPLE',
+    'ghu_xxxx',
+    'ghu_YOUR_TOKEN',
+]
+remediation = "Revoke at https://github.com/settings/tokens. Codespaces tokens can access private repositories; audit for unauthorized commits or clones."
+
+# ==============================================================================
+# GitHub — Dependabot Token
+# ==============================================================================
+
+[[rules]]
+id = "github-dependabot-token"
+description = "GitHub Dependabot service token embedded in CI configuration"
+regex = '''(?i)(?:dependabot[_\-\.\s]{0,10}token|DEPENDABOT_TOKEN|DEPENDABOT_ACCESS_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{36,76})["']?'''
+keywords = ["DEPENDABOT_TOKEN", "DEPENDABOT_ACCESS_TOKEN", "dependabot_token"]
+severity = "high"
+category = "devtools"
+tags = ["github", "dependabot", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'DEPENDABOT_TOKEN=\$\{\{ secrets.',
+    'DEPENDABOT_TOKEN=YOUR_TOKEN',
+    'DEPENDABOT_TOKEN=<',
+    'DEPENDABOT_TOKEN=$\{',
+]
+remediation = "Revoke at https://github.com/settings/tokens. Dependabot tokens can trigger PRs and access dependency vulnerability data."
+
+# ==============================================================================
+# GitHub — Copilot Token
+# ==============================================================================
+
+[[rules]]
+id = "github-copilot-token"
+description = "GitHub Copilot API/session token"
+regex = '''(?i)(?:copilot[_\-\.\s]{0,10}token|COPILOT_TOKEN|GITHUB_COPILOT_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-\.]{40,200})["']?'''
+keywords = ["COPILOT_TOKEN", "GITHUB_COPILOT_TOKEN", "copilot_token"]
+severity = "high"
+category = "devtools"
+tags = ["github", "copilot", "ai", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    'COPILOT_TOKEN=YOUR_TOKEN',
+    'GITHUB_COPILOT_TOKEN=<',
+    'GITHUB_COPILOT_TOKEN=$\{',
+    'copilot_token = ""',
+]
+remediation = "Log out of GitHub Copilot sessions and revoke any associated PATs at https://github.com/settings/tokens."
+
+# ==============================================================================
+# GitHub — App Private Key (PEM)
+# ==============================================================================
+
+[[rules]]
+id = "github-app-private-key"
+description = "GitHub App private key (PEM format) used to generate JWT tokens"
+regex = '''-----BEGIN RSA PRIVATE KEY-----[\s\S]{100,3000}-----END RSA PRIVATE KEY-----'''
+keywords = ["BEGIN RSA PRIVATE KEY", "github_app", "GITHUB_APP_PRIVATE_KEY"]
+severity = "critical"
+category = "devtools"
+tags = ["github", "app", "pem", "private-key", "devtools"]
+entropy_threshold = 4.5
+allowlist = [
+    'EXAMPLE_PRIVATE_KEY',
+    'YOUR_PRIVATE_KEY_HERE',
+    'placeholder',
+]
+remediation = "Revoke the private key at https://github.com/settings/apps → your app → Private keys → Delete. Generate a new key pair and update all GitHub App installations."
+
+# ==============================================================================
+# GitHub — Enterprise PAT
+# ==============================================================================
+
+[[rules]]
+id = "github-enterprise-pat"
+description = "GitHub Enterprise Server personal access token"
+regex = '''(?i)(?:github[_\-]?enterprise[_\-]?(?:pat|token)|GHE_TOKEN|GITHUB_ENTERPRISE_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{36,76})["']?'''
+keywords = ["GHE_TOKEN", "GITHUB_ENTERPRISE_TOKEN", "github_enterprise_token"]
+severity = "critical"
+category = "devtools"
+tags = ["github", "enterprise", "pat", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'GHE_TOKEN=YOUR_TOKEN',
+    'GITHUB_ENTERPRISE_TOKEN=<',
+    'GITHUB_ENTERPRISE_TOKEN=$\{',
+    'github_enterprise_token = ""',
+]
+remediation = "Revoke in GitHub Enterprise Server admin panel → Users → Security credentials. Audit site admin audit log for unauthorized activity."

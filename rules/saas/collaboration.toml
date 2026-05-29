@@ -1,0 +1,102 @@
+# Collaboration and project management tool secrets
+# Covers Slack (extended), Notion, Monday.com, Trello, Jira (extended), ClickUp
+
+[[rules]]
+id = "slack-webhook-url"
+description = "Slack incoming webhook URL with embedded token"
+severity = "high"
+category = "messaging"
+regex = '''https://hooks\.slack\.com/services/T[A-Z0-9]{8,10}/B[A-Z0-9]{8,10}/[A-Za-z0-9]{24,32}'''
+keywords = ["hooks.slack.com", "slack_webhook"]
+entropy = 3.5
+tags = ["slack", "webhook", "messaging"]
+
+[[rules]]
+id = "slack-app-token"
+description = "Slack app-level token (xapp- prefix)"
+severity = "high"
+category = "messaging"
+regex = '''xapp-\d-[A-Z0-9]{11}-[0-9]{13}-[a-f0-9]{64}'''
+keywords = ["xapp-"]
+entropy = 4.5
+tags = ["slack", "app", "messaging"]
+
+[[rules]]
+id = "notion-api-key"
+description = "Notion integration API key"
+severity = "high"
+category = "saas"
+regex = '''secret_[A-Za-z0-9]{43}'''
+keywords = ["notion", "NOTION_KEY", "secret_"]
+entropy = 4.0
+tags = ["notion", "productivity", "saas"]
+
+[[rules]]
+id = "monday-api-token"
+description = "Monday.com work management API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)monday[._-]?(?:api[._-]?|com[._-]?)?token\s*[=:]\s*['"]?(eyJhbGciOiJIUzI1NiJ9\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)['"]?'''
+keywords = ["monday", "MONDAY_TOKEN"]
+entropy = 5.0
+tags = ["monday", "project-management", "saas"]
+
+[[rules]]
+id = "trello-api-key"
+description = "Trello / Atlassian Trello API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)trello[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["trello", "TRELLO_KEY"]
+entropy = 4.0
+tags = ["trello", "project-management", "saas"]
+
+[[rules]]
+id = "trello-access-token"
+description = "Trello OAuth access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)trello[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["trello", "TRELLO_TOKEN"]
+entropy = 4.5
+tags = ["trello", "project-management", "oauth"]
+
+[[rules]]
+id = "clickup-api-token"
+description = "ClickUp personal API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)clickup[._-]?(?:api[._-]?|personal[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_]{40,48})['"]?'''
+keywords = ["clickup", "CLICKUP_TOKEN"]
+entropy = 4.0
+tags = ["clickup", "project-management", "saas"]
+
+[[rules]]
+id = "basecamp-access-token"
+description = "Basecamp project management API access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)basecamp[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,64})['"]?'''
+keywords = ["basecamp"]
+entropy = 4.0
+tags = ["basecamp", "project-management", "saas"]
+
+[[rules]]
+id = "teamwork-api-key"
+description = "Teamwork.com project management API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)teamwork[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{24,32})['"]?'''
+keywords = ["teamwork"]
+entropy = 4.0
+tags = ["teamwork", "project-management", "saas"]
+
+[[rules]]
+id = "smartsheet-api-token"
+description = "Smartsheet work management API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)smartsheet[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{26})['"]?'''
+keywords = ["smartsheet"]
+entropy = 4.0
+tags = ["smartsheet", "project-management", "saas"]

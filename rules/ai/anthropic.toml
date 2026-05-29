@@ -1,0 +1,42 @@
+# Secret Squirrel — Anthropic Extended Rules
+# Additional Anthropic secret detection rules beyond default.toml
+
+# ==============================================================================
+# Anthropic — Beta API Key
+# ==============================================================================
+
+[[rules]]
+id = "anthropic-beta-api-key"
+description = "Anthropic beta / early-access API key variant"
+regex = '''\b(sk-ant-(?:beta|ea)-[a-zA-Z0-9_\-]{90,100}[A-Z]{2})\b'''
+keywords = ["sk-ant-beta", "sk-ant-ea", "anthropic"]
+severity = "critical"
+category = "ai"
+tags = ["anthropic", "claude", "beta", "ai"]
+entropy_threshold = 4.5
+allowlist = [
+    'sk-ant-beta-EXAMPLE',
+    'sk-ant-ea-EXAMPLE',
+    'sk-ant-beta-xxxx',
+]
+remediation = "Delete at https://console.anthropic.com/settings/keys. Beta keys carry elevated rate limits; rotate immediately and notify Anthropic support if the key was exposed publicly."
+
+# ==============================================================================
+# Anthropic — Service Account Key
+# ==============================================================================
+
+[[rules]]
+id = "anthropic-service-account-key"
+description = "Anthropic service account / organization API key"
+regex = '''\b(sk-ant-(?:org|svc)-[a-zA-Z0-9_\-]{90,100}[A-Z]{2})\b'''
+keywords = ["sk-ant-org", "sk-ant-svc", "anthropic"]
+severity = "critical"
+category = "ai"
+tags = ["anthropic", "service-account", "organization", "ai"]
+entropy_threshold = 4.5
+allowlist = [
+    'sk-ant-org-EXAMPLE',
+    'sk-ant-svc-EXAMPLE',
+    'sk-ant-org-xxxx',
+]
+remediation = "Delete at https://console.anthropic.com/settings/keys and audit all API usage associated with this key in the Anthropic usage dashboard."

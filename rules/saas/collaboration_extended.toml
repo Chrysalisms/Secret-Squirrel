@@ -1,0 +1,102 @@
+# Video conferencing and workspace platform secrets
+# Covers Zoom, Webex, Microsoft Teams, Google Meet webhooks
+
+[[rules]]
+id = "zoom-api-secret"
+description = "Zoom OAuth app client secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)zoom[._-]?(?:client[._-]?|api[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,40})['"]?'''
+keywords = ["zoom", "ZOOM_SECRET"]
+entropy = 4.0
+tags = ["zoom", "video", "collaboration"]
+
+[[rules]]
+id = "zoom-jwt-secret"
+description = "Zoom JWT app secret key"
+severity = "critical"
+category = "saas"
+regex = '''(?i)zoom[._-]?jwt[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{16,32})['"]?'''
+keywords = ["ZOOM_JWT", "zoom_jwt"]
+entropy = 3.5
+tags = ["zoom", "jwt", "collaboration"]
+
+[[rules]]
+id = "webex-api-token"
+description = "Cisco Webex Teams API personal access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)webex[._-]?(?:api[._-]?|access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,100})['"]?'''
+keywords = ["webex", "WEBEX_TOKEN", "CISCOSPARK"]
+entropy = 4.0
+tags = ["webex", "cisco", "video", "collaboration"]
+
+[[rules]]
+id = "google-workspace-api-key"
+description = "Google Workspace (G Suite) Admin SDK API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)(?:google[._-]?workspace|gsuite|google[._-]?admin)[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(AIza[0-9A-Za-z\-_]{35})['"]?'''
+keywords = ["google_workspace", "gsuite", "WORKSPACE_API"]
+entropy = 3.5
+tags = ["google", "workspace", "admin"]
+
+[[rules]]
+id = "microsoft-teams-webhook"
+description = "Microsoft Teams incoming webhook URL"
+severity = "high"
+category = "messaging"
+regex = '''https://[a-z0-9]+\.webhook\.office\.com/webhookb2/[a-f0-9\-]{36}@[a-f0-9\-]{36}/IncomingWebhook/[A-Za-z0-9]{32}/[a-f0-9\-]{36}'''
+keywords = ["webhook.office.com", "teams_webhook", "TEAMS_WEBHOOK"]
+entropy = 4.0
+tags = ["microsoft", "teams", "webhook"]
+
+[[rules]]
+id = "loom-api-key"
+description = "Loom video messaging API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)loom[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["loom", "LOOM_API"]
+entropy = 4.0
+tags = ["loom", "video", "collaboration"]
+
+[[rules]]
+id = "figma-access-token"
+description = "Figma design collaboration personal access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)figma[._-]?(?:personal[._-]?access[._-]?|api[._-]?)?token\s*[=:]\s*['"]?(figd_[A-Za-z0-9_\-]{100,})['"]?'''
+keywords = ["figd_", "figma", "FIGMA_TOKEN"]
+entropy = 5.0
+tags = ["figma", "design", "saas"]
+
+[[rules]]
+id = "miro-api-token"
+description = "Miro collaborative whiteboard REST API access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)miro[._-]?(?:api[._-]?|access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{30,})['"]?'''
+keywords = ["miro", "MIRO_TOKEN"]
+entropy = 4.0
+tags = ["miro", "design", "collaboration"]
+
+[[rules]]
+id = "shortcut-api-token"
+description = "Shortcut (formerly Clubhouse) project management API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)(?:shortcut|clubhouse)[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["shortcut", "clubhouse", "SHORTCUT_TOKEN"]
+entropy = 3.0
+tags = ["shortcut", "project-management", "saas"]
+
+[[rules]]
+id = "basecamp-api-token"
+description = "Basecamp project management API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)basecamp[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,40})['"]?'''
+keywords = ["basecamp", "BASECAMP_TOKEN"]
+entropy = 4.0
+tags = ["basecamp", "project-management", "saas"]

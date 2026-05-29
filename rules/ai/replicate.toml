@@ -1,0 +1,44 @@
+# Secret Squirrel — Replicate Rules
+# Replicate AI platform secret detection rules
+
+# ==============================================================================
+# Replicate — API Token
+# ==============================================================================
+
+[[rules]]
+id = "replicate-api-token"
+description = "Replicate API token for running AI models"
+regex = '''(?i)(?:replicate[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?(?:token|key)|REPLICATE_API_TOKEN|REPLICATE_API_KEY)\s{0,5}[:=]\s{0,5}["']?(r8_[a-zA-Z0-9]{37})["']?'''
+keywords = ["REPLICATE_API_TOKEN", "REPLICATE_API_KEY", "r8_", "replicate_api"]
+severity = "critical"
+category = "ai"
+tags = ["replicate", "ai", "ml"]
+entropy_threshold = 4.0
+allowlist = [
+    'REPLICATE_API_TOKEN=YOUR_TOKEN',
+    'r8_EXAMPLE',
+    'REPLICATE_API_TOKEN=<',
+    'REPLICATE_API_KEY=$\{',
+]
+remediation = "Revoke at https://replicate.com/account/api-tokens and generate a replacement. Running GPU models can incur significant cost; check billing for unauthorized charges."
+
+# ==============================================================================
+# Replicate — Model Token
+# ==============================================================================
+
+[[rules]]
+id = "replicate-model-token"
+description = "Replicate model-specific deployment token"
+regex = '''(?i)(?:replicate[_\-\.\s]{0,10}model[_\-\.\s]{0,10}(?:token|key)|REPLICATE_MODEL_TOKEN)\s{0,5}[:=]\s{0,5}["']?(r8_[a-zA-Z0-9]{37})["']?'''
+keywords = ["REPLICATE_MODEL_TOKEN", "replicate_model_token"]
+severity = "high"
+category = "ai"
+tags = ["replicate", "model", "ai"]
+entropy_threshold = 4.0
+allowlist = [
+    'REPLICATE_MODEL_TOKEN=YOUR_TOKEN',
+    'REPLICATE_MODEL_TOKEN=r8_EXAMPLE',
+    'REPLICATE_MODEL_TOKEN=<',
+    'REPLICATE_MODEL_TOKEN=$\{',
+]
+remediation = "Revoke at https://replicate.com/account/api-tokens. Model tokens provide access to specific deployed models; rotate and update all services that use the old token."

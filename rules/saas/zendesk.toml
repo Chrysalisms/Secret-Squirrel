@@ -1,0 +1,44 @@
+# Secret Squirrel — Zendesk Extended Rules
+# Additional Zendesk secret detection rules beyond default.toml
+
+# ==============================================================================
+# Zendesk — OAuth Token
+# ==============================================================================
+
+[[rules]]
+id = "zendesk-oauth-token"
+description = "Zendesk OAuth2 access token"
+regex = '''(?i)(?:zendesk[_\-\.\s]{0,10}(?:oauth[_\-\.\s]{0,5})?(?:access[_\-\.\s]{0,5})?token|ZENDESK_OAUTH_TOKEN|ZENDESK_ACCESS_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{40,100})["']?'''
+keywords = ["ZENDESK_OAUTH_TOKEN", "ZENDESK_ACCESS_TOKEN", "zendesk_oauth_token"]
+severity = "critical"
+category = "saas"
+tags = ["zendesk", "support", "oauth", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'ZENDESK_OAUTH_TOKEN=YOUR_TOKEN',
+    'ZENDESK_ACCESS_TOKEN=<',
+    'ZENDESK_OAUTH_TOKEN=$\{',
+    'zendesk_oauth_token = ""',
+]
+remediation = "Revoke at Zendesk Admin Center → Apps and integrations → OAuth clients. OAuth tokens can read/write tickets, users, and organizations."
+
+# ==============================================================================
+# Zendesk — API Token
+# ==============================================================================
+
+[[rules]]
+id = "zendesk-api-token"
+description = "Zendesk API token (used with email/token authentication)"
+regex = '''(?i)(?:zendesk[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?(?:token|key)|ZENDESK_API_TOKEN|ZENDESK_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{34,40})["']?'''
+keywords = ["ZENDESK_API_TOKEN", "ZENDESK_TOKEN", "zendesk_api_token", "zendesk-api-token"]
+severity = "critical"
+category = "saas"
+tags = ["zendesk", "support", "api-token", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'ZENDESK_API_TOKEN=YOUR_API_TOKEN',
+    'ZENDESK_TOKEN=<',
+    'ZENDESK_API_TOKEN=$\{',
+    'zendesk_api_token = ""',
+]
+remediation = "Delete at Zendesk Admin Center → Apps and integrations → Zendesk API → Token access → Delete token. Create a replacement with a descriptive name for audit tracking."

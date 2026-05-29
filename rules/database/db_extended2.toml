@@ -1,0 +1,73 @@
+# Database extended — additional DB engines and managed services
+# Covers Supabase, Firebase Realtime DB, CockroachDB, InfluxDB, TimescaleDB
+
+[[rules]]
+id = "supabase-service-role-key"
+description = "Supabase service role JWT key (full db access)"
+severity = "critical"
+category = "database"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJyb2xlIjoic2VydmljZV9yb2xlIi[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+'''
+keywords = ["service_role", "supabase", "SUPABASE_SERVICE_KEY"]
+entropy = 5.0
+tags = ["supabase", "database", "postgresql"]
+
+[[rules]]
+id = "supabase-anon-key"
+description = "Supabase anon/public JWT key"
+severity = "medium"
+category = "database"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJyb2xlIjoiYW5vbiIs[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+'''
+keywords = ["anon", "supabase", "SUPABASE_ANON_KEY"]
+entropy = 4.0
+allowlist = ['eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIs']
+tags = ["supabase", "database", "public"]
+
+[[rules]]
+id = "cockroachdb-connection-string"
+description = "CockroachDB connection string with credentials"
+severity = "critical"
+category = "database"
+regex = '''postgresql://[A-Za-z0-9_]+:[^@\s'"]{8,64}@[a-z0-9\-]+\.cockroachlabs\.cloud:\d+/[a-z0-9_]+'''
+keywords = ["cockroachlabs.cloud", "cockroach"]
+entropy = 3.5
+tags = ["cockroachdb", "database", "cloud"]
+
+[[rules]]
+id = "timescaledb-connection-string"
+description = "TimescaleDB cloud connection string"
+severity = "critical"
+category = "database"
+regex = '''postgresql://[A-Za-z0-9_]+:[^@\s'"]{8,64}@[a-z0-9\-]+\.timescaledb\.io:\d+/[a-z0-9_]+'''
+keywords = ["timescaledb.io", "timescale"]
+entropy = 3.5
+tags = ["timescaledb", "database", "timeseries"]
+
+[[rules]]
+id = "arangodb-root-password"
+description = "ArangoDB multi-model database root password"
+severity = "critical"
+category = "database"
+regex = '''(?i)arango(?:db)?[._-]?(?:root[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["arangodb", "ARANGO_ROOT_PASSWORD"]
+entropy = 3.0
+tags = ["arangodb", "database", "graph"]
+
+[[rules]]
+id = "clickhouse-password"
+description = "ClickHouse analytical database password"
+severity = "high"
+category = "database"
+regex = '''(?i)clickhouse[._-]?(?:server[._-]?|admin[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["clickhouse", "CLICKHOUSE_PASSWORD"]
+entropy = 3.0
+tags = ["clickhouse", "database", "olap"]
+
+[[rules]]
+id = "snowflake-private-key"
+description = "Snowflake key pair authentication private key"
+severity = "critical"
+category = "database"
+regex = '''(?i)snowflake[._-]?(?:private[._-]?)?(?:key|rsa[._-]?key)\s*[=:]\s*['"]?([A-Za-z0-9+/=]{50,})['"]?'''
+keywords = ["snowflake", "SNOWFLAKE_PRIVATE_KEY"]
+entropy = 4.5
+tags = ["snowflake", "database", "warehouse"]

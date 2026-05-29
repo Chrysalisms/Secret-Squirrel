@@ -1,0 +1,23 @@
+# Secret Squirrel — Mistral AI Rules
+# Mistral AI platform secret detection rules
+
+# ==============================================================================
+# Mistral — API Key
+# ==============================================================================
+
+[[rules]]
+id = "mistral-api-key"
+description = "Mistral AI API key"
+regex = '''(?i)(?:mistral[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|MISTRAL_API_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{32})["']?'''
+keywords = ["MISTRAL_API_KEY", "mistral_api_key", "mistral-api-key"]
+severity = "critical"
+category = "ai"
+tags = ["mistral", "ai", "llm"]
+entropy_threshold = 4.0
+allowlist = [
+    'MISTRAL_API_KEY=YOUR_API_KEY',
+    'MISTRAL_API_KEY=<',
+    'MISTRAL_API_KEY=$\{',
+    'mistral_api_key = ""',
+]
+remediation = "Revoke at https://console.mistral.ai/api-keys/ and generate a replacement. Audit API usage logs for unauthorized model inference."

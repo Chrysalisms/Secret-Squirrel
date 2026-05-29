@@ -1,0 +1,44 @@
+# Secret Squirrel — Cohere Rules
+# Cohere AI platform secret detection rules
+
+# ==============================================================================
+# Cohere — API Key
+# ==============================================================================
+
+[[rules]]
+id = "cohere-api-key"
+description = "Cohere production API key"
+regex = '''(?i)(?:cohere[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|COHERE_API_KEY|CO_API_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{40})["']?'''
+keywords = ["COHERE_API_KEY", "CO_API_KEY", "cohere_api_key", "cohere-api-key"]
+severity = "critical"
+category = "ai"
+tags = ["cohere", "ai", "nlp"]
+entropy_threshold = 4.0
+allowlist = [
+    'COHERE_API_KEY=YOUR_API_KEY',
+    'CO_API_KEY=<',
+    'COHERE_API_KEY=$\{',
+    'cohere_api_key = ""',
+]
+remediation = "Revoke at https://dashboard.cohere.com/api-keys and generate a new key. Audit usage logs for unauthorized model inference calls."
+
+# ==============================================================================
+# Cohere — Trial Key
+# ==============================================================================
+
+[[rules]]
+id = "cohere-trial-key"
+description = "Cohere trial / free-tier API key"
+regex = '''(?i)(?:cohere[_\-\.\s]{0,10}trial[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|COHERE_TRIAL_KEY|COHERE_FREE_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{40})["']?'''
+keywords = ["COHERE_TRIAL_KEY", "COHERE_FREE_KEY", "cohere_trial"]
+severity = "medium"
+category = "ai"
+tags = ["cohere", "trial", "ai"]
+entropy_threshold = 3.5
+allowlist = [
+    'COHERE_TRIAL_KEY=YOUR_TRIAL_KEY',
+    'COHERE_TRIAL_KEY=<',
+    'COHERE_FREE_KEY=$\{',
+    'cohere_trial_key = ""',
+]
+remediation = "Revoke at https://dashboard.cohere.com/api-keys. Trial keys have rate limits but can still be abused for model inference."

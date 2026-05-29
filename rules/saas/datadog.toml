@@ -1,0 +1,65 @@
+# Secret Squirrel — Datadog Extended Rules
+# Additional Datadog secret detection rules beyond default.toml
+
+# ==============================================================================
+# Datadog — API Key
+# ==============================================================================
+
+[[rules]]
+id = "datadog-api-key"
+description = "Datadog API Key (32 hex characters)"
+regex = '''(?i)(?:datadog[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|DD_API_KEY|DATADOG_API_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["DD_API_KEY", "DATADOG_API_KEY", "datadog_api_key"]
+severity = "critical"
+category = "saas"
+tags = ["datadog", "monitoring", "api-key", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'DD_API_KEY=YOUR_API_KEY',
+    'DATADOG_API_KEY=00000000000000000000000000000000',
+    'DD_API_KEY=<',
+    'DD_API_KEY=$\{',
+]
+remediation = "Rotate at https://app.datadoghq.com/organization-settings/api-keys. API keys can send metrics and logs; audit for unauthorized agent submissions."
+
+# ==============================================================================
+# Datadog — Application Key
+# ==============================================================================
+
+[[rules]]
+id = "datadog-application-key"
+description = "Datadog Application Key (40 hex characters) — grants read access to org data"
+regex = '''(?i)(?:datadog[_\-\.\s]{0,10}(?:app(?:lication)?[_\-\.\s]{0,5})?key|DD_APP_KEY|DD_APPLICATION_KEY|DATADOG_APP_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{40})["']?'''
+keywords = ["DD_APP_KEY", "DD_APPLICATION_KEY", "DATADOG_APP_KEY", "datadog_app_key"]
+severity = "critical"
+category = "saas"
+tags = ["datadog", "monitoring", "app-key", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'DD_APP_KEY=YOUR_APP_KEY',
+    'DATADOG_APP_KEY=0000000000000000000000000000000000000000',
+    'DD_APPLICATION_KEY=<',
+    'DD_APP_KEY=$\{',
+]
+remediation = "Rotate at https://app.datadoghq.com/organization-settings/application-keys. Application keys allow reading dashboards, monitors, and sensitive org data."
+
+# ==============================================================================
+# Datadog — Client Token
+# ==============================================================================
+
+[[rules]]
+id = "datadog-client-token"
+description = "Datadog client token (for browser/mobile RUM and log collection)"
+regex = '''(?i)(?:datadog[_\-\.\s]{0,10}client[_\-\.\s]{0,10}token|DD_CLIENT_TOKEN|DATADOG_CLIENT_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-z0-9]{32})["']?'''
+keywords = ["DD_CLIENT_TOKEN", "DATADOG_CLIENT_TOKEN", "datadog_client_token"]
+severity = "medium"
+category = "saas"
+tags = ["datadog", "rum", "client-token", "saas"]
+entropy_threshold = 3.0
+allowlist = [
+    'DD_CLIENT_TOKEN=YOUR_CLIENT_TOKEN',
+    'DATADOG_CLIENT_TOKEN=<',
+    'DD_CLIENT_TOKEN=$\{',
+    'datadog_client_token = ""',
+]
+remediation = "Client tokens are intended for browser use but can be misused to inject fake events. Rotate at https://app.datadoghq.com/organization-settings/client-tokens and add domain restrictions."

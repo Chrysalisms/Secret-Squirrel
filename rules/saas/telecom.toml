@@ -1,0 +1,92 @@
+# Telecommunications and phone number service secrets
+# Covers Bandwidth, Plivo, Telnyx, Daily.co, LiveKit, Agora, Zoom
+
+[[rules]]
+id = "bandwidth-api-secret"
+description = "Bandwidth communications platform API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)bandwidth[._-]?(?:api[._-]?)?(?:token|secret|password)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{20,32})['"]?'''
+keywords = ["bandwidth", "BW_API"]
+entropy = 3.5
+tags = ["bandwidth", "voip", "saas"]
+
+[[rules]]
+id = "plivo-auth-token"
+description = "Plivo voice and SMS authentication token"
+severity = "high"
+category = "saas"
+regex = '''(?i)plivo[._-]?(?:auth[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40})['"]?'''
+keywords = ["plivo", "PLIVO_AUTH"]
+entropy = 4.0
+tags = ["plivo", "sms", "voip", "saas"]
+
+[[rules]]
+id = "telnyx-api-key"
+description = "Telnyx cloud communications API key (KEY01 prefix)"
+severity = "high"
+category = "saas"
+regex = '''KEY01[A-Za-z0-9_\-]{50,70}'''
+keywords = ["KEY01", "telnyx"]
+entropy = 4.5
+tags = ["telnyx", "voip", "sms"]
+
+[[rules]]
+id = "daily-api-key"
+description = "Daily.co WebRTC video API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)daily[._-]?(?:co[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["daily.co", "DAILY_API"]
+entropy = 3.0
+tags = ["daily", "webrtc", "video", "saas"]
+
+[[rules]]
+id = "livekit-api-secret"
+description = "LiveKit WebRTC media server API secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)livekit[._-]?(?:api[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["livekit", "LIVEKIT_API_SECRET"]
+entropy = 4.5
+tags = ["livekit", "webrtc", "video"]
+
+[[rules]]
+id = "agora-app-certificate"
+description = "Agora.io real-time communications app certificate"
+severity = "high"
+category = "saas"
+regex = '''(?i)agora[._-]?(?:app[._-]?)?certificate\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["agora", "AGORA_APP"]
+entropy = 4.0
+tags = ["agora", "rtc", "video", "saas"]
+
+[[rules]]
+id = "zoom-api-secret"
+description = "Zoom API Server-to-Server OAuth client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)zoom[._-]?(?:api[._-]?|client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,40})['"]?'''
+keywords = ["zoom", "ZOOM_CLIENT_SECRET"]
+entropy = 4.0
+tags = ["zoom", "video", "saas"]
+
+[[rules]]
+id = "vonage-video-api-secret"
+description = "Vonage (OpenTok) Video API secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)(?:opentok|vonage)[._-]?(?:api[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["opentok", "vonage_video", "VONAGE_VIDEO"]
+entropy = 4.5
+tags = ["vonage", "opentok", "video", "webrtc"]
+
+[[rules]]
+id = "twilio-video-api-key-secret"
+description = "Twilio Video API key secret for room tokens"
+severity = "critical"
+category = "saas"
+regex = '''(?i)twilio[._-]?video[._-]?api[._-]?(?:key[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_]{40,44})['"]?'''
+keywords = ["twilio_video", "TWILIO_VIDEO"]
+entropy = 4.0
+tags = ["twilio", "video", "webrtc", "saas"]

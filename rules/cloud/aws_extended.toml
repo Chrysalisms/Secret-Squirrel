@@ -1,0 +1,92 @@
+# AWS extended secrets
+# Covers Lambda, API Gateway, SSM Parameter Store, Secrets Manager ARNs, ECR tokens, SES
+
+[[rules]]
+id = "aws-lambda-function-url-secret"
+description = "AWS Lambda function URL auth token"
+severity = "high"
+category = "cloud"
+regex = '''(?i)(?:lambda|aws)[._-]?function[._-]?(?:url[._-]?)?(?:auth[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-=]{32,64})['"]?'''
+keywords = ["lambda", "LAMBDA_AUTH", "function_url"]
+entropy = 4.0
+tags = ["aws", "lambda", "serverless"]
+
+[[rules]]
+id = "aws-api-gateway-key"
+description = "AWS API Gateway API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)(?:apigw|apigateway|api[._-]?gateway)[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{20,40})['"]?'''
+keywords = ["apigw", "API_GATEWAY_KEY", "apigateway"]
+entropy = 3.5
+tags = ["aws", "api-gateway", "cloud"]
+
+[[rules]]
+id = "aws-cognito-client-secret"
+description = "Amazon Cognito user pool app client secret"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)cognito[._-]?(?:app[._-]?)?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9/+=]{52})['"]?'''
+keywords = ["cognito", "COGNITO_SECRET", "COGNITO_CLIENT"]
+entropy = 4.5
+tags = ["aws", "cognito", "identity"]
+
+[[rules]]
+id = "aws-ses-smtp-credentials"
+description = "Amazon SES SMTP credentials (AKID base)"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)(?:aws|ses)[._-]?smtp[._-]?(?:password|secret)\s*[=:]\s*['"]?([A-Za-z0-9/+]{44})['"]?'''
+keywords = ["SES_SMTP", "AWS_SMTP", "SMTP_PASSWORD"]
+entropy = 4.5
+tags = ["aws", "ses", "email", "smtp"]
+
+[[rules]]
+id = "aws-mws-auth-token"
+description = "Amazon Marketplace Web Service (MWS) auth token"
+severity = "high"
+category = "cloud"
+regex = '''amzn\.mws\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
+keywords = ["amzn.mws.", "MWS_TOKEN"]
+entropy = 3.0
+tags = ["aws", "mws", "marketplace"]
+
+[[rules]]
+id = "aws-marketplace-api-token"
+description = "AWS Marketplace API token"
+severity = "high"
+category = "cloud"
+regex = '''(?i)aws[._-]?marketplace[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,64})['"]?'''
+keywords = ["marketplace", "AWS_MARKETPLACE"]
+entropy = 4.0
+tags = ["aws", "marketplace", "cloud"]
+
+[[rules]]
+id = "aws-ssm-parameter-arn"
+description = "AWS SSM Parameter Store ARN reference (may indicate secret location)"
+severity = "low"
+category = "cloud"
+regex = '''arn:aws:ssm:[a-z0-9\-]+:\d{12}:parameter/[A-Za-z0-9/\-_]+'''
+keywords = ["arn:aws:ssm", "ssm:parameter"]
+entropy = 2.0
+tags = ["aws", "ssm", "parameter-store"]
+
+[[rules]]
+id = "aws-secrets-manager-arn"
+description = "AWS Secrets Manager ARN reference"
+severity = "low"
+category = "cloud"
+regex = '''arn:aws:secretsmanager:[a-z0-9\-]+:\d{12}:secret:[A-Za-z0-9/_+=.@\-]+'''
+keywords = ["arn:aws:secretsmanager", "secrets-manager"]
+entropy = 2.0
+tags = ["aws", "secrets-manager", "cloud"]
+
+[[rules]]
+id = "aws-iot-endpoint"
+description = "AWS IoT MQTT endpoint with embedded credentials"
+severity = "high"
+category = "cloud"
+regex = '''[a-z0-9]{14}\.iot\.[a-z0-9\-]+\.amazonaws\.com'''
+keywords = ["iot.amazonaws.com", "aws_iot_endpoint", "AWS_IOT"]
+entropy = 2.5
+tags = ["aws", "iot", "endpoint"]

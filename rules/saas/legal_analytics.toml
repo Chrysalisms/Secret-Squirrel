@@ -1,0 +1,102 @@
+# Legal and compliance platform secrets
+# Covers DocuSign, HelloSign, PandaDoc, Clio, Veracode, TrustArc
+
+[[rules]]
+id = "docusign-access-token"
+description = "DocuSign eSignature API OAuth access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)docusign[._-]?(?:access[._-]?|api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64,})['"]?'''
+keywords = ["docusign", "DOCUSIGN_TOKEN"]
+entropy = 4.5
+tags = ["docusign", "esignature", "legal", "saas"]
+
+[[rules]]
+id = "hellosign-api-key"
+description = "HelloSign / Dropbox Sign API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)hellosign[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32,40})['"]?'''
+keywords = ["hellosign", "dropbox_sign"]
+entropy = 4.0
+tags = ["hellosign", "esignature", "saas"]
+
+[[rules]]
+id = "pandadoc-api-key"
+description = "PandaDoc document management API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)pandadoc[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,48})['"]?'''
+keywords = ["pandadoc"]
+entropy = 4.0
+tags = ["pandadoc", "documents", "saas"]
+
+[[rules]]
+id = "clio-api-token"
+description = "Clio legal practice management API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)clio[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["clio", "CLIO_TOKEN"]
+entropy = 4.0
+tags = ["clio", "legal", "saas"]
+
+[[rules]]
+id = "veracode-api-id"
+description = "Veracode application security API credentials"
+severity = "high"
+category = "saas"
+regex = '''(?i)veracode[._-]?(?:api[._-]?)?(?:key|id|secret)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["veracode", "VERACODE_API"]
+entropy = 4.0
+tags = ["veracode", "appsec", "compliance"]
+
+[[rules]]
+id = "onetrust-api-key"
+description = "OneTrust privacy management platform API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)onetrust[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64,})['"]?'''
+keywords = ["onetrust", "ONETRUST_API"]
+entropy = 4.5
+tags = ["onetrust", "privacy", "compliance", "gdpr"]
+
+[[rules]]
+id = "segment-write-key"
+description = "Segment CDP write key for analytics"
+severity = "high"
+category = "saas"
+regex = '''(?i)segment[._-]?(?:write[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,48})['"]?'''
+keywords = ["segment", "SEGMENT_WRITE_KEY"]
+entropy = 4.0
+tags = ["segment", "analytics", "cdp", "saas"]
+
+[[rules]]
+id = "amplitude-api-key"
+description = "Amplitude product analytics API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)amplitude[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["amplitude", "AMPLITUDE_API"]
+entropy = 4.0
+tags = ["amplitude", "analytics", "saas"]
+
+[[rules]]
+id = "mixpanel-api-secret"
+description = "Mixpanel product analytics API secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)mixpanel[._-]?(?:api[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["mixpanel", "MIXPANEL_SECRET"]
+entropy = 4.0
+tags = ["mixpanel", "analytics", "saas"]
+
+[[rules]]
+id = "posthog-api-key"
+description = "PostHog open-source analytics API key (phc_ prefix)"
+severity = "medium"
+category = "saas"
+regex = '''phc_[A-Za-z0-9_\-]{43}'''
+keywords = ["phc_", "posthog", "POSTHOG_KEY"]
+entropy = 4.0
+tags = ["posthog", "analytics", "saas"]

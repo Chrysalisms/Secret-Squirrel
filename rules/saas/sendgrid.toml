@@ -1,0 +1,43 @@
+# Secret Squirrel — SendGrid Extended Rules
+# Additional SendGrid secret detection rules beyond default.toml
+
+# ==============================================================================
+# SendGrid — Full API Key
+# ==============================================================================
+
+[[rules]]
+id = "sendgrid-api-key-full"
+description = "SendGrid API key (SG. prefix, full format)"
+regex = '''\bSG\.[a-zA-Z0-9\-_]{22}\.[a-zA-Z0-9\-_]{43}\b'''
+keywords = ["SG."]
+severity = "critical"
+category = "saas"
+tags = ["sendgrid", "email", "api-key", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'SG.EXAMPLE.EXAMPLE',
+    'SG.xxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    'SG.YOUR_API_KEY.YOUR_API_SECRET',
+]
+remediation = "Delete and regenerate at https://app.sendgrid.com/settings/api_keys. Review email send logs for unauthorized bulk mailings."
+
+# ==============================================================================
+# SendGrid — Restricted API Key
+# ==============================================================================
+
+[[rules]]
+id = "sendgrid-api-key-restricted"
+description = "SendGrid restricted API key assigned to an environment variable"
+regex = '''(?i)(?:sendgrid[_\-\.\s]{0,10}(?:restricted[_\-\.\s]{0,10})?(?:api[_\-\.\s]{0,5})?key|SENDGRID_API_KEY|SENDGRID_KEY)\s{0,5}[:=]\s{0,5}["']?(SG\.[a-zA-Z0-9\-_]{22}\.[a-zA-Z0-9\-_]{43})["']?'''
+keywords = ["SENDGRID_API_KEY", "SENDGRID_KEY", "sendgrid_api_key"]
+severity = "critical"
+category = "saas"
+tags = ["sendgrid", "email", "restricted", "saas"]
+entropy_threshold = 4.0
+allowlist = [
+    'SENDGRID_API_KEY=YOUR_API_KEY',
+    'SENDGRID_KEY=SG.EXAMPLE',
+    'SENDGRID_API_KEY=<',
+    'SENDGRID_API_KEY=$\{',
+]
+remediation = "Delete at https://app.sendgrid.com/settings/api_keys. Even restricted keys can send email; audit the SendGrid activity feed for unauthorized sends."

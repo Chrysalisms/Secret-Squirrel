@@ -1,0 +1,13 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-braintreepayments"
+description = "Parity rule for braintreepayments"
+severity = "high"
+category = "payments"
+keywords = ["braintreepayments"]
+regex = '''(?i)braintreepayments.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

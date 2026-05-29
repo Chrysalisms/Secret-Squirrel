@@ -1,36 +1,25 @@
 # Secret Squirrel — Default Detection Rules
 #
-# This file is embedded into the binary at compile time.
-# Format: Squirrel TOML (superset of Betterleaks; compatible with Gitleaks)
+# Full rule dictionary: Squirrel native rules + Gitleaks rule dictionary.
+# Embedded into the binary at compile time via include_str!.
 #
-# Fields:
-#   id                  — unique rule identifier (kebab-case)
-#   description         — human-readable rule description
-#   regex               — primary detection pattern (Rust regex syntax)
-#   keywords            — Aho-Corasick pre-filter keywords (case-insensitive)
-#   severity            — "critical" | "high" | "medium" | "low" | "info"
-#   category            — "cloud" | "saas" | "devtools" | "database" |
-#                         "crypto" | "ai" | "payments" | "generic"
-#   allowlist           — regex patterns that suppress a finding if matched
-#   entropy_threshold   — optional per-rule minimum Shannon entropy override
-#   validation_provider — optional validator name
-#   remediation         — short rotation guidance text
+# Format: Squirrel TOML (superset of Gitleaks)
 
 # ==============================================================================
 # CLOUD — AWS
 # ==============================================================================
 
 [[rules]]
-id = "aws-access-key-id"
-description = "AWS Access Key ID"
-regex = '\bAKIA[0-9A-Z]{16}\b'
-keywords = ["AKIA"]
+id = "aws-access-token"
+description = "AWS Access Key ID or temporary credential prefix"
+regex = '\b((?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16})\b'
+keywords = ["a3t", "akia", "asia", "abia", "acca"]
 severity = "critical"
 category = "cloud"
 tags = ["aws", "iam", "cloud"]
+entropy_threshold = 3.0
 allowlist = [
-    'AKIAIOSFODNN7EXAMPLE',         # AWS documentation example key
-    'AKIAI44QH8DHBEXAMPLE',
+    '.+EXAMPLE$',
 ]
 validation_provider = "aws"
 remediation = "Revoke immediately at https://console.aws.amazon.com/iam/ → Security credentials → Access keys. Rotate all affected IAM permissions and audit CloudTrail for unauthorized usage."
@@ -38,13 +27,46 @@ remediation = "Revoke immediately at https://console.aws.amazon.com/iam/ → Sec
 [[rules]]
 id = "aws-secret-access-key"
 description = "AWS Secret Access Key"
-regex = "(?i)aws[_\\-\\s]*secret[_\\-\\s]*(?:access[_\\-\\s]*)?key\\s*[:=]\\s*[\"']?([A-Za-z0-9+/]{40})[\"']?"
+regex = "(?i)aws[_\\-]{0,3}secret[_\\-]{0,3}(?:access[_\\-]{0,3})?key\\s{0,5}[:=]\\s{0,5}[\"']?([A-Za-z0-9+/]{40})[\"']"
 keywords = ["aws_secret", "aws-secret", "AWS_SECRET"]
 severity = "critical"
 category = "cloud"
 tags = ["aws", "iam", "cloud"]
 entropy_threshold = 4.0
 remediation = "Revoke at https://console.aws.amazon.com/iam/ and rotate all services using this credential."
+
+[[rules]]
+id = "aws-amazon-bedrock-api-key-long-lived"
+description = "Long-lived Amazon Bedrock API key"
+regex = '''\b(ABSK[A-Za-z0-9+/]{109,269}={0,2})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["absk"]
+severity = "critical"
+category = "cloud"
+tags = ["aws", "bedrock"]
+entropy_threshold = 3.0
+remediation = "Revoke the Bedrock API key in the AWS console and rotate any services using it."
+
+[[rules]]
+id = "alibaba-access-key-id"
+description = "Alibaba Cloud AccessKey ID"
+regex = '''\b(LTAI(?i)[a-z0-9]{20})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["ltai"]
+severity = "critical"
+category = "cloud"
+tags = ["alibaba", "cloud"]
+entropy_threshold = 2.0
+remediation = "Disable at https://ram.console.aliyun.com/manage/ak and rotate all services."
+
+[[rules]]
+id = "alibaba-secret-key"
+description = "Alibaba Cloud Secret Key"
+regex = '''(?i)[\w.-]{0,50}?(?:alibaba)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{30})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["alibaba"]
+severity = "critical"
+category = "cloud"
+tags = ["alibaba", "cloud"]
+entropy_threshold = 2.0
+remediation = "Disable at https://ram.console.aliyun.com/manage/ak and rotate all services."
 
 # ==============================================================================
 # DEVTOOLS — GitHub
@@ -61,6 +83,17 @@ tags = ["github", "token", "devtools"]
 allowlist = ['ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX']
 validation_provider = "github"
 remediation = "Revoke at https://github.com/settings/tokens and generate a replacement with minimum required scopes."
+
+[[rules]]
+id = "github-fine-grained-pat"
+description = "GitHub Fine-Grained Personal Access Token"
+regex = '\bgithub_pat_[a-zA-Z0-9_]{82}\b'
+keywords = ["github_pat_"]
+severity = "critical"
+category = "devtools"
+tags = ["github", "token", "devtools"]
+validation_provider = "github"
+remediation = "Revoke at https://github.com/settings/tokens and regenerate with minimum scopes."
 
 [[rules]]
 id = "github-oauth-token"
@@ -80,7 +113,7 @@ keywords = ["ghs_"]
 severity = "high"
 category = "devtools"
 tags = ["github", "app", "devtools"]
-remediation = "Revoke at https://github.com/settings/tokens — installation tokens expire in 1 hour but should still be rotated."
+remediation = "Revoke at https://github.com/settings/tokens."
 
 [[rules]]
 id = "github-refresh-token"
@@ -108,6 +141,16 @@ validation_provider = "gitlab"
 remediation = "Revoke at https://gitlab.com/-/user_settings/personal_access_tokens and create a replacement with minimum scopes."
 
 [[rules]]
+id = "gitlab-pipeline-trigger-token"
+description = "GitLab Pipeline Trigger Token"
+regex = '\bglptt-[a-zA-Z0-9\-_]{20}\b'
+keywords = ["glptt-"]
+severity = "high"
+category = "devtools"
+tags = ["gitlab", "ci", "devtools"]
+remediation = "Revoke at GitLab → Project → Settings → CI/CD → Pipeline triggers."
+
+[[rules]]
 id = "gitlab-runner-token"
 description = "GitLab Runner Registration Token"
 regex = '\bGR1348941[a-zA-Z0-9\-_]{20}\b'
@@ -118,11 +161,35 @@ tags = ["gitlab", "runner", "devtools"]
 remediation = "Reset the runner token in GitLab → Settings → CI/CD → Runners and re-register affected runners."
 
 # ==============================================================================
+# DEVTOOLS — Bitbucket
+# ==============================================================================
+
+[[rules]]
+id = "bitbucket-client-id"
+description = "Bitbucket Client ID"
+regex = '''(?i)[\w.-]{0,50}?(?:bitbucket)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["bitbucket"]
+severity = "medium"
+category = "devtools"
+tags = ["bitbucket", "devtools"]
+remediation = "Rotate at https://bitbucket.org/account/settings/app-passwords/."
+
+[[rules]]
+id = "bitbucket-client-secret"
+description = "Bitbucket Client Secret"
+regex = '''(?i)[\w.-]{0,50}?(?:bitbucket)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["bitbucket"]
+severity = "critical"
+category = "devtools"
+tags = ["bitbucket", "devtools"]
+remediation = "Rotate at https://bitbucket.org/account/settings/app-passwords/."
+
+# ==============================================================================
 # SAAS — Slack
 # ==============================================================================
 
 [[rules]]
-id = "slack-token"
+id = "slack-access-token"
 description = "Slack API Token"
 regex = '\bxox[baprs]-[a-zA-Z0-9\-]{10,48}\b'
 keywords = ["xoxb-", "xoxa-", "xoxp-", "xoxr-", "xoxs-"]
@@ -133,55 +200,51 @@ allowlist = ['xoxb-XXXX-XXXX-XXXX']
 validation_provider = "slack"
 remediation = "Revoke at https://api.slack.com/apps → OAuth & Permissions → Revoke All OAuth Tokens."
 
+[[rules]]
+id = "slack-web-hook"
+description = "Slack Webhook URL"
+regex = 'https://hooks\.slack\.com/services/T[a-zA-Z0-9_]{8}/B[a-zA-Z0-9_]{8,}/[a-zA-Z0-9_]{24}'
+keywords = ["hooks.slack.com"]
+severity = "high"
+category = "saas"
+tags = ["slack", "webhook", "saas"]
+remediation = "Delete the webhook at https://api.slack.com/apps and generate a new one."
+
 # ==============================================================================
 # PAYMENTS — Stripe
 # ==============================================================================
 
 [[rules]]
-id = "stripe-live-key"
-description = "Stripe Live API Secret Key"
-regex = '\bsk_live_[a-zA-Z0-9]{24,99}\b'
-keywords = ["sk_live_"]
+id = "stripe-access-token"
+description = "Stripe API Secret Key (live or test)"
+regex = '\b(sk_(?:live|test)_[a-zA-Z0-9]{24,99}|rk_(?:live|test)_[a-zA-Z0-9]{24,99})\b'
+keywords = ["sk_live_", "sk_test_", "rk_live_", "rk_test_"]
 severity = "critical"
 category = "payments"
-tags = ["stripe", "live", "payments"]
+tags = ["stripe", "payments"]
 validation_provider = "stripe"
 remediation = "Roll immediately at https://dashboard.stripe.com/apikeys — Stripe supports zero-downtime key rotation."
-
-[[rules]]
-id = "stripe-test-key"
-description = "Stripe Test API Secret Key"
-regex = '\bsk_test_[a-zA-Z0-9]{24,99}\b'
-keywords = ["sk_test_"]
-severity = "medium"
-category = "payments"
-tags = ["stripe", "test", "payments"]
-remediation = "Test keys are lower risk but should not be committed. Rotate at https://dashboard.stripe.com/test/apikeys."
 
 # ==============================================================================
 # SAAS — Twilio
 # ==============================================================================
 
 [[rules]]
-id = "twilio-account-sid"
-description = "Twilio Account SID"
-regex = '\bAC[a-z0-9]{32}\b'
+id = "twilio-api-key"
+description = "Twilio API Key SID"
+regex = '\bSK[a-f0-9]{32}\b'
 keywords = ["TWILIO_", "twilio"]
 severity = "high"
 category = "saas"
 tags = ["twilio", "saas"]
-allowlist = [
-    'ACa{32}',       # all-a placeholder
-    'AC0{32}',       # all-zero placeholder
-]
-remediation = "Rotate at https://console.twilio.com → Account → General Settings → API Keys."
+remediation = "Rotate at https://console.twilio.com → Account → API keys."
 
 # ==============================================================================
 # SAAS — SendGrid
 # ==============================================================================
 
 [[rules]]
-id = "sendgrid-api-key"
+id = "sendgrid-api-token"
 description = "SendGrid API Key"
 regex = '\bSG\.[a-zA-Z0-9\-_]{22}\.[a-zA-Z0-9\-_]{43}\b'
 keywords = ["SG."]
@@ -213,10 +276,20 @@ remediation = "Delete at https://platform.openai.com/api-keys and set a usage li
 # ==============================================================================
 
 [[rules]]
+id = "anthropic-admin-api-key"
+description = "Anthropic Admin API Key"
+regex = '''\b(sk-ant-admin01-[a-zA-Z0-9_\-]{93}AA)(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["sk-ant-admin01"]
+severity = "critical"
+category = "ai"
+tags = ["anthropic", "admin", "ai"]
+remediation = "Delete at https://console.anthropic.com/settings/keys immediately."
+
+[[rules]]
 id = "anthropic-api-key"
 description = "Anthropic Claude API Key"
-regex = '\bsk-ant-[a-zA-Z0-9\-]{95}\b'
-keywords = ["sk-ant-"]
+regex = '''\b(sk-ant-api03-[a-zA-Z0-9_\-]{93}AA)(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["sk-ant-api03"]
 severity = "critical"
 category = "ai"
 tags = ["anthropic", "claude", "ai"]
@@ -228,7 +301,7 @@ remediation = "Delete at https://console.anthropic.com/settings/keys and monitor
 # ==============================================================================
 
 [[rules]]
-id = "huggingface-token"
+id = "huggingface-access-token"
 description = "HuggingFace User Access Token"
 regex = '\bhf_[a-zA-Z0-9]{37}\b'
 keywords = ["hf_"]
@@ -238,80 +311,818 @@ tags = ["huggingface", "ai", "ml"]
 remediation = "Revoke at https://huggingface.co/settings/tokens and create a replacement with minimum required permissions."
 
 # ==============================================================================
-# GENERIC — Password Assignments
+# PASSWORD MANAGERS — 1Password
 # ==============================================================================
 
 [[rules]]
-id = "generic-password-assignment"
-description = "Generic password in variable assignment"
-regex = "(?i)(password|passwd|pwd)\\s*[:=]\\s*[\"']?(?!.*\\$\\{)[^\\s\"']{8,}"
-keywords = ["password", "passwd", "pwd"]
-severity = "high"
-category = "generic"
-tags = ["password", "generic"]
-allowlist = [
-    "(?i)password\\s*[:=]\\s*[\"']?\\s*[\"']",      # empty value
-    "(?i)password\\s*[:=]\\s*[\"']?\\s*\\*+\\s*[\"']", # masked with asterisks
-    "(?i)password\\s*[:=]\\s*[\"']?YOUR_PASSWORD",    # placeholder
-    "(?i)password\\s*[:=]\\s*[\"']?changeme",          # common placeholder
-    "(?i)password\\s*[:=]\\s*[\"']?<[^>]+>",           # XML placeholder
-]
-entropy_threshold = 3.0
-remediation = "Rotate the credential immediately, then move it to a secrets manager (e.g. AWS Secrets Manager, HashiCorp Vault, or your CI/CD platform's native secrets store)."
+id = "1password-secret-key"
+description = "1Password Secret Key"
+regex = '\bA3-[A-Z0-9]{6}-(?:(?:[A-Z0-9]{11})|(?:[A-Z0-9]{6}-[A-Z0-9]{5}))-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b'
+keywords = ["a3-"]
+severity = "critical"
+category = "saas"
+tags = ["1password", "secrets-manager"]
+entropy_threshold = 3.8
+remediation = "Rotate in 1Password admin console immediately."
+
+[[rules]]
+id = "1password-service-account-token"
+description = "1Password Service Account Token"
+regex = 'ops_eyJ[a-zA-Z0-9+/]{250,}={0,3}'
+keywords = ["ops_"]
+severity = "critical"
+category = "saas"
+tags = ["1password", "secrets-manager"]
+entropy_threshold = 4.0
+remediation = "Revoke at 1Password → Service Accounts."
 
 # ==============================================================================
-# GENERIC — API Key Assignments
+# IOT / MAKER — Adafruit
 # ==============================================================================
 
 [[rules]]
-id = "generic-api-key"
-description = "Generic API key in variable assignment"
-regex = "(?i)(api[_\\-]?key|apikey)\\s*[:=]\\s*[\"']?[a-zA-Z0-9\\-_]{16,}[\"']?"
-keywords = ["api_key", "apikey", "api-key", "API_KEY"]
+id = "adafruit-api-key"
+description = "Adafruit API Key"
+regex = '''(?i)[\w.-]{0,50}?(?:adafruit)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9_-]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["adafruit"]
 severity = "medium"
-category = "generic"
-tags = ["api-key", "generic"]
-allowlist = [
-    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?\\s*[\"']",         # empty
-    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?YOUR_API_KEY",      # placeholder
-    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?<[^>]+>",           # XML placeholder
-]
-entropy_threshold = 3.5
-remediation = "Identify the service this key belongs to and rotate it via that service's developer console."
+category = "saas"
+tags = ["adafruit", "iot"]
+remediation = "Rotate at https://io.adafruit.com/api/."
 
 # ==============================================================================
-# GENERIC — Token Assignments
+# CREATIVE — Adobe
 # ==============================================================================
 
 [[rules]]
-id = "generic-token-assignment"
-description = "Generic token in variable assignment"
-regex = "(?i)(token|auth_token|access_token|secret_token)\\s*[:=]\\s*[\"']?[a-zA-Z0-9\\-_\\.]{16,}[\"']?"
-keywords = ["token", "auth_token", "access_token", "secret_token"]
+id = "adobe-client-id"
+description = "Adobe OAuth Web Client ID"
+regex = '''(?i)[\w.-]{0,50}?(?:adobe)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-f0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["adobe"]
 severity = "medium"
-category = "generic"
-tags = ["token", "generic"]
-allowlist = [
-    "(?i)token\\s*[:=]\\s*[\"']?\\s*[\"']",
-    "(?i)token\\s*[:=]\\s*[\"']?YOUR_TOKEN",
-    "(?i)token\\s*[:=]\\s*[\"']?<[^>]+>",
-]
-entropy_threshold = 3.5
-remediation = "Identify the issuing service and rotate the token via its developer console."
+category = "saas"
+tags = ["adobe"]
+entropy_threshold = 2.0
+remediation = "Rotate at https://developer.adobe.com/console/."
+
+[[rules]]
+id = "adobe-client-secret"
+description = "Adobe Client Secret"
+regex = '''\b(p8e-(?i)[a-z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["p8e-"]
+severity = "critical"
+category = "saas"
+tags = ["adobe"]
+entropy_threshold = 2.0
+remediation = "Rotate at https://developer.adobe.com/console/."
 
 # ==============================================================================
-# CRYPTO — Private Keys
+# CRYPTO / ENCRYPTION
 # ==============================================================================
+
+[[rules]]
+id = "age-secret-key"
+description = "Age encryption tool secret key"
+regex = 'AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}'
+keywords = ["age-secret-key-1"]
+severity = "critical"
+category = "crypto"
+tags = ["age", "encryption", "crypto"]
+remediation = "Generate a new age key pair with `age-keygen` and update all encrypted files."
 
 [[rules]]
 id = "private-key-generic"
 description = "PEM private key header"
-regex = '-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'
-keywords = ["BEGIN PRIVATE KEY", "BEGIN RSA PRIVATE KEY", "BEGIN EC PRIVATE KEY"]
+regex = '-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----'
+keywords = ["BEGIN PRIVATE KEY", "BEGIN RSA PRIVATE KEY", "BEGIN EC PRIVATE KEY", "BEGIN OPENSSH PRIVATE KEY", "BEGIN PGP PRIVATE KEY"]
 severity = "critical"
 category = "crypto"
 tags = ["crypto", "pem", "private-key"]
-remediation = "Rotate the key pair immediately. Generate a new key with: openssl genrsa -out new-key.pem 4096 (RSA) or openssl ecparam -genkey -name prime256v1 (EC). Update all services and revoke/re-issue any certificates signed by this key."
+remediation = "Rotate the key pair immediately. Generate a new key with: openssl genrsa -out new-key.pem 4096 (RSA) or openssl ecparam -genkey -name prime256v1 (EC)."
+
+# ==============================================================================
+# DATABASE / PRODUCTIVITY — Airtable
+# ==============================================================================
+
+[[rules]]
+id = "airtable-api-key"
+description = "Airtable API Key"
+regex = '''(?i)[\w.-]{0,50}?(?:airtable)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{17})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["airtable"]
+severity = "high"
+category = "saas"
+tags = ["airtable"]
+remediation = "Regenerate at https://airtable.com/account."
+
+[[rules]]
+id = "airtable-personal-access-token"
+description = "Airtable Personal Access Token"
+regex = '\b(pat[[:alnum:]]{14}\.[a-f0-9]{64})\b'
+keywords = ["airtable"]
+severity = "high"
+category = "saas"
+tags = ["airtable"]
+remediation = "Revoke at https://airtable.com/create/tokens."
+
+# ==============================================================================
+# SEARCH — Algolia
+# ==============================================================================
+
+[[rules]]
+id = "algolia-api-key"
+description = "Algolia API Key"
+regex = '''(?i)[\w.-]{0,50}?(?:algolia)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["algolia"]
+severity = "high"
+category = "saas"
+tags = ["algolia", "search"]
+remediation = "Rotate at https://www.algolia.com/account/api-keys/."
+
+# ==============================================================================
+# PRODUCTIVITY — Asana
+# ==============================================================================
+
+[[rules]]
+id = "asana-client-secret"
+description = "Asana Client Secret"
+regex = '''(?i)[\w.-]{0,50}?(?:asana)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["asana"]
+severity = "high"
+category = "saas"
+tags = ["asana"]
+remediation = "Rotate at https://app.asana.com/0/developer-console."
+
+# ==============================================================================
+# DEVTOOLS — Atlassian / Jira / Confluence
+# ==============================================================================
+
+[[rules]]
+id = "atlassian-api-token"
+description = "Atlassian API Token (Jira / Confluence)"
+regex = '''\b(ATATT3[A-Za-z0-9_\-=]{186})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["atlassian", "confluence", "jira", "atatt3"]
+severity = "critical"
+category = "devtools"
+tags = ["atlassian", "jira", "confluence"]
+entropy_threshold = 3.5
+remediation = "Revoke at https://id.atlassian.com/manage-profile/security/api-tokens."
+
+# ==============================================================================
+# CLOUD — Azure
+# ==============================================================================
+
+[[rules]]
+id = "azure-ad-client-secret"
+description = "Azure AD Client Secret"
+regex = '''(?:^|[\'"\x60\s>=:(,)])([a-zA-Z0-9_~.]{3}\dQ~[a-zA-Z0-9_~.-]{31,34})(?:$|[\'"\x60\s<),])'''
+keywords = ["q~"]
+severity = "critical"
+category = "cloud"
+tags = ["azure", "ad", "cloud"]
+entropy_threshold = 3.0
+remediation = "Rotate at https://portal.azure.com → Azure Active Directory → App registrations."
+
+# ==============================================================================
+# DEVOPS — Cloudflare
+# ==============================================================================
+
+[[rules]]
+id = "cloudflare-api-key"
+description = "Cloudflare API Key"
+regex = '''(?i)[\w.-]{0,50}?(?:cloudflare)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9_-]{40})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["cloudflare"]
+severity = "critical"
+category = "saas"
+tags = ["cloudflare"]
+entropy_threshold = 2.0
+remediation = "Rotate at https://dash.cloudflare.com/profile/api-tokens."
+
+[[rules]]
+id = "cloudflare-origin-ca-key"
+description = "Cloudflare Origin CA Key"
+regex = '''\b(v1\.0-[a-f0-9]{24}-[a-f0-9]{146})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["v1.0-"]
+severity = "critical"
+category = "saas"
+tags = ["cloudflare"]
+entropy_threshold = 2.0
+remediation = "Rotate at https://dash.cloudflare.com/profile/api-tokens."
+
+# ==============================================================================
+# ANALYTICS — Datadog
+# ==============================================================================
+
+[[rules]]
+id = "datadog-access-token"
+description = "Datadog API Token"
+regex = '''(?i)[\w.-]{0,50}?(?:datadog)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{40})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["datadog"]
+severity = "high"
+category = "saas"
+tags = ["datadog", "monitoring"]
+remediation = "Rotate at https://app.datadoghq.com/organization-settings/api-keys."
+
+# ==============================================================================
+# DATA — Databricks
+# ==============================================================================
+
+[[rules]]
+id = "databricks-api-token"
+description = "Databricks API Token"
+regex = '''\b(dapi[a-f0-9]{32}(?:-\d)?)(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["dapi"]
+severity = "critical"
+category = "saas"
+tags = ["databricks", "data"]
+entropy_threshold = 3.0
+remediation = "Rotate at your Databricks workspace → Settings → User settings → Access tokens."
+
+# ==============================================================================
+# CLOUD — DigitalOcean
+# ==============================================================================
+
+[[rules]]
+id = "digitalocean-pat"
+description = "DigitalOcean Personal Access Token"
+regex = '''\b(dop_v1_[a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["dop_v1_"]
+severity = "critical"
+category = "cloud"
+tags = ["digitalocean", "cloud"]
+entropy_threshold = 3.0
+remediation = "Revoke at https://cloud.digitalocean.com/account/api/tokens."
+
+[[rules]]
+id = "digitalocean-access-token"
+description = "DigitalOcean OAuth Access Token"
+regex = '''\b(doo_v1_[a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["doo_v1_"]
+severity = "critical"
+category = "cloud"
+tags = ["digitalocean", "cloud"]
+entropy_threshold = 3.0
+remediation = "Revoke at https://cloud.digitalocean.com/account/api/tokens."
+
+[[rules]]
+id = "digitalocean-refresh-token"
+description = "DigitalOcean OAuth Refresh Token"
+regex = '''\b(dor_v1_[a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["dor_v1_"]
+severity = "high"
+category = "cloud"
+tags = ["digitalocean", "cloud"]
+remediation = "Revoke at https://cloud.digitalocean.com/account/api/tokens."
+
+# ==============================================================================
+# COMMUNICATION — Discord
+# ==============================================================================
+
+[[rules]]
+id = "discord-api-token"
+description = "Discord API Token"
+regex = '''(?i)[\w.-]{0,50}?(?:discord)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["discord"]
+severity = "critical"
+category = "saas"
+tags = ["discord"]
+remediation = "Rotate at https://discord.com/developers/applications."
+
+[[rules]]
+id = "discord-client-secret"
+description = "Discord Client Secret"
+regex = '''(?i)[\w.-]{0,50}?(?:discord)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["discord"]
+severity = "critical"
+category = "saas"
+tags = ["discord"]
+entropy_threshold = 2.0
+remediation = "Rotate at https://discord.com/developers/applications."
+
+# ==============================================================================
+# SECRETS MANAGEMENT — Doppler
+# ==============================================================================
+
+[[rules]]
+id = "doppler-api-token"
+description = "Doppler API Token"
+regex = 'dp\.pt\.(?i)[a-z0-9]{43}'
+keywords = ["dp.pt."]
+severity = "critical"
+category = "saas"
+tags = ["doppler", "secrets-manager"]
+entropy_threshold = 2.0
+remediation = "Revoke at https://dashboard.doppler.com/workplace/tokens."
+
+# ==============================================================================
+# STORAGE — Dropbox
+# ==============================================================================
+
+[[rules]]
+id = "dropbox-api-secret"
+description = "Dropbox API Secret"
+regex = '''(?i)[\w.-]{0,50}?(?:dropbox)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{15})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["dropbox"]
+severity = "critical"
+category = "saas"
+tags = ["dropbox", "storage"]
+remediation = "Rotate at https://www.dropbox.com/developers/apps."
+
+# ==============================================================================
+# MONITORING — Dynatrace
+# ==============================================================================
+
+[[rules]]
+id = "dynatrace-api-token"
+description = "Dynatrace API Token"
+regex = '\bdt0[a-zA-Z]{1}[0-9]{2}\.[A-Z0-9]{24}\.[A-Z0-9]{64}\b'
+keywords = ["dynatrace", "dt0"]
+severity = "high"
+category = "saas"
+tags = ["dynatrace", "monitoring"]
+remediation = "Revoke at Dynatrace → Settings → Integration → Dynatrace API."
+
+# ==============================================================================
+# LOGISTICS — EasyPost
+# ==============================================================================
+
+[[rules]]
+id = "easypost-api-token"
+description = "EasyPost API Token"
+regex = '\bEZAK[a-z0-9]{54}\b'
+keywords = ["ezak"]
+severity = "high"
+category = "saas"
+tags = ["easypost", "logistics"]
+remediation = "Rotate at https://www.easypost.com/account/api-keys."
+
+# ==============================================================================
+# SOCIAL — Facebook / Meta
+# ==============================================================================
+
+[[rules]]
+id = "facebook-token"
+description = "Facebook Access Token"
+regex = '\bEAA[a-zA-Z0-9]{100,}\b'
+keywords = ["EAA"]
+severity = "high"
+category = "saas"
+tags = ["facebook", "meta", "social"]
+remediation = "Revoke at https://developers.facebook.com/tools/debug/accesstoken/."
+
+# ==============================================================================
+# CDN — Fastly
+# ==============================================================================
+
+[[rules]]
+id = "fastly-api-token"
+description = "Fastly API Token"
+regex = '''(?i)[\w.-]{0,50}?(?:fastly)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["fastly"]
+severity = "high"
+category = "saas"
+tags = ["fastly", "cdn"]
+remediation = "Rotate at https://manage.fastly.com/account/personal/tokens."
+
+# ==============================================================================
+# CLOUD — GCP
+# ==============================================================================
+
+[[rules]]
+id = "gcp-api-key"
+description = "Google Cloud Platform API Key"
+regex = '\b(AIza[0-9A-Za-z\-_]{35})\b'
+keywords = ["AIza"]
+severity = "critical"
+category = "cloud"
+tags = ["gcp", "google", "cloud"]
+remediation = "Rotate at https://console.cloud.google.com/apis/credentials."
+
+# ==============================================================================
+# DEVOPS — Grafana
+# ==============================================================================
+
+[[rules]]
+id = "grafana-api-key"
+description = "Grafana API Key (legacy)"
+regex = '\beyJrIjoi[a-zA-Z0-9+/]{70,}={0,3}\b'
+keywords = ["grafana"]
+severity = "high"
+category = "saas"
+tags = ["grafana", "monitoring"]
+remediation = "Revoke at Grafana → Configuration → API Keys."
+
+[[rules]]
+id = "grafana-cloud-api-token"
+description = "Grafana Cloud API Token"
+regex = '\bglc_[a-zA-Z0-9+/]{32,}={0,3}\b'
+keywords = ["glc_"]
+severity = "high"
+category = "saas"
+tags = ["grafana", "cloud"]
+remediation = "Revoke at https://grafana.com/orgs/<yourorg>/api-keys."
+
+[[rules]]
+id = "grafana-service-account-token"
+description = "Grafana Service Account Token"
+regex = '\bglsa_[a-zA-Z0-9]{32}_[a-f0-9]{8}\b'
+keywords = ["glsa_"]
+severity = "high"
+category = "saas"
+tags = ["grafana"]
+remediation = "Revoke at Grafana → Administration → Service Accounts."
+
+# ==============================================================================
+# DEVOPS — HashiCorp
+# ==============================================================================
+
+[[rules]]
+id = "hashicorp-tf-api-token"
+description = "HashiCorp Terraform Cloud API Token"
+regex = '\b[a-z0-9]{14}\.atlasv1\.[a-zA-Z0-9\-_]{60,}\b'
+keywords = ["atlasv1"]
+severity = "critical"
+category = "devtools"
+tags = ["hashicorp", "terraform", "devops"]
+remediation = "Rotate at https://app.terraform.io/app/settings/tokens."
+
+[[rules]]
+id = "vault-batch-token"
+description = "HashiCorp Vault Batch Token"
+regex = '\bb\.AAAAAQ[a-zA-Z0-9+/]{175,}={0,2}\b'
+keywords = ["vault"]
+severity = "critical"
+category = "devtools"
+tags = ["hashicorp", "vault"]
+remediation = "Revoke at vault token revoke <token>."
+
+[[rules]]
+id = "vault-service-token"
+description = "HashiCorp Vault Service Token"
+regex = '\bhvs\.[a-zA-Z0-9_-]{90,}\b'
+keywords = ["hvs."]
+severity = "critical"
+category = "devtools"
+tags = ["hashicorp", "vault"]
+remediation = "Revoke at vault token revoke <token>."
+
+# ==============================================================================
+# PAAS — Heroku
+# ==============================================================================
+
+[[rules]]
+id = "heroku-api-key"
+description = "Heroku API Key"
+regex = '\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b'
+keywords = ["heroku"]
+severity = "high"
+category = "saas"
+tags = ["heroku", "paas"]
+entropy_threshold = 3.5
+remediation = "Rotate at https://dashboard.heroku.com/account."
+
+# ==============================================================================
+# CRM — HubSpot
+# ==============================================================================
+
+[[rules]]
+id = "hubspot-api-token"
+description = "HubSpot API Token"
+regex = '\b(pat-[a-z]{2}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b'
+keywords = ["hubspot"]
+severity = "high"
+category = "saas"
+tags = ["hubspot", "crm"]
+remediation = "Rotate at https://app.hubspot.com/private-apps."
+
+# ==============================================================================
+# SUPPORT — Intercom
+# ==============================================================================
+
+[[rules]]
+id = "intercom-api-token"
+description = "Intercom API Token"
+regex = '''(?i)[\w.-]{0,50}?(?:intercom)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{60})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["intercom"]
+severity = "high"
+category = "saas"
+tags = ["intercom", "support"]
+remediation = "Rotate at https://app.intercom.com/a/apps/_/settings/api-keys."
+
+# ==============================================================================
+# FEATURE FLAGS — LaunchDarkly
+# ==============================================================================
+
+[[rules]]
+id = "launchdarkly-access-token"
+description = "LaunchDarkly Access Token"
+regex = '''(?i)[\w.-]{0,50}?(?:launchdarkly)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{40})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["launchdarkly"]
+severity = "high"
+category = "saas"
+tags = ["launchdarkly"]
+remediation = "Rotate at https://app.launchdarkly.com/settings/authorization."
+
+# ==============================================================================
+# EMAIL — Mailchimp / Mailgun
+# ==============================================================================
+
+[[rules]]
+id = "mailchimp-api-key"
+description = "Mailchimp API Key"
+regex = '\b[a-f0-9]{32}-us[0-9]{1,2}\b'
+keywords = ["mailchimp"]
+severity = "high"
+category = "saas"
+tags = ["mailchimp", "email"]
+remediation = "Rotate at https://admin.mailchimp.com/account/api/."
+
+[[rules]]
+id = "mailgun-private-api-token"
+description = "Mailgun Private API Token"
+regex = '''(?i)[\w.-]{0,50}?(?:mailgun)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}(key-[a-z0-9]{32})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["mailgun"]
+severity = "high"
+category = "saas"
+tags = ["mailgun", "email"]
+remediation = "Rotate at https://app.mailgun.com/settings/api_security."
+
+# ==============================================================================
+# MAPS — Mapbox
+# ==============================================================================
+
+[[rules]]
+id = "mapbox-api-token"
+description = "Mapbox API Token"
+regex = '\b(pk|sk|tk)\.[a-zA-Z0-9]{60,}\b'
+keywords = ["mapbox"]
+severity = "high"
+category = "saas"
+tags = ["mapbox", "maps"]
+remediation = "Rotate at https://account.mapbox.com/access-tokens/."
+
+# ==============================================================================
+# MONITORING — New Relic
+# ==============================================================================
+
+[[rules]]
+id = "new-relic-user-api-key"
+description = "New Relic User API Key"
+regex = '\bNRAK-[A-Z0-9]{27}\b'
+keywords = ["NRAK-"]
+severity = "high"
+category = "saas"
+tags = ["newrelic", "monitoring"]
+remediation = "Rotate at https://one.newrelic.com/api-keys."
+
+[[rules]]
+id = "new-relic-browser-api-token"
+description = "New Relic Browser API Token"
+regex = '\bNRJS-[a-f0-9]{19}\b'
+keywords = ["NRJS-"]
+severity = "medium"
+category = "saas"
+tags = ["newrelic"]
+remediation = "Rotate at https://one.newrelic.com/api-keys."
+
+# ==============================================================================
+# PACKAGE REGISTRY — npm
+# ==============================================================================
+
+[[rules]]
+id = "npm-access-token"
+description = "npm Access Token"
+regex = '\bnpm_[a-zA-Z0-9]{36}\b'
+keywords = ["npm_"]
+severity = "high"
+category = "devtools"
+tags = ["npm", "package"]
+remediation = "Revoke at https://www.npmjs.com/settings/<user>/tokens."
+
+# ==============================================================================
+# IDENTITY — Okta
+# ==============================================================================
+
+[[rules]]
+id = "okta-access-token"
+description = "Okta Access Token"
+regex = '''(?i)[\w.-]{0,50}?(?:okta)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9=_\-]{42})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["okta"]
+severity = "critical"
+category = "saas"
+tags = ["okta", "identity"]
+remediation = "Revoke at Okta Admin Console → Security → API → Tokens."
+
+# ==============================================================================
+# PAYMENTS — Plaid
+# ==============================================================================
+
+[[rules]]
+id = "plaid-secret-key"
+description = "Plaid Secret Key"
+regex = '''(?i)[\w.-]{0,50}?(?:plaid)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{30})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["plaid"]
+severity = "critical"
+category = "payments"
+tags = ["plaid", "fintech"]
+remediation = "Rotate at https://dashboard.plaid.com/developers/keys."
+
+# ==============================================================================
+# DEVTOOLS — Postman
+# ==============================================================================
+
+[[rules]]
+id = "postman-api-token"
+description = "Postman API Token"
+regex = '\bPMPK-[0-9a-f-]{36}\b'
+keywords = ["PMAK-"]
+severity = "high"
+category = "devtools"
+tags = ["postman"]
+remediation = "Rotate at https://go.postman.co/settings/me/api-keys."
+
+# ==============================================================================
+# CLOUD — Pulumi
+# ==============================================================================
+
+[[rules]]
+id = "pulumi-api-token"
+description = "Pulumi API Token"
+regex = '\bpul-[a-f0-9]{40}\b'
+keywords = ["pul-"]
+severity = "critical"
+category = "devtools"
+tags = ["pulumi", "iac"]
+remediation = "Rotate at https://app.pulumi.com/<org>/settings/access-tokens."
+
+# ==============================================================================
+# PACKAGE REGISTRY — PyPI
+# ==============================================================================
+
+[[rules]]
+id = "pypi-upload-token"
+description = "PyPI Upload Token"
+regex = '\bpypi-AgEIcHlwaS5vcmc[a-zA-Z0-9\-_]{70,}\b'
+keywords = ["pypi-"]
+severity = "high"
+category = "devtools"
+tags = ["pypi", "python", "package"]
+remediation = "Rotate at https://pypi.org/manage/account/#api-tokens."
+
+# ==============================================================================
+# PACKAGE REGISTRY — RubyGems
+# ==============================================================================
+
+[[rules]]
+id = "rubygems-api-token"
+description = "RubyGems API Token"
+regex = '\brubygems_[a-f0-9]{48}\b'
+keywords = ["rubygems_"]
+severity = "high"
+category = "devtools"
+tags = ["rubygems", "ruby", "package"]
+remediation = "Rotate at https://rubygems.org/settings/edit."
+
+# ==============================================================================
+# ERROR TRACKING — Sentry
+# ==============================================================================
+
+[[rules]]
+id = "sentry-access-token"
+description = "Sentry Access Token"
+regex = '''(?i)[\w.-]{0,50}?(?:sentry)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["sentry"]
+severity = "high"
+category = "saas"
+tags = ["sentry", "monitoring"]
+remediation = "Rotate at https://sentry.io/settings/account/api/auth-tokens/."
+
+# ==============================================================================
+# ECOMMERCE — Shopify
+# ==============================================================================
+
+[[rules]]
+id = "shopify-access-token"
+description = "Shopify Access Token"
+regex = '\bshpat_[a-fA-F0-9]{32}\b'
+keywords = ["shpat_"]
+severity = "critical"
+category = "payments"
+tags = ["shopify", "ecommerce"]
+remediation = "Rotate at Shopify Admin → Apps → App development."
+
+[[rules]]
+id = "shopify-custom-access-token"
+description = "Shopify Custom App Access Token"
+regex = '\bshpca_[a-fA-F0-9]{32}\b'
+keywords = ["shpca_"]
+severity = "critical"
+category = "payments"
+tags = ["shopify", "ecommerce"]
+remediation = "Rotate at Shopify Admin → Apps → App development."
+
+[[rules]]
+id = "shopify-shared-secret"
+description = "Shopify Shared Secret"
+regex = '\bshpss_[a-fA-F0-9]{32}\b'
+keywords = ["shpss_"]
+severity = "critical"
+category = "payments"
+tags = ["shopify", "ecommerce"]
+remediation = "Rotate at Shopify Admin → Apps → App development."
+
+# ==============================================================================
+# SNYK — Security
+# ==============================================================================
+
+[[rules]]
+id = "snyk-api-token"
+description = "Snyk API Token"
+regex = '''(?i)[\w.-]{0,50}?(?:snyk)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["snyk"]
+severity = "high"
+category = "devtools"
+tags = ["snyk", "security"]
+remediation = "Rotate at https://app.snyk.io/account."
+
+# ==============================================================================
+# PAYMENTS — Square
+# ==============================================================================
+
+[[rules]]
+id = "square-access-token"
+description = "Square Access Token"
+regex = '\bEAAAE[a-zA-Z0-9\-_]{60}\b'
+keywords = ["EAAAE"]
+severity = "critical"
+category = "payments"
+tags = ["square", "payments"]
+remediation = "Rotate at https://developer.squareup.com/apps."
+
+# ==============================================================================
+# COMMUNICATION — Telegram
+# ==============================================================================
+
+[[rules]]
+id = "telegram-bot-api-token"
+description = "Telegram Bot API Token"
+regex = '\b\d{8,10}:[a-zA-Z0-9_-]{35}\b'
+keywords = ["telegram", "bot"]
+severity = "high"
+category = "saas"
+tags = ["telegram", "bot"]
+remediation = "Revoke via @BotFather on Telegram with /revoke."
+
+# ==============================================================================
+# SOCIAL — Twitter / X
+# ==============================================================================
+
+[[rules]]
+id = "twitter-api-key"
+description = "Twitter/X API Key"
+regex = '''(?i)[\w.-]{0,50}?(?:twitter|twtr)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{25})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["twitter"]
+severity = "high"
+category = "saas"
+tags = ["twitter", "social"]
+remediation = "Rotate at https://developer.twitter.com/en/portal/dashboard."
+
+[[rules]]
+id = "twitter-bearer-token"
+description = "Twitter/X Bearer Token"
+regex = '\bAAAAAAAAAAAAAAAAAAAAA[a-zA-Z0-9%]{90,}\b'
+keywords = ["twitter"]
+severity = "high"
+category = "saas"
+tags = ["twitter", "social"]
+remediation = "Rotate at https://developer.twitter.com/en/portal/dashboard."
+
+# ==============================================================================
+# STREAMING — Twitch
+# ==============================================================================
+
+[[rules]]
+id = "twitch-api-token"
+description = "Twitch API Token"
+regex = '''(?i)[\w.-]{0,50}?(?:twitch)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{30})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["twitch"]
+severity = "high"
+category = "saas"
+tags = ["twitch", "streaming"]
+remediation = "Rotate at https://dev.twitch.tv/console/apps."
+
+# ==============================================================================
+# SUPPORT — Zendesk
+# ==============================================================================
+
+[[rules]]
+id = "zendesk-secret-key"
+description = "Zendesk Secret Key"
+regex = '''(?i)[\w.-]{0,50}?(?:zendesk)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([a-z0-9]{40})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["zendesk"]
+severity = "high"
+category = "saas"
+tags = ["zendesk", "support"]
+remediation = "Rotate at https://support.zendesk.com/hc/en-us/articles/226022787."
 
 # ==============================================================================
 # GENERIC — JWT Tokens
@@ -326,10 +1137,10 @@ severity = "high"
 category = "generic"
 tags = ["jwt", "token", "auth"]
 allowlist = [
-    'eyJhbGciOiJub25lIn0',  # "alg: none" — invalid by design
+    'eyJhbGciOiJub25lIn0',
 ]
 entropy_threshold = 4.0
-remediation = "JWTs encode claims — if this is a long-lived token, revoke it immediately. Check if the JWT secret used to sign it has been exposed and rotate the signing key."
+remediation = "If this is a long-lived token, revoke it and check if the JWT signing secret has been exposed."
 
 # ==============================================================================
 # GENERIC — Bearer Tokens
@@ -350,3 +1161,170 @@ allowlist = [
 ]
 entropy_threshold = 3.5
 remediation = "Identify the token issuer from context and rotate the credential via its developer console."
+
+# ==============================================================================
+# GENERIC — Password Assignments
+# ==============================================================================
+
+[[rules]]
+id = "generic-password-assignment"
+description = "Generic password in variable assignment"
+regex = "(?i)(password|passwd|pwd)\\s*[:=]\\s*[\"']?(?!.*\\$\\{)[^\\s\"']{8,}"
+keywords = ["password", "passwd", "pwd"]
+severity = "high"
+category = "generic"
+tags = ["password", "generic"]
+allowlist = [
+    "(?i)password\\s*[:=]\\s*[\"']?\\s*[\"']",
+    "(?i)password\\s*[:=]\\s*[\"']?\\s*\\*+\\s*[\"']",
+    "(?i)password\\s*[:=]\\s*[\"']?YOUR_PASSWORD",
+    "(?i)password\\s*[:=]\\s*[\"']?changeme",
+    "(?i)password\\s*[:=]\\s*[\"']?change_me",
+    "(?i)password\\s*[:=]\\s*[\"']?<[^>]+>",
+    "(?i)password\\s*[:=]\\s*[\"']?password",
+    "(?i)password\\s*[:=]\\s*[\"']?testpassword",
+    "(?i)password\\s*[:=]\\s*[\"']?password123",
+    "(?i)password\\s*[:=]\\s*[\"']?admin",
+    "(?i)password\\s*[:=]\\s*[\"']?letmein",
+    "(?i)password\\s*[:=]\\s*[\"']?welcome",
+    "(?i)password\\s*[:=]\\s*[\"']?qwerty",
+    "(?i)password\\s*[:=]\\s*[\"']?null",
+    "(?i)password\\s*[:=]\\s*[\"']?none",
+    "(?i)password\\s*[:=]\\s*[\"']?undefined",
+    "(?i)password\\s*[:=]\\s*[\"']?example",
+    "(?i)password\\s*[:=]\\s*[\"']?placeholder",
+    "(?i)password\\s*[:=]\\s*[\"']?secret\\b",
+    # CI/CD references
+    "(?i)password\\s*[:=]\\s*\\$\\{\\{",
+    "(?i)password\\s*[:=]\\s*secrets\\.",
+]
+entropy_threshold = 3.5
+remediation = "Rotate the credential immediately, then move it to a secrets manager."
+
+# ==============================================================================
+# GENERIC — API Key Assignments
+# ==============================================================================
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API key in variable assignment"
+regex = "(?i)(api[_\\-]?key|apikey)\\s*[:=]\\s*[\"']?[a-zA-Z0-9\\-_]{16,}[\"']?"
+keywords = ["api_key", "apikey", "api-key", "API_KEY"]
+severity = "medium"
+category = "generic"
+tags = ["api-key", "generic"]
+allowlist = [
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?\\s*[\"']",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?YOUR_API_KEY",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?YOUR[_-]",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?<[^>]+>",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?EXAMPLE",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?example",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?placeholder",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?mock",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?fake",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?dummy",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?test",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?null",
+    "(?i)api[_-]?key\\s*[:=]\\s*[\"']?none",
+    # CI/CD secret references
+    "(?i)api[_-]?key\\s*[:=]\\s*\\$\\{\\{",
+    "(?i)api[_-]?key\\s*[:=]\\s*secrets\\.",
+]
+entropy_threshold = 4.0
+remediation = "Identify the service this key belongs to and rotate it via that service's developer console."
+
+# ==============================================================================
+# GENERIC — Token Assignments
+# ==============================================================================
+
+[[rules]]
+id = "generic-token-assignment"
+description = "Generic token in variable assignment"
+regex = "(?i)(token|auth_token|access_token|secret_token)\\s*[:=]\\s*[\"']?[a-zA-Z0-9\\-_\\.]{16,}[\"']?"
+keywords = ["token", "auth_token", "access_token", "secret_token"]
+severity = "medium"
+category = "generic"
+tags = ["token", "generic"]
+allowlist = [
+    "(?i)token\\s*[:=]\\s*[\"']?\\s*[\"']",
+    "(?i)token\\s*[:=]\\s*[\"']?YOUR_TOKEN",
+    "(?i)token\\s*[:=]\\s*[\"']?YOUR[_-]",
+    "(?i)token\\s*[:=]\\s*[\"']?<[^>]+>",
+    "(?i)token\\s*[:=]\\s*[\"']?EXAMPLE",
+    "(?i)token\\s*[:=]\\s*[\"']?example",
+    "(?i)token\\s*[:=]\\s*[\"']?placeholder",
+    "(?i)token\\s*[:=]\\s*[\"']?replace",
+    "(?i)token\\s*[:=]\\s*[\"']?mock",
+    "(?i)token\\s*[:=]\\s*[\"']?fake",
+    "(?i)token\\s*[:=]\\s*[\"']?dummy",
+    "(?i)token\\s*[:=]\\s*[\"']?test",
+    "(?i)token\\s*[:=]\\s*[\"']?null",
+    "(?i)token\\s*[:=]\\s*[\"']?none",
+    # Numeric-only tokens are never real
+    "(?i)token\\s*[:=]\\s*[\"']?[0-9]+[\"']?",
+    # CI/CD secret references
+    "(?i)token\\s*[:=]\\s*\\$\\{\\{",
+    "(?i)token\\s*[:=]\\s*secrets\\.",
+    # GitHub Actions special pattern
+    "(?i)GITHUB_TOKEN\\s*:\\s*\\$\\{\\{",
+    "(?i)AWS_ACCESS_KEY_ID\\s*:\\s*\\$\\{\\{",
+]
+entropy_threshold = 4.0
+remediation = "Identify the issuing service and rotate the token via its developer console."
+
+[[rules]]
+id = "uuid-secret"
+description = "UUID-formatted secret, API key, or access token assigned to a credential variable"
+regex = '''(?i)(?:uuid|guid|client[_-]?id|client[_-]?secret|api[_-]?key|access[_-]?token|secret|key|token)\s{0,5}[:=]\s{0,5}["']?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})["']?'''
+keywords = ["uuid", "guid", "client_id", "client_secret"]
+severity = "medium"
+category = "generic"
+tags = ["uuid", "generic", "api"]
+entropy_threshold = 3.0
+allowlist = [
+    "(?i)00000000-0000-0000-0000-000000000000",
+    "(?i)xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "(?i)example",
+    "(?i)placeholder",
+    "(?i)sample",
+    "(?i)test",
+]
+remediation = "Identify the issuing service (OAuth provider, cloud API) and rotate or revoke the credential."
+
+[[rules]]
+id = "basic-auth-credential"
+description = "HTTP Basic Authorization header containing Base64-encoded credentials"
+regex = '''(?i)(?:Authorization|auth|credential)\s{0,5}[:=]\s{0,5}["']?Basic\s+([A-Za-z0-9+/]{20,}={0,2})["']?'''
+keywords = ["Basic", "Authorization", "authorization", "credential"]
+severity = "high"
+category = "generic"
+tags = ["http", "basic-auth", "generic"]
+entropy_threshold = 3.5
+allowlist = [
+    "(?i)dXNlcjpwYXNz",
+    "(?i)YOUR_CREDENTIALS",
+    "(?i)placeholder",
+]
+remediation = "Decode the Base64 string to obtain plaintext user:password. Immediately rotate the password and remove the credential from code."
+
+[[rules]]
+id = "url-embedded-credentials"
+description = "Credentials embedded in a URL (user:password@host)"
+regex = '''[a-zA-Z][a-zA-Z0-9+.]{1,15}://([^:@/\s]{3,50}:[^@/\s"']{3,100})@[a-zA-Z0-9]'''
+keywords = ["://", "http", "https", "ftp", "jdbc", "mongodb", "postgres", "mysql", "redis"]
+severity = "high"
+category = "generic"
+tags = ["url", "credentials", "generic"]
+entropy_threshold = 2.5
+allowlist = [
+    "(?i)user:password",
+    "(?i)username:password",
+    "(?i)\\$\\{[^}]+\\}:\\$\\{[^}]+\\}",
+    "(?i)<[^>]+>:<[^>]+>",
+    "(?i)example.com",
+    "(?i)localhost",
+    "(?i)127\\.0\\.0\\.1",
+    "(?i)0\\.0\\.0\\.0",
+]
+remediation = "Remove credentials from the URL and use environment variables or a secrets manager instead."

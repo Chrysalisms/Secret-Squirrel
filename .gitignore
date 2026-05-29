@@ -24,3 +24,18 @@ target
 # Added by cargo
 
 /target
+
+# Benchmarks and Test Corpora
+bench_gitleaks/
+bench_trufflehog/
+test_suites/
+benchmark/
+*.txt
+*.json
+!benchmark_synthetic_results.json
+
+# Scratch and Temp
+scratch/
+fuzz/corpus/
+fuzz/results/
+*.sh

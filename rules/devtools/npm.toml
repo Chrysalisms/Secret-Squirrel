@@ -1,0 +1,86 @@
+# Secret Squirrel — npm Extended Rules
+# Additional npm package registry secret detection rules beyond default.toml
+
+# ==============================================================================
+# npm — Legacy Auth Token (.npmrc base64)
+# ==============================================================================
+
+[[rules]]
+id = "npm-legacy-auth-token"
+description = "npm legacy base64-encoded username:password auth token in .npmrc"
+regex = '''(?i)(?:_auth\s{0,5}=\s{0,5}|npm[_\-]?legacy[_\-]?auth[_\-]?token\s{0,5}[:=]\s{0,5})["']?([A-Za-z0-9+/]{20,}={0,2})["']?'''
+keywords = ["_auth", "npm_legacy_auth", ".npmrc"]
+severity = "critical"
+category = "devtools"
+tags = ["npm", "package", "registry", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    '_auth=YOUR_TOKEN',
+    '_auth=dXNlcjpwYXNz',
+    '_auth=<',
+    '_auth=$\{',
+]
+remediation = "Remove from .npmrc and add .npmrc to .gitignore. Use `npm login` with a scoped access token or configure token via environment variable NPM_TOKEN."
+
+# ==============================================================================
+# npm — Automation Token
+# ==============================================================================
+
+[[rules]]
+id = "npm-automation-token"
+description = "npm automation token (npm_ prefix, for CI/CD pipelines)"
+regex = '''\bnpm_[a-zA-Z0-9]{36}\b'''
+keywords = ["npm_"]
+severity = "critical"
+category = "devtools"
+tags = ["npm", "automation", "package", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'npm_EXAMPLE',
+    'npm_xxxx',
+    'npm_YOUR_TOKEN',
+]
+remediation = "Revoke at https://www.npmjs.com/settings/YOUR_USERNAME/tokens. Automation tokens bypass 2FA and can publish packages; rotate immediately if exposed."
+
+# ==============================================================================
+# npm — Publish Token
+# ==============================================================================
+
+[[rules]]
+id = "npm-publish-token"
+description = "npm publish token assigned to an environment variable (for package publishing)"
+regex = '''(?i)(?:npm[_\-]?(?:publish[_\-]?)?(?:token|key|auth)|NPM_TOKEN|NPM_PUBLISH_TOKEN|NODE_AUTH_TOKEN)\s{0,5}[:=]\s{0,5}["']?(npm_[a-zA-Z0-9]{36}|[a-f0-9\-]{36})["']?'''
+keywords = ["NPM_TOKEN", "NPM_PUBLISH_TOKEN", "NODE_AUTH_TOKEN", "npm_publish_token"]
+severity = "critical"
+category = "devtools"
+tags = ["npm", "publish", "package", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'NPM_TOKEN=YOUR_TOKEN',
+    'NODE_AUTH_TOKEN=$\{\{',
+    'NPM_PUBLISH_TOKEN=<',
+    'NPM_TOKEN=$\{',
+    'NPM_TOKEN=npm_EXAMPLE',
+]
+remediation = "Revoke at https://www.npmjs.com/settings/YOUR_USERNAME/tokens and create a granular access token with publish access only for the specific package."
+
+# ==============================================================================
+# npm — .npmrc _authToken Line
+# ==============================================================================
+
+[[rules]]
+id = "npmrc-auth-token"
+description = "npm _authToken line in .npmrc configuration file"
+regex = '''(?i)//[a-zA-Z0-9\.\-]{3,100}/:_authToken\s{0,5}=\s{0,5}["']?([a-zA-Z0-9_\-\.]{20,100})["']?'''
+keywords = ["_authToken", ".npmrc", "authToken"]
+severity = "critical"
+category = "devtools"
+tags = ["npm", "npmrc", "auth-token", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    '_authToken=YOUR_AUTH_TOKEN',
+    '_authToken=$\{NPM_TOKEN}',
+    '_authToken=\$\{',
+    '_authToken=<',
+]
+remediation = "Remove the .npmrc file from version control. Use `echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc` in CI instead. Add .npmrc to .gitignore."

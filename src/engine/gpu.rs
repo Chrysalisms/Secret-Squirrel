@@ -44,6 +44,7 @@ impl GpuEngine {
 
 #[cfg(feature = "gpu")]
 pub mod gpu_impl {
+    #[allow(unused_imports)]
     use crate::error::{Result, SquirrelError};
     use crate::types::{EntropyCandidate, ProximityMatch, ProximityPattern, TriStreamResult};
     use bytes::Bytes;

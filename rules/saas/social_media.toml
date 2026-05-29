@@ -1,0 +1,92 @@
+# Social media and marketing platform secrets
+# Covers Facebook, Instagram, Twitter/X, LinkedIn, YouTube, TikTok
+
+[[rules]]
+id = "facebook-access-token"
+description = "Facebook / Meta Graph API access token"
+severity = "high"
+category = "saas"
+regex = '''EAA[a-zA-Z0-9]{90,200}'''
+keywords = ["EAA", "facebook_token", "FACEBOOK_TOKEN"]
+entropy = 4.5
+tags = ["facebook", "meta", "social-media"]
+
+[[rules]]
+id = "facebook-page-access-token"
+description = "Facebook Page access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)facebook[._-]?(?:page[._-]?)?(?:access[._-]?)?token\s*[=:]\s*['"]?(EAA[a-zA-Z0-9]{90,})['"]?'''
+keywords = ["facebook", "page_token"]
+entropy = 4.5
+tags = ["facebook", "meta", "social-media", "pages"]
+
+[[rules]]
+id = "facebook-client-secret"
+description = "Facebook App secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)facebook[._-]?(?:app[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["facebook", "FB_APP_SECRET", "FACEBOOK_SECRET"]
+entropy = 4.0
+tags = ["facebook", "meta", "oauth"]
+
+[[rules]]
+id = "twitter-api-key"
+description = "Twitter / X API key (consumer key)"
+severity = "high"
+category = "saas"
+regex = '''(?i)twitter[._-]?(?:api[._-]?)?(?:key|consumer[._-]?key)\s*[=:]\s*['"]?([a-zA-Z0-9]{25})['"]?'''
+keywords = ["twitter", "TWITTER_API_KEY", "consumer_key"]
+entropy = 4.0
+tags = ["twitter", "x", "social-media"]
+
+[[rules]]
+id = "twitter-access-token"
+description = "Twitter / X access token with secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)twitter[._-]?access[._-]?token[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9_]{40,46})['"]?'''
+keywords = ["twitter", "ACCESS_TOKEN_SECRET"]
+entropy = 4.0
+tags = ["twitter", "x", "social-media"]
+
+[[rules]]
+id = "linkedin-client-secret"
+description = "LinkedIn OAuth client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)linkedin[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([a-zA-Z0-9]{16})['"]?'''
+keywords = ["linkedin", "LINKEDIN_CLIENT"]
+entropy = 3.5
+tags = ["linkedin", "social-media", "oauth"]
+
+[[rules]]
+id = "pinterest-access-token"
+description = "Pinterest API access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)pinterest[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{85,200})['"]?'''
+keywords = ["pinterest"]
+entropy = 4.0
+tags = ["pinterest", "social-media"]
+
+[[rules]]
+id = "instagram-access-token"
+description = "Instagram Graph API access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)instagram[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?(IGQ[a-zA-Z0-9_-]{100,})['"]?'''
+keywords = ["instagram", "IGQ"]
+entropy = 4.5
+tags = ["instagram", "meta", "social-media"]
+
+[[rules]]
+id = "youtube-api-key"
+description = "YouTube / Google Data API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)youtube[._-]?(?:api[._-]?|data[._-]?api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(AIza[0-9A-Za-z\-_]{35})['"]?'''
+keywords = ["youtube", "YOUTUBE_API"]
+entropy = 3.5
+tags = ["youtube", "google", "social-media"]

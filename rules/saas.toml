@@ -1,0 +1,1381 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-abstract"
+description = "Parity rule for abstract"
+severity = "high"
+category = "saas"
+keywords = ["abstract"]
+regex = '''(?i)abstract.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-abuseipdb"
+description = "Parity rule for abuseipdb"
+severity = "high"
+category = "saas"
+keywords = ["abuseipdb"]
+regex = '''(?i)abuseipdb.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-abyssale"
+description = "Parity rule for abyssale"
+severity = "high"
+category = "saas"
+keywords = ["abyssale"]
+regex = '''(?i)abyssale.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-accesskey"
+description = "Parity rule for accesskey"
+severity = "high"
+category = "saas"
+keywords = ["accesskey"]
+regex = '''(?i)accesskey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-accuweather"
+description = "Parity rule for accuweather"
+severity = "high"
+category = "saas"
+keywords = ["accuweather"]
+regex = '''(?i)accuweather.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-adafruitio"
+description = "Parity rule for adafruitio"
+severity = "high"
+category = "saas"
+keywords = ["adafruitio"]
+regex = '''(?i)adafruitio.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-adobeio"
+description = "Parity rule for adobeio"
+severity = "high"
+category = "saas"
+keywords = ["adobeio"]
+regex = '''(?i)adobeio.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-adzuna"
+description = "Parity rule for adzuna"
+severity = "high"
+category = "saas"
+keywords = ["adzuna"]
+regex = '''(?i)adzuna.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-aeroworkflow"
+description = "Parity rule for aeroworkflow"
+severity = "high"
+category = "saas"
+keywords = ["aeroworkflow"]
+regex = '''(?i)aeroworkflow.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-agora"
+description = "Parity rule for agora"
+severity = "high"
+category = "saas"
+keywords = ["agora"]
+regex = '''(?i)agora.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-aha"
+description = "Parity rule for aha"
+severity = "high"
+category = "saas"
+keywords = ["aha"]
+regex = '''(?i)aha.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-airbrakeprojectkey"
+description = "Parity rule for airbrakeprojectkey"
+severity = "high"
+category = "saas"
+keywords = ["airbrakeprojectkey"]
+regex = '''(?i)airbrakeprojectkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-airbrakeuserkey"
+description = "Parity rule for airbrakeuserkey"
+severity = "high"
+category = "saas"
+keywords = ["airbrakeuserkey"]
+regex = '''(?i)airbrakeuserkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-airship"
+description = "Parity rule for airship"
+severity = "high"
+category = "saas"
+keywords = ["airship"]
+regex = '''(?i)airship.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-airtableoauth"
+description = "Parity rule for airtableoauth"
+severity = "high"
+category = "saas"
+keywords = ["airtableoauth"]
+regex = '''(?i)airtableoauth.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-airtablepersonalaccesstoken"
+description = "Parity rule for airtablepersonalaccesstoken"
+severity = "high"
+category = "saas"
+keywords = ["airtablepersonalaccesstoken"]
+regex = '''(?i)airtablepersonalaccesstoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-airvisual"
+description = "Parity rule for airvisual"
+severity = "high"
+category = "saas"
+keywords = ["airvisual"]
+regex = '''(?i)airvisual.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-aiven"
+description = "Parity rule for aiven"
+severity = "high"
+category = "saas"
+keywords = ["aiven"]
+regex = '''(?i)aiven.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-alchemy"
+description = "Parity rule for alchemy"
+severity = "high"
+category = "saas"
+keywords = ["alchemy"]
+regex = '''(?i)alchemy.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-alconost"
+description = "Parity rule for alconost"
+severity = "high"
+category = "saas"
+keywords = ["alconost"]
+regex = '''(?i)alconost.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-alegra"
+description = "Parity rule for alegra"
+severity = "high"
+category = "saas"
+keywords = ["alegra"]
+regex = '''(?i)alegra.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-aletheiaapi"
+description = "Parity rule for aletheiaapi"
+severity = "high"
+category = "saas"
+keywords = ["aletheiaapi"]
+regex = '''(?i)aletheiaapi.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-algoliaadminkey"
+description = "Parity rule for algoliaadminkey"
+severity = "high"
+category = "saas"
+keywords = ["algoliaadminkey"]
+regex = '''(?i)algoliaadminkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-alienvault"
+description = "Parity rule for alienvault"
+severity = "high"
+category = "saas"
+keywords = ["alienvault"]
+regex = '''(?i)alienvault.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-allsports"
+description = "Parity rule for allsports"
+severity = "high"
+category = "saas"
+keywords = ["allsports"]
+regex = '''(?i)allsports.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-amadeus"
+description = "Parity rule for amadeus"
+severity = "high"
+category = "saas"
+keywords = ["amadeus"]
+regex = '''(?i)amadeus.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-ambee"
+description = "Parity rule for ambee"
+severity = "high"
+category = "saas"
+keywords = ["ambee"]
+regex = '''(?i)ambee.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-amplitudeapikey"
+description = "Parity rule for amplitudeapikey"
+severity = "high"
+category = "saas"
+keywords = ["amplitudeapikey"]
+regex = '''(?i)amplitudeapikey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-anypointoauth2"
+description = "Parity rule for anypointoauth2"
+severity = "high"
+category = "saas"
+keywords = ["anypointoauth2"]
+regex = '''(?i)anypointoauth2.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-anypoint"
+description = "Parity rule for anypoint"
+severity = "high"
+category = "saas"
+keywords = ["anypoint"]
+regex = '''(?i)anypoint.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apacta"
+description = "Parity rule for apacta"
+severity = "high"
+category = "saas"
+keywords = ["apacta"]
+regex = '''(?i)apacta.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-api2cart"
+description = "Parity rule for api2cart"
+severity = "high"
+category = "saas"
+keywords = ["api2cart"]
+regex = '''(?i)api2cart.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apideck"
+description = "Parity rule for apideck"
+severity = "high"
+category = "saas"
+keywords = ["apideck"]
+regex = '''(?i)apideck.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apiflash"
+description = "Parity rule for apiflash"
+severity = "high"
+category = "saas"
+keywords = ["apiflash"]
+regex = '''(?i)apiflash.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apifonica"
+description = "Parity rule for apifonica"
+severity = "high"
+category = "saas"
+keywords = ["apifonica"]
+regex = '''(?i)apifonica.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apify"
+description = "Parity rule for apify"
+severity = "high"
+category = "saas"
+keywords = ["apify"]
+regex = '''(?i)apify.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apikey"
+description = "Parity rule for apikey"
+severity = "high"
+category = "saas"
+keywords = ["apikey"]
+regex = '''(?i)apikey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apilayer"
+description = "Parity rule for apilayer"
+severity = "high"
+category = "saas"
+keywords = ["apilayer"]
+regex = '''(?i)apilayer.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apimatic"
+description = "Parity rule for apimatic"
+severity = "high"
+category = "saas"
+keywords = ["apimatic"]
+regex = '''(?i)apimatic.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apimetrics"
+description = "Parity rule for apimetrics"
+severity = "high"
+category = "saas"
+keywords = ["apimetrics"]
+regex = '''(?i)apimetrics.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apitemplate"
+description = "Parity rule for apitemplate"
+severity = "high"
+category = "saas"
+keywords = ["apitemplate"]
+regex = '''(?i)apitemplate.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apollo"
+description = "Parity rule for apollo"
+severity = "high"
+category = "saas"
+keywords = ["apollo"]
+regex = '''(?i)apollo.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-appcues"
+description = "Parity rule for appcues"
+severity = "high"
+category = "saas"
+keywords = ["appcues"]
+regex = '''(?i)appcues.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-appfollow"
+description = "Parity rule for appfollow"
+severity = "high"
+category = "saas"
+keywords = ["appfollow"]
+regex = '''(?i)appfollow.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-appointedd"
+description = "Parity rule for appointedd"
+severity = "high"
+category = "saas"
+keywords = ["appointedd"]
+regex = '''(?i)appointedd.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-appoptics"
+description = "Parity rule for appoptics"
+severity = "high"
+category = "saas"
+keywords = ["appoptics"]
+regex = '''(?i)appoptics.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-appsync"
+description = "Parity rule for appsync"
+severity = "high"
+category = "saas"
+keywords = ["appsync"]
+regex = '''(?i)appsync.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-appsynergy"
+description = "Parity rule for appsynergy"
+severity = "high"
+category = "saas"
+keywords = ["appsynergy"]
+regex = '''(?i)appsynergy.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-apptivo"
+description = "Parity rule for apptivo"
+severity = "high"
+category = "saas"
+keywords = ["apptivo"]
+regex = '''(?i)apptivo.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-artifactoryreferencetoken"
+description = "Parity rule for artifactoryreferencetoken"
+severity = "high"
+category = "saas"
+keywords = ["artifactoryreferencetoken"]
+regex = '''(?i)artifactoryreferencetoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-artifactory"
+description = "Parity rule for artifactory"
+severity = "high"
+category = "saas"
+keywords = ["artifactory"]
+regex = '''(?i)artifactory.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-artsy"
+description = "Parity rule for artsy"
+severity = "high"
+category = "saas"
+keywords = ["artsy"]
+regex = '''(?i)artsy.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-asanaoauth"
+description = "Parity rule for asanaoauth"
+severity = "high"
+category = "saas"
+keywords = ["asanaoauth"]
+regex = '''(?i)asanaoauth.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-asanapersonalaccesstoken"
+description = "Parity rule for asanapersonalaccesstoken"
+severity = "high"
+category = "saas"
+keywords = ["asanapersonalaccesstoken"]
+regex = '''(?i)asanapersonalaccesstoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-assemblyai"
+description = "Parity rule for assemblyai"
+severity = "high"
+category = "saas"
+keywords = ["assemblyai"]
+regex = '''(?i)assemblyai.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-atera"
+description = "Parity rule for atera"
+severity = "high"
+category = "saas"
+keywords = ["atera"]
+regex = '''(?i)atera.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-atlassian"
+description = "Parity rule for atlassian"
+severity = "high"
+category = "saas"
+keywords = ["atlassian"]
+regex = '''(?i)atlassian.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-audd"
+description = "Parity rule for audd"
+severity = "high"
+category = "saas"
+keywords = ["audd"]
+regex = '''(?i)audd.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-autodesk"
+description = "Parity rule for autodesk"
+severity = "high"
+category = "saas"
+keywords = ["autodesk"]
+regex = '''(?i)autodesk.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-autoklose"
+description = "Parity rule for autoklose"
+severity = "high"
+category = "saas"
+keywords = ["autoklose"]
+regex = '''(?i)autoklose.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-autopilot"
+description = "Parity rule for autopilot"
+severity = "high"
+category = "saas"
+keywords = ["autopilot"]
+regex = '''(?i)autopilot.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-avazapersonalaccesstoken"
+description = "Parity rule for avazapersonalaccesstoken"
+severity = "high"
+category = "saas"
+keywords = ["avazapersonalaccesstoken"]
+regex = '''(?i)avazapersonalaccesstoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-aviationstack"
+description = "Parity rule for aviationstack"
+severity = "high"
+category = "saas"
+keywords = ["aviationstack"]
+regex = '''(?i)aviationstack.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-axonaut"
+description = "Parity rule for axonaut"
+severity = "high"
+category = "saas"
+keywords = ["axonaut"]
+regex = '''(?i)axonaut.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-aylien"
+description = "Parity rule for aylien"
+severity = "high"
+category = "saas"
+keywords = ["aylien"]
+regex = '''(?i)aylien.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-ayrshare"
+description = "Parity rule for ayrshare"
+severity = "high"
+category = "saas"
+keywords = ["ayrshare"]
+regex = '''(?i)ayrshare.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bannerbear"
+description = "Parity rule for bannerbear"
+severity = "high"
+category = "saas"
+keywords = ["bannerbear"]
+regex = '''(?i)bannerbear.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-baremetrics"
+description = "Parity rule for baremetrics"
+severity = "high"
+category = "saas"
+keywords = ["baremetrics"]
+regex = '''(?i)baremetrics.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-beamer"
+description = "Parity rule for beamer"
+severity = "high"
+category = "saas"
+keywords = ["beamer"]
+regex = '''(?i)beamer.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-beebole"
+description = "Parity rule for beebole"
+severity = "high"
+category = "saas"
+keywords = ["beebole"]
+regex = '''(?i)beebole.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-besnappy"
+description = "Parity rule for besnappy"
+severity = "high"
+category = "saas"
+keywords = ["besnappy"]
+regex = '''(?i)besnappy.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-besttime"
+description = "Parity rule for besttime"
+severity = "high"
+category = "saas"
+keywords = ["besttime"]
+regex = '''(?i)besttime.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-betterstack"
+description = "Parity rule for betterstack"
+severity = "high"
+category = "saas"
+keywords = ["betterstack"]
+regex = '''(?i)betterstack.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-billomat"
+description = "Parity rule for billomat"
+severity = "high"
+category = "saas"
+keywords = ["billomat"]
+regex = '''(?i)billomat.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bingsubscriptionkey"
+description = "Parity rule for bingsubscriptionkey"
+severity = "high"
+category = "saas"
+keywords = ["bingsubscriptionkey"]
+regex = '''(?i)bingsubscriptionkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bitbar"
+description = "Parity rule for bitbar"
+severity = "high"
+category = "saas"
+keywords = ["bitbar"]
+regex = '''(?i)bitbar.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bitcoinaverage"
+description = "Parity rule for bitcoinaverage"
+severity = "high"
+category = "saas"
+keywords = ["bitcoinaverage"]
+regex = '''(?i)bitcoinaverage.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bitfinex"
+description = "Parity rule for bitfinex"
+severity = "high"
+category = "saas"
+keywords = ["bitfinex"]
+regex = '''(?i)bitfinex.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bitlyaccesstoken"
+description = "Parity rule for bitlyaccesstoken"
+severity = "high"
+category = "saas"
+keywords = ["bitlyaccesstoken"]
+regex = '''(?i)bitlyaccesstoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bitmex"
+description = "Parity rule for bitmex"
+severity = "high"
+category = "saas"
+keywords = ["bitmex"]
+regex = '''(?i)bitmex.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-blazemeter"
+description = "Parity rule for blazemeter"
+severity = "high"
+category = "saas"
+keywords = ["blazemeter"]
+regex = '''(?i)blazemeter.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-blitapp"
+description = "Parity rule for blitapp"
+severity = "high"
+category = "saas"
+keywords = ["blitapp"]
+regex = '''(?i)blitapp.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-blocknative"
+description = "Parity rule for blocknative"
+severity = "high"
+category = "saas"
+keywords = ["blocknative"]
+regex = '''(?i)blocknative.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-blogger"
+description = "Parity rule for blogger"
+severity = "high"
+category = "saas"
+keywords = ["blogger"]
+regex = '''(?i)blogger.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bombbomb"
+description = "Parity rule for bombbomb"
+severity = "high"
+category = "saas"
+keywords = ["bombbomb"]
+regex = '''(?i)bombbomb.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-boostnote"
+description = "Parity rule for boostnote"
+severity = "high"
+category = "saas"
+keywords = ["boostnote"]
+regex = '''(?i)boostnote.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-borgbase"
+description = "Parity rule for borgbase"
+severity = "high"
+category = "saas"
+keywords = ["borgbase"]
+regex = '''(?i)borgbase.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-box"
+description = "Parity rule for box"
+severity = "high"
+category = "saas"
+keywords = ["box"]
+regex = '''(?i)box.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-brandfetch"
+description = "Parity rule for brandfetch"
+severity = "high"
+category = "saas"
+keywords = ["brandfetch"]
+regex = '''(?i)brandfetch.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-browserstack"
+description = "Parity rule for browserstack"
+severity = "high"
+category = "saas"
+keywords = ["browserstack"]
+regex = '''(?i)browserstack.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-browshot"
+description = "Parity rule for browshot"
+severity = "high"
+category = "saas"
+keywords = ["browshot"]
+regex = '''(?i)browshot.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bscscan"
+description = "Parity rule for bscscan"
+severity = "high"
+category = "saas"
+keywords = ["bscscan"]
+regex = '''(?i)bscscan.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-buddyns"
+description = "Parity rule for buddyns"
+severity = "high"
+category = "saas"
+keywords = ["buddyns"]
+regex = '''(?i)buddyns.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-budibase"
+description = "Parity rule for budibase"
+severity = "high"
+category = "saas"
+keywords = ["budibase"]
+regex = '''(?i)budibase.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bugherd"
+description = "Parity rule for bugherd"
+severity = "high"
+category = "saas"
+keywords = ["bugherd"]
+regex = '''(?i)bugherd.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bugsnag"
+description = "Parity rule for bugsnag"
+severity = "high"
+category = "saas"
+keywords = ["bugsnag"]
+regex = '''(?i)bugsnag.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-buildkite"
+description = "Parity rule for buildkite"
+severity = "high"
+category = "saas"
+keywords = ["buildkite"]
+regex = '''(?i)buildkite.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bulbul"
+description = "Parity rule for bulbul"
+severity = "high"
+category = "saas"
+keywords = ["bulbul"]
+regex = '''(?i)bulbul.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-bulksms"
+description = "Parity rule for bulksms"
+severity = "high"
+category = "saas"
+keywords = ["bulksms"]
+regex = '''(?i)bulksms.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-buttercms"
+description = "Parity rule for buttercms"
+severity = "high"
+category = "saas"
+keywords = ["buttercms"]
+regex = '''(?i)buttercms.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-caflou"
+description = "Parity rule for caflou"
+severity = "high"
+category = "saas"
+keywords = ["caflou"]
+regex = '''(?i)caflou.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-captaindata"
+description = "Parity rule for captaindata"
+severity = "high"
+category = "saas"
+keywords = ["captaindata"]
+regex = '''(?i)captaindata.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-clickhelp"
+description = "Parity rule for clickhelp"
+severity = "high"
+category = "saas"
+keywords = ["clickhelp"]
+regex = '''(?i)clickhelp.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-clientary"
+description = "Parity rule for clientary"
+severity = "high"
+category = "saas"
+keywords = ["clientary"]
+regex = '''(?i)clientary.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-cloudinary"
+description = "Parity rule for cloudinary"
+severity = "high"
+category = "saas"
+keywords = ["cloudinary"]
+regex = '''(?i)cloudinary.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-currentsapi"
+description = "Parity rule for currentsapi"
+severity = "high"
+category = "saas"
+keywords = ["currentsapi"]
+regex = '''(?i)currentsapi.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-deepseek"
+description = "Parity rule for deepseek"
+severity = "high"
+category = "saas"
+keywords = ["deepseek"]
+regex = '''(?i)deepseek.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-docker_auth_config"
+description = "Parity rule for docker_auth_config"
+severity = "high"
+category = "saas"
+keywords = ["docker_auth_config"]
+regex = '''(?i)docker_auth_config.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-elevenlabs"
+description = "Parity rule for elevenlabs"
+severity = "high"
+category = "saas"
+keywords = ["elevenlabs"]
+regex = '''(?i)elevenlabs.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-endorlabs"
+description = "Parity rule for endorlabs"
+severity = "high"
+category = "saas"
+keywords = ["endorlabs"]
+regex = '''(?i)endorlabs.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-eraser"
+description = "Parity rule for eraser"
+severity = "high"
+category = "saas"
+keywords = ["eraser"]
+regex = '''(?i)eraser.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-exchangerateapi"
+description = "Parity rule for exchangerateapi"
+severity = "high"
+category = "saas"
+keywords = ["exchangerateapi"]
+regex = '''(?i)exchangerateapi.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-flexport"
+description = "Parity rule for flexport"
+severity = "high"
+category = "saas"
+keywords = ["flexport"]
+regex = '''(?i)flexport.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-flyio"
+description = "Parity rule for flyio"
+severity = "high"
+category = "saas"
+keywords = ["flyio"]
+regex = '''(?i)flyio.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-groq"
+description = "Parity rule for groq"
+severity = "high"
+category = "saas"
+keywords = ["groq"]
+regex = '''(?i)groq.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-intra42"
+description = "Parity rule for intra42"
+severity = "high"
+category = "saas"
+keywords = ["intra42"]
+regex = '''(?i)intra42.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-jdbc"
+description = "Parity rule for jdbc"
+severity = "high"
+category = "saas"
+keywords = ["jdbc"]
+regex = '''(?i)jdbc.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-jiradatacenterpat"
+description = "Parity rule for jiradatacenterpat"
+severity = "high"
+category = "saas"
+keywords = ["jiradatacenterpat"]
+regex = '''(?i)jiradatacenterpat.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-jiratoken_v2"
+description = "Parity rule for jiratoken_v2"
+severity = "high"
+category = "saas"
+keywords = ["jiratoken_v2"]
+regex = '''(?i)jiratoken_v2.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-jwt"
+description = "Parity rule for jwt"
+severity = "high"
+category = "saas"
+keywords = ["jwt"]
+regex = '''(?i)jwt.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-kontent"
+description = "Parity rule for kontent"
+severity = "high"
+category = "saas"
+keywords = ["kontent"]
+regex = '''(?i)kontent.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-langfuse"
+description = "Parity rule for langfuse"
+severity = "high"
+category = "saas"
+keywords = ["langfuse"]
+regex = '''(?i)langfuse.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-langsmith"
+description = "Parity rule for langsmith"
+severity = "high"
+category = "saas"
+keywords = ["langsmith"]
+regex = '''(?i)langsmith.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-larksuiteapikey"
+description = "Parity rule for larksuiteapikey"
+severity = "high"
+category = "saas"
+keywords = ["larksuiteapikey"]
+regex = '''(?i)larksuiteapikey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-larksuite"
+description = "Parity rule for larksuite"
+severity = "high"
+category = "saas"
+keywords = ["larksuite"]
+regex = '''(?i)larksuite.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-launchdarkly"
+description = "Parity rule for launchdarkly"
+severity = "high"
+category = "saas"
+keywords = ["launchdarkly"]
+regex = '''(?i)launchdarkly.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-maxmindlicense_v2"
+description = "Parity rule for maxmindlicense_v2"
+severity = "high"
+category = "saas"
+keywords = ["maxmindlicense_v2"]
+regex = '''(?i)maxmindlicense_v2.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-nvapi"
+description = "Parity rule for nvapi"
+severity = "high"
+category = "saas"
+keywords = ["nvapi"]
+regex = '''(?i)nvapi.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-onfleet"
+description = "Parity rule for onfleet"
+severity = "high"
+category = "saas"
+keywords = ["onfleet"]
+regex = '''(?i)onfleet.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-pagarme"
+description = "Parity rule for pagarme"
+severity = "high"
+category = "saas"
+keywords = ["pagarme"]
+regex = '''(?i)pagarme.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-photoroom"
+description = "Parity rule for photoroom"
+severity = "high"
+category = "saas"
+keywords = ["photoroom"]
+regex = '''(?i)photoroom.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-phraseaccesstoken"
+description = "Parity rule for phraseaccesstoken"
+severity = "high"
+category = "saas"
+keywords = ["phraseaccesstoken"]
+regex = '''(?i)phraseaccesstoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-pypi"
+description = "Parity rule for pypi"
+severity = "high"
+category = "saas"
+keywords = ["pypi"]
+regex = '''(?i)pypi.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-railwayapp"
+description = "Parity rule for railwayapp"
+severity = "high"
+category = "saas"
+keywords = ["railwayapp"]
+regex = '''(?i)railwayapp.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-refreshtoken"
+description = "Parity rule for refreshtoken"
+severity = "high"
+category = "saas"
+keywords = ["refreshtoken"]
+regex = '''(?i)refreshtoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-repositorykey"
+description = "Parity rule for repositorykey"
+severity = "high"
+category = "saas"
+keywords = ["repositorykey"]
+regex = '''(?i)repositorykey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-rootly"
+description = "Parity rule for rootly"
+severity = "high"
+category = "saas"
+keywords = ["rootly"]
+regex = '''(?i)rootly.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-saladcloudapikey"
+description = "Parity rule for saladcloudapikey"
+severity = "high"
+category = "saas"
+keywords = ["saladcloudapikey"]
+regex = '''(?i)saladcloudapikey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-salesforceoauth2"
+description = "Parity rule for salesforceoauth2"
+severity = "high"
+category = "saas"
+keywords = ["salesforceoauth2"]
+regex = '''(?i)salesforceoauth2.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-salesforcerefreshtoken"
+description = "Parity rule for salesforcerefreshtoken"
+severity = "high"
+category = "saas"
+keywords = ["salesforcerefreshtoken"]
+regex = '''(?i)salesforcerefreshtoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-scrapingbee"
+description = "Parity rule for scrapingbee"
+severity = "high"
+category = "saas"
+keywords = ["scrapingbee"]
+regex = '''(?i)scrapingbee.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-sessionkeys"
+description = "Parity rule for sessionkeys"
+severity = "high"
+category = "saas"
+keywords = ["sessionkeys"]
+regex = '''(?i)sessionkeys.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-shopifyoauth"
+description = "Parity rule for shopifyoauth"
+severity = "high"
+category = "saas"
+keywords = ["shopifyoauth"]
+regex = '''(?i)shopifyoauth.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-smartsheets"
+description = "Parity rule for smartsheets"
+severity = "high"
+category = "saas"
+keywords = ["smartsheets"]
+regex = '''(?i)smartsheets.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-snykkey"
+description = "Parity rule for snykkey"
+severity = "high"
+category = "saas"
+keywords = ["snykkey"]
+regex = '''(?i)snykkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-spectralops"
+description = "Parity rule for spectralops"
+severity = "high"
+category = "saas"
+keywords = ["spectralops"]
+regex = '''(?i)spectralops.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-storage"
+description = "Parity rule for storage"
+severity = "high"
+category = "saas"
+keywords = ["storage"]
+regex = '''(?i)storage.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-sumologickey"
+description = "Parity rule for sumologickey"
+severity = "high"
+category = "saas"
+keywords = ["sumologickey"]
+regex = '''(?i)sumologickey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-twitchaccesstoken"
+description = "Parity rule for twitchaccesstoken"
+severity = "high"
+category = "saas"
+keywords = ["twitchaccesstoken"]
+regex = '''(?i)twitchaccesstoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-typeform"
+description = "Parity rule for typeform"
+severity = "high"
+category = "saas"
+keywords = ["typeform"]
+regex = '''(?i)typeform.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-webexbot"
+description = "Parity rule for webexbot"
+severity = "high"
+category = "saas"
+keywords = ["webexbot"]
+regex = '''(?i)webexbot.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-weightsandbiases"
+description = "Parity rule for weightsandbiases"
+severity = "high"
+category = "saas"
+keywords = ["weightsandbiases"]
+regex = '''(?i)weightsandbiases.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-wiz"
+description = "Parity rule for wiz"
+severity = "high"
+category = "saas"
+keywords = ["wiz"]
+regex = '''(?i)wiz.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

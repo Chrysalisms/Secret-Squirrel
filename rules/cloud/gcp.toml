@@ -1,0 +1,174 @@
+# Secret Squirrel — GCP Extended Rules
+# Additional Google Cloud Platform secret detection rules beyond default.toml
+
+# ==============================================================================
+# GCP — Service Account JSON Key
+# ==============================================================================
+
+[[rules]]
+id = "gcp-service-account-json"
+description = "GCP Service Account JSON private key file"
+regex = '''"private_key"\s{0,5}:\s{0,5}"-----BEGIN RSA PRIVATE KEY-----'''
+keywords = ["private_key", "service_account", "\"type\": \"service_account\""]
+severity = "critical"
+category = "cloud"
+tags = ["gcp", "google", "service-account", "private-key", "cloud"]
+entropy_threshold = 4.5
+allowlist = [
+    '"private_key": "REPLACE_ME"',
+    '"private_key": "<YOUR_PRIVATE_KEY>"',
+    '"private_key": ""',
+    'YOUR_PRIVATE_KEY_HERE',
+]
+remediation = "Delete the compromised key at https://console.cloud.google.com/iam-admin/serviceaccounts, create a replacement, and audit Cloud Audit Logs for unauthorized API calls."
+
+# ==============================================================================
+# GCP — OAuth2 Client Secret
+# ==============================================================================
+
+[[rules]]
+id = "gcp-oauth2-client-secret"
+description = "GCP OAuth2 client_secret from client_secrets.json or environment variable"
+regex = '''(?i)(?:"client_secret"\s{0,3}:\s{0,3}["']|CLIENT_SECRET\s{0,5}[:=]\s{0,5}["']?)(GOCSPX-[a-zA-Z0-9_\-]{28,32})["']?'''
+keywords = ["client_secret", "GOCSPX-", "CLIENT_SECRET"]
+severity = "critical"
+category = "cloud"
+tags = ["gcp", "google", "oauth2", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    '"client_secret": "REPLACE_ME"',
+    '"client_secret": "<CLIENT_SECRET>"',
+    'GOCSPX-EXAMPLE',
+    'client_secret = ""',
+]
+remediation = "Rotate the OAuth client secret at https://console.cloud.google.com/apis/credentials. All authorized redirect URIs and any stored refresh tokens must be invalidated."
+
+# ==============================================================================
+# GCP — Firebase Server Key
+# ==============================================================================
+
+[[rules]]
+id = "gcp-firebase-server-key"
+description = "Google Firebase Cloud Messaging (FCM) Server Key"
+regex = '''(?i)(?:firebase[_\-\.\s]{0,10}(?:server[_\-\.\s]{0,5})?(?:key|token)|FCM_SERVER_KEY|FIREBASE_SERVER_KEY)\s{0,5}[:=]\s{0,5}["']?(AIza[0-9A-Za-z\-_]{35})["']?'''
+keywords = ["firebase", "FCM_SERVER_KEY", "FIREBASE_SERVER_KEY"]
+severity = "critical"
+category = "cloud"
+tags = ["gcp", "google", "firebase", "fcm", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'FIREBASE_SERVER_KEY=YOUR_KEY_HERE',
+    'FIREBASE_SERVER_KEY=AIzaEXAMPLE',
+    'firebase_server_key = ""',
+    'FCM_SERVER_KEY=<',
+]
+remediation = "Regenerate the Firebase server key at https://console.firebase.google.com → Project settings → Cloud Messaging. Update all backend services that use the old key."
+
+# ==============================================================================
+# GCP — App Engine / Cloud Run Service Key
+# ==============================================================================
+
+[[rules]]
+id = "gcp-app-engine-key"
+description = "GCP App Engine default service account key or App Engine API key"
+regex = '''(?i)(?:app[_\-]?engine[_\-\.\s]{0,10}(?:key|api[_\-]?key|service[_\-]?key|secret)|APPENGINE_KEY|GAE_API_KEY)\s{0,5}[:=]\s{0,5}["']?([A-Za-z0-9_\-]{30,60})["']?'''
+keywords = ["app_engine", "appengine", "GAE_API_KEY", "APPENGINE_KEY"]
+severity = "high"
+category = "cloud"
+tags = ["gcp", "google", "app-engine", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'GAE_API_KEY=YOUR_KEY',
+    'GAE_API_KEY=<',
+    'GAE_API_KEY=$\{',
+    'APPENGINE_KEY=changeme',
+]
+remediation = "Rotate the service account key at https://console.cloud.google.com/iam-admin/serviceaccounts and restrict key permissions using IAM least-privilege."
+
+# ==============================================================================
+# GCP — Cloud Storage HMAC Key
+# ==============================================================================
+
+[[rules]]
+id = "gcp-cloud-storage-hmac-key"
+description = "GCP Cloud Storage HMAC access key (GOOG prefix)"
+regex = '''\bGOOG[A-Z0-9]{54}\b'''
+keywords = ["GOOG", "hmac", "cloud_storage"]
+severity = "critical"
+category = "cloud"
+tags = ["gcp", "google", "gcs", "hmac", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'GOOGEXAMPLE',
+    'GOOG000000000000000000000000000000000000000000000000000000',
+    'YOUR_HMAC_ACCESS_KEY',
+]
+remediation = "Delete the HMAC key at https://console.cloud.google.com/storage/settings → Interoperability → Service account HMAC keys and create a new one."
+
+# ==============================================================================
+# GCP — Vertex AI API Key
+# ==============================================================================
+
+[[rules]]
+id = "gcp-vertex-ai-api-key"
+description = "GCP Vertex AI / ML Platform API Key"
+regex = '''(?i)(?:vertex[_\-\.\s]{0,10}(?:ai[_\-\.\s]{0,5})?(?:api[_\-\.\s]{0,5})?key|VERTEX_AI_API_KEY|VERTEX_API_KEY)\s{0,5}[:=]\s{0,5}["']?(AIza[0-9A-Za-z\-_]{35})["']?'''
+keywords = ["vertex", "VERTEX_AI_API_KEY", "VERTEX_API_KEY"]
+severity = "critical"
+category = "cloud"
+tags = ["gcp", "google", "vertex-ai", "ml", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'VERTEX_AI_API_KEY=YOUR_KEY',
+    'VERTEX_AI_API_KEY=AIzaEXAMPLE',
+    'VERTEX_API_KEY=<',
+    'vertex_api_key = ""',
+]
+remediation = "Rotate the API key at https://console.cloud.google.com/apis/credentials and restrict it to Vertex AI APIs only using API key restrictions."
+
+# ==============================================================================
+# GCP — Maps / Places API Key
+# ==============================================================================
+
+[[rules]]
+id = "gcp-maps-api-key"
+description = "Google Maps Platform API Key"
+regex = '''(?i)(?:google[_\-\.\s]{0,10}maps[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|GOOGLE_MAPS_API_KEY|MAPS_API_KEY|NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)\s{0,5}[:=]\s{0,5}["']?(AIza[0-9A-Za-z\-_]{35})["']?'''
+keywords = ["google_maps", "GOOGLE_MAPS_API_KEY", "MAPS_API_KEY", "maps_api"]
+severity = "high"
+category = "cloud"
+tags = ["gcp", "google", "maps", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'GOOGLE_MAPS_API_KEY=YOUR_API_KEY',
+    'GOOGLE_MAPS_API_KEY=AIzaEXAMPLE',
+    'MAPS_API_KEY=<',
+    'MAPS_API_KEY=$\{',
+    'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=""',
+]
+remediation = "Restrict the Maps key to specific HTTP referrers and APIs at https://console.cloud.google.com/apis/credentials. Set billing alerts to detect abuse."
+
+# ==============================================================================
+# Google API Key — Generic AIzaSy Prefix (Firebase, YouTube, etc.)
+# Catches bare AIzaSy... keys without requiring a variable name context
+# ==============================================================================
+
+[[rules]]
+id = "google-api-key-generic"
+description = "Google API key with AIzaSy prefix (Firebase, Maps, YouTube, etc.)"
+regex = '''\b(AIza[0-9A-Za-z\-_]{35})\b'''
+keywords = ["AIzaSy", "AIzaS", "AIza"]
+severity = "high"
+category = "cloud"
+tags = ["gcp", "google", "firebase", "api-key", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'AIzaEXAMPLE',
+    'AIzaSyEXAMPLE',
+    'AIzaSyYOUR',
+    'AIzaSy000000000000000000000000000000000',
+    'AIzaSyxxxxxxxx',
+    'AIzaSyTEST',
+]
+remediation = "Restrict the Google API key to specific APIs and HTTP referrers at https://console.cloud.google.com/apis/credentials. Rotate the key if it was exposed publicly."
+

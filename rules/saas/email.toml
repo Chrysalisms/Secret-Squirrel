@@ -1,0 +1,102 @@
+# Email and SMS communication service secrets
+# Covers Mailgun, Mailchimp, PostMark, Mailjet, SparkPost, Vonage/Nexmo
+
+[[rules]]
+id = "mailgun-api-key"
+description = "Mailgun private API key (key- prefix)"
+severity = "high"
+category = "saas"
+regex = '''key-[a-f0-9]{32}'''
+keywords = ["mailgun", "key-"]
+entropy = 4.0
+tags = ["mailgun", "email", "saas"]
+
+[[rules]]
+id = "mailgun-signing-key"
+description = "Mailgun webhook signing key"
+severity = "high"
+category = "saas"
+regex = '''(?i)mailgun[._-]?(?:webhook[._-]?|signing[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([a-f0-9]{32,64})['"]?'''
+keywords = ["mailgun"]
+entropy = 4.0
+tags = ["mailgun", "email", "webhook"]
+
+[[rules]]
+id = "mailchimp-api-key"
+description = "Mailchimp / Intuit Mailchimp API key (datacenter-suffix format)"
+severity = "high"
+category = "saas"
+regex = '''[a-f0-9]{32}-us[0-9]{1,2}'''
+keywords = ["mailchimp"]
+entropy = 4.0
+tags = ["mailchimp", "email", "saas"]
+
+[[rules]]
+id = "postmark-api-token"
+description = "Postmark email API server or account token"
+severity = "high"
+category = "saas"
+regex = '''(?i)postmark[._-]?(?:server[._-]?|account[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["postmark"]
+entropy = 3.0
+tags = ["postmark", "email", "saas"]
+
+[[rules]]
+id = "mailjet-api-key"
+description = "Mailjet API key (public key)"
+severity = "medium"
+category = "saas"
+regex = '''(?i)mailjet[._-]?(?:api[._-]?)?(?:key|public[._-]?key)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["mailjet"]
+entropy = 4.0
+tags = ["mailjet", "email", "saas"]
+
+[[rules]]
+id = "mailjet-secret-key"
+description = "Mailjet API secret key"
+severity = "high"
+category = "saas"
+regex = '''(?i)mailjet[._-]?(?:api[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["mailjet"]
+entropy = 4.0
+tags = ["mailjet", "email", "saas"]
+
+[[rules]]
+id = "sparkpost-api-key"
+description = "SparkPost / Bird email API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)sparkpost[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["sparkpost"]
+entropy = 4.0
+tags = ["sparkpost", "email", "saas"]
+
+[[rules]]
+id = "vonage-nexmo-api-key"
+description = "Vonage (formerly Nexmo) API key for SMS/voice"
+severity = "high"
+category = "saas"
+regex = '''(?i)(?:vonage|nexmo)[._-]?(?:api[._-]?)?(?:key|secret)\s*[=:]\s*['"]?([a-zA-Z0-9]{8,20})['"]?'''
+keywords = ["vonage", "nexmo"]
+entropy = 3.0
+tags = ["vonage", "nexmo", "sms", "saas"]
+
+[[rules]]
+id = "messagebird-api-key"
+description = "MessageBird API key for SMS/voice communications"
+severity = "high"
+category = "saas"
+regex = '''(?i)messagebird[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9_]{25})['"]?'''
+keywords = ["messagebird"]
+entropy = 3.5
+tags = ["messagebird", "sms", "saas"]
+
+[[rules]]
+id = "sinch-api-key"
+description = "Sinch SMS/voice API key ID"
+severity = "high"
+category = "saas"
+regex = '''(?i)sinch[._-]?(?:api[._-]?)?(?:key|token|app[._-]?key)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["sinch"]
+entropy = 3.0
+tags = ["sinch", "sms", "voice", "saas"]

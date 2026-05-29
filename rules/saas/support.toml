@@ -1,0 +1,43 @@
+# Customer support and ticketing platform secrets
+# Covers Zendesk (extended), Freshdesk, Intercom, HelpScout, Front, Kustomer
+
+[[rules]]
+id = "helpscout-api-key"
+description = "Help Scout support platform API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)helpscout[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40})['"]?'''
+keywords = ["helpscout", "HELPSCOUT_API"]
+entropy = 4.5
+tags = ["helpscout", "customer-support", "saas"]
+
+[[rules]]
+id = "kustomer-api-key"
+description = "Kustomer CRM and support API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)kustomer[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["kustomer"]
+entropy = 4.0
+tags = ["kustomer", "crm", "support"]
+
+[[rules]]
+id = "jira-api-token"
+description = "Atlassian Jira API personal access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)jira[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,32})['"]?'''
+keywords = ["jira", "JIRA_API_TOKEN", "JIRA_TOKEN"]
+entropy = 3.5
+tags = ["jira", "atlassian", "project-management"]
+
+[[rules]]
+id = "confluence-api-token"
+description = "Atlassian Confluence API personal access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)confluence[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,32})['"]?'''
+keywords = ["confluence", "CONFLUENCE_TOKEN"]
+entropy = 3.5
+tags = ["confluence", "atlassian", "wiki"]
+

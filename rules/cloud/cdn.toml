@@ -1,0 +1,62 @@
+# File hosting and CDN service secrets
+# Covers Box, Dropbox, OneDrive, Google Drive, Cloudflare CDN, Fastly, Akamai
+
+[[rules]]
+id = "dropbox-access-token"
+description = "Dropbox OAuth long-lived access token"
+severity = "critical"
+category = "saas"
+regex = '''sl\.[A-Za-z0-9_\-]{135,160}'''
+keywords = ["dropbox", "sl.A", "sl.B"]
+entropy = 5.0
+tags = ["dropbox", "storage", "saas"]
+
+[[rules]]
+id = "box-api-key"
+description = "Box.com API key or developer token"
+severity = "high"
+category = "saas"
+regex = '''(?i)box[._-]?(?:api[._-]?|dev[._-]?|developer[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([A-Za-z0-9]{32,64})['"]?'''
+keywords = ["box", "BOX_API", "BOX_TOKEN"]
+entropy = 4.0
+tags = ["box", "storage", "saas"]
+
+[[rules]]
+id = "box-client-secret"
+description = "Box.com OAuth application client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)box[._-]?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9]{32})['"]?'''
+keywords = ["box", "BOX_CLIENT_SECRET"]
+entropy = 4.0
+tags = ["box", "oauth", "storage"]
+
+[[rules]]
+id = "bunny-storage-api-key"
+description = "BunnyCDN storage API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)bunny(?:cdn)?[._-]?(?:storage[._-]?|api[._-]?)?(?:key|token|password)\s*[=:]\s*['"]?([A-Za-z0-9_\-=]{72})['"]?'''
+keywords = ["bunnycdn", "bunny"]
+entropy = 4.5
+tags = ["bunnycdn", "cdn", "storage"]
+
+[[rules]]
+id = "imgbb-api-key"
+description = "ImgBB image hosting API key"
+severity = "medium"
+category = "saas"
+regex = '''(?i)imgbb[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["imgbb"]
+entropy = 4.0
+tags = ["imgbb", "image", "cdn"]
+
+[[rules]]
+id = "cloudinary-cloud-api-key"
+description = "Cloudinary cloud storage API key (numeric)"
+severity = "medium"
+category = "cloud"
+regex = '''(?i)cloudinary[._-]?(?:api[._-]?)?key\s*[=:]\s*['"]?(\d{15})['"]?'''
+keywords = ["cloudinary", "CLOUDINARY_API_KEY"]
+entropy = 3.0
+tags = ["cloudinary", "media", "cloud"]

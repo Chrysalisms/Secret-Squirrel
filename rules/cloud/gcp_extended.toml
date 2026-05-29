@@ -1,0 +1,72 @@
+# GCP (Google Cloud Platform) extended secrets
+# Covers BigQuery, Cloud Spanner, Firebase Admin, GCR, GCS
+
+[[rules]]
+id = "gcp-service-account-key"
+description = "GCP service account JSON key file"
+severity = "critical"
+category = "cloud"
+regex = '''"private_key_id"\s*:\s*"([a-f0-9]{40})"'''
+keywords = ["private_key_id", "service_account", "gcp"]
+entropy = 4.5
+tags = ["gcp", "google", "service-account", "cloud"]
+
+[[rules]]
+id = "gcp-oauth2-credentials"
+description = "GCP OAuth2 client_secret from credentials.json"
+severity = "critical"
+category = "cloud"
+regex = '''"client_secret"\s*:\s*"(GOCSPX-[A-Za-z0-9_\-]{28})"'''
+keywords = ["GOCSPX-", "client_secret", "credentials.json"]
+entropy = 4.0
+tags = ["gcp", "google", "oauth", "cloud"]
+
+[[rules]]
+id = "gcp-compute-instance-default-key"
+description = "GCP Compute Engine instance default service account key"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)gcp[._-]?(?:compute[._-]?)?(?:service[._-]?account[._-]?)?key\s*[=:]\s*['"]?([A-Za-z0-9/+]{80,})={0,2}['"]?'''
+keywords = ["GCP_KEY", "GOOGLE_SERVICE_ACCOUNT", "GCP_CREDENTIALS"]
+entropy = 4.5
+tags = ["gcp", "compute", "service-account"]
+
+[[rules]]
+id = "gcp-workload-identity-provider"
+description = "GCP Workload Identity Provider resource name with project number"
+severity = "medium"
+category = "cloud"
+regex = '''projects/(\d{12})/locations/global/workloadIdentityPools/[a-z0-9\-]+/providers/[a-z0-9\-]+'''
+keywords = ["workloadIdentityPools", "workload_identity"]
+entropy = 2.0
+tags = ["gcp", "workload-identity", "cloud"]
+
+[[rules]]
+id = "gcp-spanner-credentials"
+description = "Google Cloud Spanner service account credentials"
+severity = "critical"
+category = "database"
+regex = '''(?i)spanner[._-]?(?:service[._-]?account[._-]?|credentials[._-]?)?(?:key|json)\s*[=:]\s*['"]?(.+\.json)['"]?'''
+keywords = ["spanner", "SPANNER_CREDENTIALS"]
+entropy = 2.0
+tags = ["gcp", "spanner", "database", "cloud"]
+
+[[rules]]
+id = "bigquery-api-key"
+description = "Google BigQuery API service account key"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)bigquery[._-]?(?:service[._-]?account[._-]?|api[._-]?)?(?:key|credentials)\s*[=:]\s*['"]?([A-Za-z0-9+/=]{40,})['"]?'''
+keywords = ["bigquery", "BQ_CREDENTIALS", "BIGQUERY_KEY"]
+entropy = 4.5
+tags = ["gcp", "bigquery", "analytics", "cloud"]
+
+[[rules]]
+id = "gcs-hmac-key"
+description = "Google Cloud Storage HMAC key (GOOG prefix)"
+severity = "critical"
+category = "cloud"
+regex = '''GOOG[A-Za-z0-9_\-]{24}'''
+keywords = ["GOOG", "GCS_HMAC", "google_cloud_storage"]
+entropy = 3.5
+tags = ["gcp", "gcs", "storage", "hmac"]

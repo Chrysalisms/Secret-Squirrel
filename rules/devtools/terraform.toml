@@ -1,0 +1,65 @@
+# Secret Squirrel — Terraform Extended Rules
+# Additional Terraform / HashiCorp Cloud Platform secret detection rules beyond default.toml
+
+# ==============================================================================
+# Terraform Cloud — Token
+# ==============================================================================
+
+[[rules]]
+id = "terraform-cloud-token"
+description = "Terraform Cloud / HCP Terraform user or team token"
+regex = '''(?i)(?:terraform[_\-\.\s]{0,10}(?:cloud[_\-\.\s]{0,5})?(?:api[_\-\.\s]{0,5})?token|TF_TOKEN|TF_API_TOKEN|TFC_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{14}\.atlasv1\.[a-zA-Z0-9_\-]{60,})["']?'''
+keywords = ["TF_TOKEN", "TF_API_TOKEN", "TFC_TOKEN", "terraform_cloud_token"]
+severity = "critical"
+category = "devtools"
+tags = ["terraform", "hashicorp", "cloud", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    'TF_API_TOKEN=YOUR_TOKEN',
+    'TF_TOKEN=<',
+    'TF_API_TOKEN=$\{',
+    'terraform_cloud_token = ""',
+]
+remediation = "Rotate at https://app.terraform.io/app/settings/tokens. Terraform Cloud tokens can trigger runs and access state files containing sensitive infrastructure details."
+
+# ==============================================================================
+# Terraform Enterprise — Token
+# ==============================================================================
+
+[[rules]]
+id = "terraform-enterprise-token"
+description = "Terraform Enterprise / TFE organization or user token"
+regex = '''(?i)(?:terraform[_\-\.\s]{0,10}enterprise[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?token|TFE_TOKEN|TFE_API_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{14}\.atlasv1\.[a-zA-Z0-9_\-]{60,})["']?'''
+keywords = ["TFE_TOKEN", "TFE_API_TOKEN", "terraform_enterprise_token"]
+severity = "critical"
+category = "devtools"
+tags = ["terraform", "enterprise", "hashicorp", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    'TFE_TOKEN=YOUR_TOKEN',
+    'TFE_API_TOKEN=<',
+    'TFE_TOKEN=$\{',
+    'tfe_token = ""',
+]
+remediation = "Rotate at your Terraform Enterprise instance → User settings → Tokens. TFE tokens have full access to all workspaces in the organization."
+
+# ==============================================================================
+# Terraform — .terraformrc Credentials
+# ==============================================================================
+
+[[rules]]
+id = "terraformrc-credentials"
+description = "Terraform CLI credentials in .terraformrc or terraform.rc configuration"
+regex = '''(?i)credentials\s{0,5}"[^"]{1,100}"\s{0,5}\{[^}]{0,200}token\s{0,5}=\s{0,5}"([a-zA-Z0-9]{14}\.atlasv1\.[a-zA-Z0-9_\-]{60,})"'''
+keywords = ["credentials", ".terraformrc", "terraform.rc", "atlasv1"]
+severity = "critical"
+category = "devtools"
+tags = ["terraform", "terraformrc", "credentials", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    'token = "YOUR_TOKEN"',
+    'token = "<',
+    'token = "$\{',
+    'token = "atlasv1.EXAMPLE"',
+]
+remediation = "Remove .terraformrc from version control and add to .gitignore. Store Terraform credentials using `terraform login` which saves to ~/.terraform.d/credentials.tfrc.json."

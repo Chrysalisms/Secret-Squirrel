@@ -1,0 +1,112 @@
+# Cloud provider extended rules
+# Covers Alibaba Cloud, IBM Cloud, Tencent, Oracle Cloud, Hetzner, Linode
+
+[[rules]]
+id = "alibaba-access-key-id"
+description = "Alibaba Cloud Access Key ID (LTAI prefix)"
+severity = "high"
+category = "cloud"
+regex = '''\bLTAI[a-zA-Z0-9]{14,20}\b'''
+keywords = ["LTAI"]
+entropy = 3.0
+tags = ["alibaba", "cloud", "aliyun"]
+
+[[rules]]
+id = "alibaba-secret-key"
+description = "Alibaba Cloud Access Key Secret"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)alibaba[._-]?(?:cloud[._-]?|aliyun[._-]?)?(?:secret|access[._-]?key[._-]?secret)\s*[=:]\s*['"]?([A-Za-z0-9]{30})['"]?'''
+keywords = ["alibaba", "aliyun", "ALIBABA_SECRET"]
+entropy = 4.0
+tags = ["alibaba", "cloud", "aliyun"]
+
+[[rules]]
+id = "ibm-cloud-api-key"
+description = "IBM Cloud API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)ibm[._-]?(?:cloud[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{40,50})['"]?'''
+keywords = ["ibm", "IBMCLOUD", "IBM_API_KEY"]
+entropy = 4.0
+tags = ["ibm", "cloud"]
+
+[[rules]]
+id = "ibm-cos-hmac-key"
+description = "IBM Cloud Object Storage HMAC key"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)ibm[._-]?(?:cos[._-]?)?(?:hmac[._-]?)?(?:secret[._-]?access[._-]?)?key\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["IBM_COS", "ibm_cos"]
+entropy = 4.5
+tags = ["ibm", "cloud", "object-storage"]
+
+[[rules]]
+id = "oracle-cloud-api-key"
+description = "Oracle Cloud Infrastructure (OCI) API signing key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)oci[._-]?(?:api[._-]?|private[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\/+=-]{44,})['"]?'''
+keywords = ["OCI_API", "oracle_cloud"]
+entropy = 4.0
+tags = ["oracle", "oci", "cloud"]
+
+[[rules]]
+id = "hetzner-api-token"
+description = "Hetzner Cloud API token"
+severity = "high"
+category = "cloud"
+regex = '''(?i)hetzner[._-]?(?:cloud[._-]?)?(?:api[._-]?)?token\s*[=:]\s*['"]?([a-zA-Z0-9]{64})['"]?'''
+keywords = ["hetzner", "HCLOUD_TOKEN"]
+entropy = 4.5
+tags = ["hetzner", "cloud", "vps"]
+
+[[rules]]
+id = "linode-api-token"
+description = "Linode (Akamai Cloud) API token"
+severity = "high"
+category = "cloud"
+regex = '''(?i)linode[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9]{64})['"]?'''
+keywords = ["linode", "LINODE_TOKEN"]
+entropy = 4.5
+tags = ["linode", "akamai", "cloud"]
+
+[[rules]]
+id = "vultr-api-key"
+description = "Vultr cloud compute API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)vultr[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Z0-9]{36})['"]?'''
+keywords = ["vultr", "VULTR_API"]
+entropy = 3.5
+tags = ["vultr", "cloud", "vps"]
+
+[[rules]]
+id = "exoscale-api-key"
+description = "Exoscale cloud API key"
+severity = "high"
+category = "cloud"
+regex = '''EXO[a-zA-Z0-9]{38}'''
+keywords = ["EXO"]
+entropy = 4.0
+tags = ["exoscale", "cloud"]
+
+[[rules]]
+id = "scaleway-api-key"
+description = "Scaleway cloud API key or secret"
+severity = "high"
+category = "cloud"
+regex = '''(?i)scaleway[._-]?(?:api[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-f0-9]{40})['"]?'''
+keywords = ["scaleway", "SCW_SECRET"]
+entropy = 3.0
+tags = ["scaleway", "cloud"]
+
+[[rules]]
+id = "ovh-application-secret"
+description = "OVH cloud application secret key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)ovh[._-]?(?:application[._-]?)?secret\s*[=:]\s*['"]?([a-zA-Z0-9]{32})['"]?'''
+keywords = ["ovh", "OVH_APPLICATION"]
+entropy = 4.0
+tags = ["ovh", "cloud"]

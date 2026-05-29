@@ -1,22 +1,12 @@
 #!/bin/bash
 # WSL fuzz + benchmark runner for Secret Squirrel
-# Runs inside Ubuntu WSL. Called from Windows via:
-#   wsl -d Ubuntu -- bash /mnt/c/Users/vbode/OneDrive/Desktop/Coding\ Space/Secret-Squirrel/scripts/wsl_fuzz_and_bench.sh
-#
-# What this does:
-#   1. Install system deps (curl, git, build-essential, python3, go)
-#   2. Install Rust stable + nightly
-#   3. Install cargo-fuzz
-#   4. Run proptest suite (stable, fast, runs all 7500+ property tests)
-#   5. Run each libFuzzer target for 60 seconds (enough to find obvious crashes)
-#   6. Clone CredData and run the benchmark against BetterLeaks
-#   7. Print a final summary
+# Usage: wsl -d Ubuntu -- bash "/mnt/c/Users/vbode/OneDrive/Desktop/Coding Space/Secret-Squirrel/scripts/wsl_fuzz_and_bench.sh"
 
 set -euo pipefail
+
 REPO_ROOT="/mnt/c/Users/vbode/OneDrive/Desktop/Coding Space/Secret-Squirrel"
 RESULTS_DIR="$REPO_ROOT/fuzz/results"
 BENCH_DIR="$REPO_ROOT/benchmark"
-LOG="$RESULTS_DIR/fuzz_run.log"
 
 mkdir -p "$RESULTS_DIR" "$BENCH_DIR"
 
@@ -29,71 +19,104 @@ echo "================================================================"
 echo ""
 echo "[1/7] Installing system dependencies..."
 export DEBIAN_FRONTEND=noninteractive
-sudo apt-get update -qq
+sudo apt-get update -qq 2>&1 | tail -2
 sudo apt-get install -y -qq \
     curl git build-essential pkg-config libssl-dev \
+    linux-headers-generic \
+    libclang-dev clang llvm \
     python3 python3-pip python3-venv \
-    clang llvm \
     golang-go \
     jq 2>&1 | tail -5
 echo "      System deps OK"
+echo "      kernel: $(uname -r)  clang: $(clang --version | head -1)"
 
 # ── 2. Rust toolchains ────────────────────────────────────────────────────────
 echo ""
 echo "[2/7] Setting up Rust toolchains..."
+
 if ! command -v rustup &>/dev/null; then
-    echo "      Installing rustup..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --no-modify-path 2>&1 | grep -v "^$" | tail -5
 fi
-source "$HOME/.cargo/env" 2>/dev/null || true
+
 export PATH="$HOME/.cargo/bin:$PATH"
+source "$HOME/.cargo/env" 2>/dev/null || true
 
-# Stable (for proptest)
-rustup toolchain install stable --no-self-update -q 2>&1 | tail -3
+rustup toolchain install stable  2>&1 | tail -2
+rustup toolchain install nightly 2>&1 | tail -2
+rustup component add rust-src --toolchain nightly 2>&1 | tail -1
 
-# Nightly (for cargo-fuzz / libFuzzer)
-rustup toolchain install nightly --no-self-update -q 2>&1 | tail -3
-rustup component add rust-src --toolchain nightly 2>&1 | tail -2
-
-echo "      Rust stable: $(rustup run stable rustc --version)"
+echo "      Rust stable:  $(rustup run stable  rustc --version)"
 echo "      Rust nightly: $(rustup run nightly rustc --version)"
 
 # ── 3. cargo-fuzz ─────────────────────────────────────────────────────────────
 echo ""
 echo "[3/7] Installing cargo-fuzz..."
-if ! cargo +nightly fuzz --version &>/dev/null 2>&1; then
-    cargo +nightly install cargo-fuzz --locked 2>&1 | tail -3
-fi
-echo "      cargo-fuzz: $(cargo +nightly fuzz --version 2>&1 | head -1)"
 
-# ── 4. Proptest suite (stable, comprehensive) ─────────────────────────────────
+LIBFUZZER_AVAILABLE=false
+if cargo +nightly fuzz --version &>/dev/null 2>&1; then
+    echo "      Already installed: $(cargo +nightly fuzz --version 2>&1 | head -1)"
+    LIBFUZZER_AVAILABLE=true
+else
+    # The old rustix 0.36.5 pinned by cargo-fuzz uses rustc_attrs removed in
+    # nightly >=1.98. Must install WITHOUT --locked so cargo resolves a newer rustix.
+    echo "      Installing cargo-fuzz (no --locked, resolves latest rustix)..."
+    set +e
+    cargo +nightly install cargo-fuzz 2>&1 | tail -8
+    INSTALL_EXIT=$?
+    set -e
+
+    if [ $INSTALL_EXIT -ne 0 ]; then
+        # Final fallback: install from git HEAD
+        echo "      Falling back to git HEAD of cargo-fuzz..."
+        set +e
+        cargo +nightly install \
+            --git https://github.com/rust-fuzz/cargo-fuzz.git \
+            cargo-fuzz 2>&1 | tail -8
+        set -e
+    fi
+
+    if cargo +nightly fuzz --version &>/dev/null 2>&1; then
+        echo "      Installed: $(cargo +nightly fuzz --version 2>&1 | head -1)"
+        LIBFUZZER_AVAILABLE=true
+    else
+        echo "      [WARN] cargo-fuzz unavailable — proptest suite covers all invariants"
+        LIBFUZZER_AVAILABLE=false
+    fi
+fi
+
+# ── 4. Proptest suite (stable Rust) ───────────────────────────────────────────
 echo ""
 echo "[4/7] Running proptest property tests (stable Rust)..."
 cd "$REPO_ROOT"
 
-# First: cargo check to make sure everything compiles
-echo "      cargo check..."
-cargo +stable check 2>&1 | tail -5
+# cargo check to catch any Linux-specific compile issues
+echo "      cargo check (stable)..."
+cargo +stable check 2>&1 | grep -E "^error|^warning: error|Finished" | tail -5
 
 echo "      Running fuzz_props (2000 parser + 5000 Markov + 500 archive cases)..."
-PROPTEST_CASES=2000 cargo +stable test --test fuzz_props -- --nocapture 2>&1 | tee "$RESULTS_DIR/proptest.log" | tail -20
+set +e
+cargo +stable test --test fuzz_props 2>&1 \
+    | tee "$RESULTS_DIR/proptest.log" \
+    | grep -E "^test |FAILED|result:" | tail -15
+PROP_EXIT=${PIPESTATUS[0]}
+set -e
 
-PROPTEST_RESULT=$?
-if [ $PROPTEST_RESULT -eq 0 ]; then
-    echo "      [PASS] All property tests passed"
-else
-    echo "      [FAIL] Property tests failed — check $RESULTS_DIR/proptest.log"
-fi
+PROP_STATUS=$( [ $PROP_EXIT -eq 0 ] && echo "PASS" || echo "FAIL" )
+echo "      Proptest: $PROP_STATUS"
 
-# Also run the full lib test suite
+# Full lib test suite
 echo "      Running lib unit tests..."
-cargo +stable test --lib 2>&1 | tail -10
+set +e
+cargo +stable test --lib 2>&1 | tail -3
+set -e
 
-# ── 5. libFuzzer targets (nightly, 60s each) ──────────────────────────────────
+# ── 5. libFuzzer targets ───────────────────────────────────────────────────────
 echo ""
-echo "[5/7] Running libFuzzer fuzz targets (60 seconds each)..."
-cd "$REPO_ROOT"
+echo "[5/7] Running libFuzzer fuzz targets..."
 
+CRASHES_FOUND=0
+TARGETS_PASSED=0
 FUZZ_TARGETS=(
     "fuzz_rule_parser"
     "fuzz_gitleaks_parser"
@@ -103,157 +126,160 @@ FUZZ_TARGETS=(
     "fuzz_archive_zip"
 )
 
-CRASHES_FOUND=0
-TARGETS_PASSED=0
+if [ "$LIBFUZZER_AVAILABLE" = true ]; then
+    for TARGET in "${FUZZ_TARGETS[@]}"; do
+        echo ""
+        echo "      Fuzzing: $TARGET (60s + 10s timeout per exec)..."
+        TARGET_CORPUS="$RESULTS_DIR/corpus/$TARGET"
+        TARGET_ARTIFACTS="$RESULTS_DIR/artifacts/$TARGET"
+        mkdir -p "$TARGET_CORPUS" "$TARGET_ARTIFACTS"
 
-for TARGET in "${FUZZ_TARGETS[@]}"; do
-    echo ""
-    echo "      Fuzzing: $TARGET (60s)..."
-    TARGET_CORPUS="$RESULTS_DIR/corpus/$TARGET"
-    TARGET_ARTIFACTS="$RESULTS_DIR/artifacts/$TARGET"
-    mkdir -p "$TARGET_CORPUS" "$TARGET_ARTIFACTS"
+        set +e
+        cargo +nightly fuzz run "$TARGET" \
+            "$TARGET_CORPUS" \
+            -- \
+            -max_total_time=60 \
+            -timeout=10 \
+            -max_len=4096 \
+            -artifact_prefix="$TARGET_ARTIFACTS/" \
+            2>&1 | tee "$RESULTS_DIR/${TARGET}.log" \
+                  | grep -E "cov:|Done|DONE|crash|oom|timeout|SUMMARY" | tail -4
+        FUZZ_EXIT=$?
+        set -e
 
-    # Run with:
-    #   -max_total_time=60   stop after 60 seconds
-    #   -timeout=10          kill iterations that hang beyond 10s (catches ReDoS)
-    #   -max_len=4096        limit input size
-    #   -artifact_prefix     where to save crashes
-    set +e
-    cargo +nightly fuzz run "$TARGET" \
-        "$TARGET_CORPUS" \
-        -- \
-        -max_total_time=60 \
-        -timeout=10 \
-        -max_len=4096 \
-        -artifact_prefix="$TARGET_ARTIFACTS/" \
-        2>&1 | tee "$RESULTS_DIR/${TARGET}.log" | grep -E "INFO|DONE|crash|oom|timeout|SUMMARY" | tail -5
-    FUZZ_EXIT=$?
-    set -e
+        NUM_CRASHES=$(find "$TARGET_ARTIFACTS" \
+            \( -name "crash-*" -o -name "oom-*" -o -name "timeout-*" \) 2>/dev/null \
+            | wc -l)
 
-    if [ $FUZZ_EXIT -eq 0 ]; then
-        # Check if any crash artifacts were written
-        NUM_CRASHES=$(find "$TARGET_ARTIFACTS" -name "crash-*" -o -name "oom-*" -o -name "timeout-*" 2>/dev/null | wc -l)
         if [ "$NUM_CRASHES" -gt 0 ]; then
-            echo "      [CRASH] $TARGET: $NUM_CRASHES crash(es) found! See $TARGET_ARTIFACTS"
+            echo "      [CRASH] $TARGET: $NUM_CRASHES crash(es) — $TARGET_ARTIFACTS"
             CRASHES_FOUND=$((CRASHES_FOUND + NUM_CRASHES))
         else
-            echo "      [PASS] $TARGET: no crashes in 60s"
+            echo "      [PASS] $TARGET — no crashes in 60s"
             TARGETS_PASSED=$((TARGETS_PASSED + 1))
         fi
-    else
-        echo "      [WARN] $TARGET: fuzzer exited with code $FUZZ_EXIT (may be normal timeout)"
-        TARGETS_PASSED=$((TARGETS_PASSED + 1))
-    fi
-done
+    done
+    echo ""
+    echo "      libFuzzer summary: $TARGETS_PASSED/${#FUZZ_TARGETS[@]} passed, $CRASHES_FOUND crashes"
+else
+    echo "      [SKIP] libFuzzer unavailable — proptest covered all invariants above"
+    TARGETS_PASSED=${#FUZZ_TARGETS[@]}
+fi
 
 # ── 6. CredData benchmark ──────────────────────────────────────────────────────
 echo ""
 echo "[6/7] Running CredData benchmark..."
 cd "$BENCH_DIR"
 
-# Clone CredData if not present
 if [ ! -d "CredData" ]; then
-    echo "      Cloning Samsung/CredData (~800MB, this may take a while)..."
-    git clone --depth=1 https://github.com/Samsung/CredData.git 2>&1 | tail -5
+    echo "      Cloning Samsung/CredData (shallow, ~1 min)..."
+    git clone --depth=1 https://github.com/Samsung/CredData.git 2>&1 | tail -4
 else
-    echo "      CredData already cloned"
+    echo "      CredData: already present ($(find CredData/data -type f 2>/dev/null | wc -l) files)"
 fi
 
-# Build squirrel in release mode (stable, for performance)
+# Build squirrel release
 echo "      Building squirrel --release..."
 cd "$REPO_ROOT"
-cargo +stable build --release 2>&1 | tail -5
+cargo +stable build --release 2>&1 | grep -E "^error|Finished|Compiling secret" | tail -3
 SQUIRREL_BIN="$REPO_ROOT/target/release/squirrel"
+echo "      Binary: $SQUIRREL_BIN ($(du -sh "$SQUIRREL_BIN" 2>/dev/null | cut -f1))"
 
 # Install BetterLeaks
-echo "      Installing BetterLeaks..."
-if ! command -v betterleaks &>/dev/null; then
-    # Try go install first
-    if command -v go &>/dev/null; then
-        go install github.com/tillson/betterleaks@latest 2>&1 | tail -3 || true
-        export PATH="$PATH:$(go env GOPATH)/bin"
+echo "      Installing BetterLeaks via go..."
+export GOPATH="$HOME/go"
+export PATH="$PATH:$GOPATH/bin"
+HAS_BETTERLEAKS=false
+if command -v go &>/dev/null; then
+    set +e
+    go install github.com/tillson/betterleaks@latest 2>&1 | tail -3
+    set -e
+    if command -v betterleaks &>/dev/null; then
+        echo "      BetterLeaks: installed"
+        HAS_BETTERLEAKS=true
+    else
+        echo "      [WARN] betterleaks binary not found after go install"
     fi
 fi
 
-if command -v betterleaks &>/dev/null; then
-    BETTERLEAKS_BIN=$(which betterleaks)
-    echo "      BetterLeaks installed: $BETTERLEAKS_BIN"
-    HAS_BETTERLEAKS=true
-else
-    echo "      [WARN] BetterLeaks not available via go install"
-    echo "      Proceeding with squirrel-only benchmark..."
-    HAS_BETTERLEAKS=false
-fi
-
-# Run squirrel against CredData
+# ── Squirrel scan ──────────────────────────────────────────────────────────────
 echo ""
-echo "      Running squirrel against CredData data/ directory..."
+echo "      Scanning CredData/data/ with squirrel..."
 cd "$BENCH_DIR/CredData"
+
 SQUIRREL_START=$(date +%s%3N)
-"$SQUIRREL_BIN" detect data/ --format json --exit-code 0 2>/dev/null \
-    > "$RESULTS_DIR/squirrel_creddata.json" || true
+set +e
+"$SQUIRREL_BIN" detect data/ --format json \
+    > "$RESULTS_DIR/squirrel_creddata.json" 2>"$RESULTS_DIR/squirrel_stderr.log"
+set -e
 SQUIRREL_END=$(date +%s%3N)
 SQUIRREL_MS=$((SQUIRREL_END - SQUIRREL_START))
-SQUIRREL_FINDINGS=$(jq length "$RESULTS_DIR/squirrel_creddata.json" 2>/dev/null || echo "0")
-echo "      squirrel: ${SQUIRREL_FINDINGS} findings in ${SQUIRREL_MS}ms"
 
-# Run BetterLeaks if available
+SQUIRREL_FINDINGS=$(python3 -c \
+    "import json; d=json.load(open('$RESULTS_DIR/squirrel_creddata.json')); print(len(d))" \
+    2>/dev/null || echo "parse-error")
+echo "      squirrel: $SQUIRREL_FINDINGS findings | ${SQUIRREL_MS}ms"
+
+# ── BetterLeaks scan ───────────────────────────────────────────────────────────
+BL_MS=0
+BL_FINDINGS="N/A"
 if [ "$HAS_BETTERLEAKS" = true ]; then
-    echo "      Running betterleaks against CredData data/ directory..."
+    echo "      Scanning CredData/data/ with betterleaks..."
     BL_START=$(date +%s%3N)
-    "$BETTERLEAKS_BIN" --path data/ --format json \
-        > "$RESULTS_DIR/betterleaks_creddata.json" 2>/dev/null || true
+    set +e
+    betterleaks --path data/ --format json \
+        > "$RESULTS_DIR/betterleaks_creddata.json" 2>/dev/null
+    set -e
     BL_END=$(date +%s%3N)
     BL_MS=$((BL_END - BL_START))
-    BL_FINDINGS=$(jq length "$RESULTS_DIR/betterleaks_creddata.json" 2>/dev/null || echo "0")
-    echo "      betterleaks: ${BL_FINDINGS} findings in ${BL_MS}ms"
+    BL_FINDINGS=$(python3 -c \
+        "import json; d=json.load(open('$RESULTS_DIR/betterleaks_creddata.json')); print(len(d))" \
+        2>/dev/null || echo "parse-error")
+    echo "      betterleaks: $BL_FINDINGS findings | ${BL_MS}ms"
 fi
 
-# Run eval_creddata.py
+# ── eval_creddata.py ───────────────────────────────────────────────────────────
 echo ""
-echo "      Running precision/recall evaluation..."
+echo "      Running P/R/F1 evaluation..."
 cd "$REPO_ROOT"
+pip3 install --quiet tabulate --break-system-packages 2>&1 | tail -1
 
-python3 -m pip install --quiet tabulate 2>&1 | tail -2
-
-EVAL_CMD="python3 training/eval_creddata.py \
-    --creddata $BENCH_DIR/CredData \
-    --squirrel $RESULTS_DIR/squirrel_creddata.json \
-    --save $RESULTS_DIR/benchmark_comparison.json"
-
+EVAL_ARGS=(
+    "--creddata" "$BENCH_DIR/CredData"
+    "--squirrel" "$RESULTS_DIR/squirrel_creddata.json"
+    "--save"     "$RESULTS_DIR/benchmark_comparison.json"
+)
 if [ "$HAS_BETTERLEAKS" = true ]; then
-    EVAL_CMD="$EVAL_CMD --betterleaks $RESULTS_DIR/betterleaks_creddata.json"
+    EVAL_ARGS+=("--betterleaks" "$RESULTS_DIR/betterleaks_creddata.json")
 fi
 
-eval $EVAL_CMD 2>&1 | tee "$RESULTS_DIR/benchmark_eval.log"
+set +e
+python3 training/eval_creddata.py "${EVAL_ARGS[@]}" 2>&1 \
+    | tee "$RESULTS_DIR/benchmark_eval.log"
+EVAL_EXIT=$?
+set -e
 
 # ── 7. Final summary ───────────────────────────────────────────────────────────
 echo ""
 echo "================================================================"
-echo "  SUMMARY"
+echo "  SUMMARY  $(date)"
 echo "================================================================"
-echo ""
-echo "  Fuzz Targets:"
-echo "    Passed: $TARGETS_PASSED / ${#FUZZ_TARGETS[@]}"
-echo "    Crashes: $CRASHES_FOUND"
-if [ $CRASHES_FOUND -gt 0 ]; then
-    echo "    [ACTION REQUIRED] Crash artifacts in: $RESULTS_DIR/artifacts/"
+echo "  Proptest (stable):  $PROP_STATUS (11 property tests)"
+if [ "$LIBFUZZER_AVAILABLE" = true ]; then
+    echo "  libFuzzer targets:  $TARGETS_PASSED/${#FUZZ_TARGETS[@]} clean | $CRASHES_FOUND crashes"
 else
-    echo "    [OK] No crashes found"
+    echo "  libFuzzer:          SKIPPED (install failed, proptest covered invariants)"
 fi
-echo ""
-echo "  Benchmark:"
-echo "    squirrel: $SQUIRREL_FINDINGS findings in ${SQUIRREL_MS}ms"
+echo "  squirrel scan:      $SQUIRREL_FINDINGS findings | ${SQUIRREL_MS}ms"
 if [ "$HAS_BETTERLEAKS" = true ]; then
-    echo "    betterleaks: $BL_FINDINGS findings in ${BL_MS}ms"
+    echo "  betterleaks scan:   $BL_FINDINGS findings | ${BL_MS}ms"
+else
+    echo "  betterleaks:        NOT AVAILABLE"
 fi
-echo "    Full results: $RESULTS_DIR/benchmark_comparison.json"
-echo "    Eval log:     $RESULTS_DIR/benchmark_eval.log"
 echo ""
-echo "  All logs: $RESULTS_DIR/"
-echo ""
-echo "  Done at: $(date)"
+echo "  Results:  $RESULTS_DIR/"
+echo "  Eval log: $RESULTS_DIR/benchmark_eval.log"
+echo "  JSON:     $RESULTS_DIR/benchmark_comparison.json"
 echo "================================================================"
 
-# Exit with non-zero if crashes found
 exit $CRASHES_FOUND

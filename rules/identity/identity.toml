@@ -1,0 +1,125 @@
+# Identity Provider secrets
+# Covers Okta, Auth0, Keycloak, AWS Cognito, Azure AD
+
+[[rules]]
+id = "okta-api-token"
+description = "Okta API token (SSWS prefix)"
+severity = "critical"
+category = "identity"
+regex = '''(?i)(?:okta[._-]?(?:api[._-]?)?token|SSWS)\s*[=:]?\s*['"]?(SSWS[A-Za-z0-9_-]{40,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=SSWS<',
+    '=SSwsYOUR',
+]
+entropy = 4.0
+tags = ["okta", "identity", "sso"]
+
+[[rules]]
+id = "okta-client-secret"
+description = "Okta OAuth client secret"
+severity = "critical"
+category = "identity"
+regex = '''(?i)okta[._-]?(?:oauth[._-]?)?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9\-_]{32,64})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+]
+entropy = 4.0
+tags = ["okta", "identity", "oauth"]
+
+[[rules]]
+id = "auth0-client-secret"
+description = "Auth0 application client secret"
+severity = "critical"
+category = "identity"
+regex = '''(?i)auth0[._-]?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9\-_]{43,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+    '=REPLACE',
+]
+entropy = 4.5
+tags = ["auth0", "identity", "oauth"]
+
+[[rules]]
+id = "auth0-management-token"
+description = "Auth0 Management API token"
+severity = "critical"
+category = "identity"
+regex = '''(?i)auth0[._-]?(?:management[._-]?)?(?:api[._-]?)?token\s*[=:]\s*['"]?(eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+)['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 5.0
+tags = ["auth0", "identity", "jwt"]
+
+[[rules]]
+id = "keycloak-client-secret"
+description = "Keycloak OAuth2 client secret"
+severity = "critical"
+category = "identity"
+regex = '''(?i)keycloak[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9\-_]{20,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+    '=REPLACE',
+]
+entropy = 4.0
+tags = ["keycloak", "identity", "oauth"]
+
+[[rules]]
+id = "cognito-user-pool-id"
+description = "AWS Cognito user pool ID with client secret context"
+severity = "high"
+category = "identity"
+regex = '''(?i)cognito[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9+/]{30,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+]
+entropy = 4.5
+tags = ["cognito", "aws", "identity"]
+
+[[rules]]
+id = "azure-ad-client-secret"
+description = "Azure Active Directory application client secret"
+severity = "critical"
+category = "identity"
+regex = '''(?i)azure[._-]?(?:ad[._-]?)?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9~!@#$%^&*\-_+]{30,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+]
+entropy = 4.0
+tags = ["azure", "azure-ad", "identity"]
+
+[[rules]]
+id = "azure-ad-client-secret-value"
+description = "Azure AD client secret value (starts with ~)"
+severity = "critical"
+category = "identity"
+regex = '''(?i)client[._-]?secret[._-]?value\s*[=:]\s*['"]?(~[A-Za-z0-9~!@#$%^&*\-_+]{30,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=~YOUR',
+    '=~REPLACE',
+]
+entropy = 4.0
+tags = ["azure", "azure-ad", "identity"]
+
+[[rules]]
+id = "onelogin-client-secret"
+description = "OneLogin API client secret"
+severity = "critical"
+category = "identity"
+regex = '''(?i)onelogin[._-]?client[._-]?secret\s*[=:]\s*['"]?([A-Za-z0-9]{40,})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 4.5
+tags = ["onelogin", "identity", "sso"]

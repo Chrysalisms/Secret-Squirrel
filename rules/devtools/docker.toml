@@ -1,0 +1,87 @@
+# Secret Squirrel — Docker Rules
+# Docker Hub and container registry secret detection rules
+
+# ==============================================================================
+# Docker Hub — Access Token
+# ==============================================================================
+
+[[rules]]
+id = "docker-hub-access-token"
+description = "Docker Hub personal access token"
+regex = '''(?i)(?:docker[_\-\.\s]{0,10}(?:hub[_\-\.\s]{0,10})?(?:access[_\-\.\s]{0,5})?token|DOCKER_TOKEN|DOCKER_HUB_TOKEN|DOCKERHUB_TOKEN)\s{0,5}[:=]\s{0,5}["']?(dckr_pat_[a-zA-Z0-9_\-]{27})["']?'''
+keywords = ["DOCKER_TOKEN", "DOCKER_HUB_TOKEN", "DOCKERHUB_TOKEN", "dckr_pat_"]
+severity = "critical"
+category = "devtools"
+tags = ["docker", "registry", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'DOCKER_TOKEN=YOUR_TOKEN',
+    'DOCKERHUB_TOKEN=dckr_pat_EXAMPLE',
+    'DOCKER_HUB_TOKEN=<',
+    'DOCKER_TOKEN=$\{',
+]
+remediation = "Revoke at https://hub.docker.com/settings/security and generate a replacement with minimum required access (read-only for pull, read-write only for specific repositories)."
+
+# ==============================================================================
+# Docker Hub — Password in Config
+# ==============================================================================
+
+[[rules]]
+id = "docker-hub-password"
+description = "Docker Hub credentials in docker config.json or CI configuration"
+regex = '''(?i)(?:"auth"\s{0,3}:\s{0,3}"|DOCKER_PASSWORD\s{0,5}[:=]\s{0,5}["']?)([A-Za-z0-9+/]{20,}={0,2})'''
+keywords = ["DOCKER_PASSWORD", "docker_password", "\"auth\":"]
+severity = "critical"
+category = "devtools"
+tags = ["docker", "password", "registry", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'DOCKER_PASSWORD=YOUR_PASSWORD',
+    '"auth": "dXNlcjpwYXNz"',
+    'DOCKER_PASSWORD=<',
+    'DOCKER_PASSWORD=$\{',
+    '"auth": ""',
+]
+remediation = "Remove docker config.json from version control. Use `docker login` with an access token (not password) and store credentials in a secrets manager."
+
+# ==============================================================================
+# GitHub Container Registry — Token
+# ==============================================================================
+
+[[rules]]
+id = "github-container-registry-token"
+description = "GitHub Container Registry (ghcr.io) authentication token"
+regex = '''(?i)(?:ghcr[_\-\.\s]{0,10}(?:io[_\-\.\s]{0,5})?(?:token|password)|GHCR_TOKEN|GHCR_PASSWORD|CR_PAT)\s{0,5}[:=]\s{0,5}["']?(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{82})["']?'''
+keywords = ["GHCR_TOKEN", "GHCR_PASSWORD", "CR_PAT", "ghcr.io"]
+severity = "critical"
+category = "devtools"
+tags = ["github", "ghcr", "registry", "devtools"]
+entropy_threshold = 3.5
+allowlist = [
+    'GHCR_TOKEN=YOUR_TOKEN',
+    'CR_PAT=ghp_EXAMPLE',
+    'GHCR_TOKEN=<',
+    'GHCR_TOKEN=$\{',
+]
+remediation = "Revoke the PAT at https://github.com/settings/tokens. Use GITHUB_TOKEN (automatic) in GitHub Actions for GHCR authentication instead of personal tokens."
+
+# ==============================================================================
+# Google Container Registry — Service Account Key
+# ==============================================================================
+
+[[rules]]
+id = "gcr-service-account-key"
+description = "GCR/Artifact Registry service account key in Docker auth or environment"
+regex = '''(?i)(?:gcr[_\-\.\s]{0,10}(?:service[_\-\.\s]{0,5}account[_\-\.\s]{0,5})?(?:key|json)|GCR_KEY|GCR_SERVICE_ACCOUNT|GOOGLE_CREDENTIALS)\s{0,5}[:=]\s{0,5}["']?(\{[^}]{50,5000}\})["']?'''
+keywords = ["GCR_KEY", "GCR_SERVICE_ACCOUNT", "GOOGLE_CREDENTIALS", "gcr.io"]
+severity = "critical"
+category = "devtools"
+tags = ["gcp", "gcr", "registry", "service-account", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    'GCR_KEY=YOUR_KEY',
+    'GOOGLE_CREDENTIALS=<',
+    'GOOGLE_CREDENTIALS=$\{',
+    '"type": "service_account"',
+]
+remediation = "Delete the service account key at https://console.cloud.google.com/iam-admin/serviceaccounts and use Workload Identity Federation for keyless authentication in CI/CD pipelines."

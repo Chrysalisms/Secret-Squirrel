@@ -1,0 +1,128 @@
+# AI/ML model hosting and inference platform secrets
+# Covers Replicate, Hugging Face (extended), Cohere, Together AI, Fireworks, Groq
+
+[[rules]]
+id = "together-ai-api-key"
+description = "Together AI inference API key"
+severity = "critical"
+category = "ai"
+regex = '''(?i)together[._-]?(?:ai[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["together", "TOGETHER_API_KEY"]
+entropy = 4.5
+tags = ["together-ai", "llm", "inference"]
+
+[[rules]]
+id = "fireworks-ai-api-key"
+description = "Fireworks AI inference API key"
+severity = "critical"
+category = "ai"
+regex = '''fw_[A-Za-z0-9]{32}'''
+keywords = ["fw_", "fireworks", "FIREWORKS_API"]
+entropy = 4.0
+tags = ["fireworks", "llm", "inference"]
+
+[[rules]]
+id = "groq-api-key"
+description = "Groq LPU inference API key"
+severity = "critical"
+category = "ai"
+regex = '''gsk_[A-Za-z0-9]{52}'''
+keywords = ["gsk_", "groq", "GROQ_API"]
+entropy = 4.5
+tags = ["groq", "llm", "inference"]
+
+[[rules]]
+id = "perplexity-api-key"
+description = "Perplexity AI search API key (pplx- prefix)"
+severity = "high"
+category = "ai"
+regex = '''pplx-[a-f0-9]{48}'''
+keywords = ["pplx-", "perplexity"]
+entropy = 4.5
+tags = ["perplexity", "ai", "search"]
+
+[[rules]]
+id = "huggingface-inference-token"
+description = "Hugging Face Inference API user token"
+severity = "critical"
+category = "ai"
+regex = '''hf_[A-Za-z]{34}'''
+keywords = ["hf_", "HUGGINGFACE", "HF_TOKEN"]
+entropy = 4.0
+tags = ["huggingface", "ai", "ml"]
+
+[[rules]]
+id = "wandb-api-key"
+description = "Weights & Biases ML experiment tracking API key"
+severity = "high"
+category = "ai"
+regex = '''(?i)(?:wandb|wdb)[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["wandb", "WANDB_API_KEY"]
+entropy = 4.5
+tags = ["wandb", "mlops", "ai"]
+
+[[rules]]
+id = "comet-ml-api-key"
+description = "Comet ML experiment tracking API key"
+severity = "high"
+category = "ai"
+regex = '''(?i)comet[._-]?(?:ml[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{32,40})['"]?'''
+keywords = ["comet", "COMET_API_KEY"]
+entropy = 4.0
+tags = ["comet", "mlops", "ai"]
+
+[[rules]]
+id = "databricks-personal-access-token"
+description = "Databricks workspace personal access token (dapiXXX)"
+severity = "critical"
+category = "ai"
+regex = '''dapi[a-f0-9]{32}'''
+keywords = ["dapi", "databricks", "DATABRICKS_TOKEN"]
+entropy = 4.0
+tags = ["databricks", "ai", "analytics"]
+
+[[rules]]
+id = "modal-api-key"
+description = "Modal cloud AI deployment platform API key"
+severity = "high"
+category = "ai"
+regex = '''(?i)modal[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["modal", "MODAL_TOKEN"]
+entropy = 4.0
+tags = ["modal", "cloud", "ai", "serverless"]
+
+[[rules]]
+id = "banana-dev-api-key"
+description = "Banana.dev GPU serverless API key"
+severity = "high"
+category = "ai"
+regex = '''(?i)banana[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["banana", "BANANA_API_KEY"]
+entropy = 4.0
+tags = ["banana", "gpu", "ai"]
+
+[[rules]]
+id = "stability-ai-api-key"
+description = "Stability AI (Stable Diffusion) API key"
+severity = "high"
+category = "ai"
+regex = '''sk-[a-zA-Z0-9]{40,48}'''
+keywords = ["sk-", "stability", "STABILITY_API"]
+entropy = 4.0
+allowlist = [
+    'sk-xxxxxxxxxxxx',
+    'sk-XXXXXXXXXXXXXXXXXX',
+    'sk-proj-',
+    'sk-ant-',
+]
+tags = ["stability", "diffusion", "image", "ai"]
+
+[[rules]]
+id = "elevenlabs-api-key"
+description = "ElevenLabs AI voice synthesis API key"
+severity = "high"
+category = "ai"
+regex = '''(?i)eleven(?:labs)?[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["elevenlabs", "ELEVEN_API"]
+entropy = 4.0
+tags = ["elevenlabs", "voice", "ai"]

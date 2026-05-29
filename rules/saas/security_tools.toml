@@ -1,0 +1,92 @@
+# Security scanning and penetration testing tool API keys
+# Covers Shodan, BinaryEdge, Censys, VirusTotal, SecurityTrails, Tenable
+
+[[rules]]
+id = "shodan-api-key"
+description = "Shodan internet search engine API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)shodan[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{32})['"]?'''
+keywords = ["shodan", "SHODAN_API"]
+entropy = 4.0
+tags = ["shodan", "security", "osint"]
+
+[[rules]]
+id = "virustotal-api-key"
+description = "VirusTotal malware scanning API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)virustotal[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{64})['"]?'''
+keywords = ["virustotal", "VT_API"]
+entropy = 4.5
+tags = ["virustotal", "security", "malware"]
+
+[[rules]]
+id = "censys-api-secret"
+description = "Censys internet scan database API secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)censys[._-]?(?:api[._-]?)?(?:secret|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["censys", "CENSYS_API"]
+entropy = 4.0
+tags = ["censys", "security", "osint"]
+
+[[rules]]
+id = "securitytrails-api-key"
+description = "SecurityTrails DNS and WHOIS API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)securitytrails[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9]{32})['"]?'''
+keywords = ["securitytrails"]
+entropy = 4.0
+tags = ["securitytrails", "security", "dns"]
+
+[[rules]]
+id = "tenable-access-key"
+description = "Tenable.io / Nessus API access key"
+severity = "high"
+category = "saas"
+regex = '''(?i)tenable[._-]?(?:access[._-]?|api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{96})['"]?'''
+keywords = ["tenable", "TENABLE_ACCESS"]
+entropy = 4.5
+tags = ["tenable", "nessus", "security", "vulnerability"]
+
+[[rules]]
+id = "qualys-api-credentials"
+description = "Qualys cloud security platform API credentials"
+severity = "high"
+category = "saas"
+regex = '''(?i)qualys[._-]?(?:api[._-]?|username[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["qualys"]
+entropy = 3.5
+tags = ["qualys", "security", "cloud"]
+
+[[rules]]
+id = "openvas-redis-password"
+description = "OpenVAS / Greenbone GVM Redis password"
+severity = "medium"
+category = "saas"
+regex = '''(?i)(?:openvas|gvm)[._-]?(?:redis[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["openvas", "gvm"]
+entropy = 3.0
+tags = ["openvas", "greenbone", "security"]
+
+[[rules]]
+id = "rapid7-api-key"
+description = "Rapid7 InsightVM / InsightIDR API key"
+severity = "high"
+category = "saas"
+regex = '''(?i)rapid7[._-]?(?:insight[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["rapid7", "RAPID7_API"]
+entropy = 3.0
+tags = ["rapid7", "security", "vulnerability"]
+
+[[rules]]
+id = "crowdstrike-client-secret"
+description = "CrowdStrike Falcon API client secret"
+severity = "critical"
+category = "saas"
+regex = '''(?i)crowdstrike[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9]{32,48})['"]?'''
+keywords = ["crowdstrike", "CROWDSTRIKE_SECRET"]
+entropy = 4.0
+tags = ["crowdstrike", "edr", "security"]

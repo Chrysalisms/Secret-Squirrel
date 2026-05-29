@@ -99,45 +99,48 @@ impl CompiledRule {
 /// Returns `true` if the pattern contains nested quantifiers that could cause
 /// catastrophic backtracking (e.g. `(a+)+`, `(a*)*`, `(a|aa)+`).
 ///
-/// This is a conservative heuristic — it may produce false positives (safe
-/// patterns incorrectly flagged), but **never** false negatives (dangerous
-/// patterns allowed through).
+/// This is a conservative heuristic. It correctly skips characters inside
+/// `[...]` character classes so patterns like `[A-Za-z0-9+/]{40}` are not
+/// falsely flagged.
 fn looks_like_redos(pattern: &str) -> bool {
-    // Look for `)+`, `)*`, `}+`, `}*` — closing group followed by a quantifier,
-    // where the group itself contained a quantifier.
-    // We use a simple string scan rather than a full parse.
     let bytes = pattern.as_bytes();
     let len = bytes.len();
     let mut depth = 0i32;
-    let mut group_has_quantifier = vec![false; 64]; // max 64 nesting levels
+    let mut group_has_quantifier = vec![false; 64];
+    let mut in_char_class = false;
 
     let mut i = 0;
     while i < len {
         match bytes[i] {
             b'\\' => {
-                // Skip escaped character.
+                // Skip escaped character — covers \+, \*, \[, etc.
                 i += 2;
                 continue;
             }
-            b'(' => {
+            b'[' if !in_char_class => {
+                in_char_class = true;
+            }
+            b']' if in_char_class => {
+                in_char_class = false;
+            }
+            // Inside a character class, +/* have no quantifier meaning.
+            b'(' if !in_char_class => {
                 depth += 1;
                 let d = depth as usize;
                 if d < group_has_quantifier.len() {
                     group_has_quantifier[d] = false;
                 }
             }
-            b')' => {
-                // Check if this closing paren is followed by a quantifier.
+            b')' if !in_char_class => {
                 let next = if i + 1 < len { bytes[i + 1] } else { 0 };
                 let is_quantified = matches!(next, b'+' | b'*' | b'?');
                 let d = depth as usize;
                 if is_quantified && d < group_has_quantifier.len() && group_has_quantifier[d] {
-                    return true; // nested quantifier found
+                    return true;
                 }
                 depth -= 1;
             }
-            b'+' | b'*' => {
-                // Mark the current group as having a quantifier.
+            b'+' | b'*' if !in_char_class => {
                 let d = depth as usize;
                 if d < group_has_quantifier.len() {
                     group_has_quantifier[d] = true;
@@ -168,6 +171,31 @@ fn has_backreferences(pattern: &str) -> bool {
     false
 }
 
+/// Returns `true` if the pattern contains lookahead or lookbehind assertions
+/// (`(?=`, `(?!`, `(?<=`, `(?<!`), which require `fancy_regex`.
+fn has_lookaround(pattern: &str) -> bool {
+    let bytes = pattern.as_bytes();
+    let mut i = 0;
+    while i + 2 < bytes.len() {
+        if bytes[i] == b'\\' {
+            i += 2;
+            continue;
+        }
+        // Look for (? then = ! < 
+        if bytes[i] == b'(' && bytes[i + 1] == b'?' {
+            let c = bytes[i + 2];
+            if matches!(c, b'=' | b'!') {
+                return true; // lookahead (?= or (?!
+            }
+            if c == b'<' && i + 3 < bytes.len() && matches!(bytes[i + 3], b'=' | b'!') {
+                return true; // lookbehind (?<= or (?<!
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
 // ============================================================================
 // Public compilation functions
 // ============================================================================
@@ -191,12 +219,13 @@ pub fn compile_rules(rules: Vec<Rule>) -> Result<Vec<CompiledRule>> {
             continue;
         }
 
-        // ── Backreference detection ──────────────────────────────────────────
-        let uses_backrefs = has_backreferences(&rule.regex);
+        // ── Backreference / lookaround detection ─────────────────────────────
+        // Both backreferences and lookaround assertions require fancy_regex.
+        let needs_fancy = has_backreferences(&rule.regex) || has_lookaround(&rule.regex);
 
         // ── Main regex compilation ───────────────────────────────────────────
-        let (regex, fancy_regex) = if uses_backrefs {
-            // Compile with fancy_regex (supports backreferences).
+        let (regex, fancy_regex) = if needs_fancy {
+            // Compile with fancy_regex (supports backreferences + lookaround).
             match fancy_regex::Regex::new(&rule.regex) {
                 Ok(fr) => {
                     // Provide a trivial never-matching standard regex as placeholder.
@@ -216,12 +245,22 @@ pub fn compile_rules(rules: Vec<Rule>) -> Result<Vec<CompiledRule>> {
             match regex::Regex::new(&rule.regex) {
                 Ok(r) => (r, None),
                 Err(e) => {
-                    warn!(
-                        rule_id = %rule.id,
-                        error = %e,
-                        "skipping rule — regex compilation failed"
-                    );
-                    continue;
+                    // Standard regex failed — try fancy_regex as a fallback
+                    // (handles inline flag groups like (?-i:...) or other extensions).
+                    match fancy_regex::Regex::new(&rule.regex) {
+                        Ok(fr) => {
+                            let placeholder = regex::Regex::new(r"\A\z").expect("static regex");
+                            (placeholder, Some(fr))
+                        }
+                        Err(_) => {
+                            warn!(
+                                rule_id = %rule.id,
+                                error = %e,
+                                "skipping rule — regex compilation failed"
+                            );
+                            continue;
+                        }
+                    }
                 }
             }
         };

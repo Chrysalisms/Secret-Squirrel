@@ -1,0 +1,82 @@
+# IoT, embedded systems, and hardware security secrets
+# Covers AWS IoT, Particle, Arduino Cloud, Twilio IoT, MQTT broker tokens
+
+[[rules]]
+id = "aws-iot-thing-certificate"
+description = "AWS IoT Core device certificate private key"
+severity = "critical"
+category = "cloud"
+regex = '''-----BEGIN EC PRIVATE KEY-----[\s\S]{0,50}-----END EC PRIVATE KEY-----'''
+keywords = ["EC PRIVATE KEY", "aws_iot", "AWS_IOT"]
+entropy = 4.5
+tags = ["aws", "iot", "tls", "cloud"]
+
+[[rules]]
+id = "particle-access-token"
+description = "Particle IoT platform device access token"
+severity = "high"
+category = "iot"
+regex = '''(?i)particle[._-]?(?:access[._-]?|device[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["particle", "PARTICLE_TOKEN"]
+entropy = 4.5
+tags = ["particle", "iot", "embedded"]
+
+[[rules]]
+id = "arduino-cloud-api-key"
+description = "Arduino IoT Cloud API key"
+severity = "high"
+category = "iot"
+regex = '''(?i)arduino[._-]?(?:cloud[._-]?|iot[._-]?)?(?:api[._-]?|client[._-]?)?(?:key|secret|token)\s*[=:]\s*['"]?([A-Za-z0-9]{32,48})['"]?'''
+keywords = ["arduino", "ARDUINO_IOT"]
+entropy = 4.0
+tags = ["arduino", "iot", "embedded"]
+
+[[rules]]
+id = "mqtt-broker-password"
+description = "MQTT broker connection password"
+severity = "high"
+category = "iot"
+regex = '''(?i)mqtt[._-]?(?:broker[._-]?)?(?:password|pass)\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["mqtt", "MQTT_PASSWORD", "MQTT_PASS"]
+entropy = 3.0
+tags = ["mqtt", "iot", "messaging"]
+
+[[rules]]
+id = "mosquitto-password"
+description = "Eclipse Mosquitto MQTT broker authentication"
+severity = "high"
+category = "iot"
+regex = '''(?i)mosquitto[._-]?(?:password|pass|user)\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["mosquitto", "MOSQUITTO"]
+entropy = 3.0
+tags = ["mosquitto", "mqtt", "iot"]
+
+[[rules]]
+id = "sparkfun-api-key"
+description = "SparkFun data.sparkfun.com API public/private key"
+severity = "high"
+category = "iot"
+regex = '''(?i)sparkfun[._-]?(?:private[._-]?|public[._-]?)?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9]{12,20})['"]?'''
+keywords = ["sparkfun"]
+entropy = 3.0
+tags = ["sparkfun", "iot", "embedded"]
+
+[[rules]]
+id = "balena-api-key"
+description = "Balena.io fleet management API key"
+severity = "high"
+category = "iot"
+regex = '''(?i)balena[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["balena", "BALENA_API"]
+entropy = 4.0
+tags = ["balena", "iot", "fleet"]
+
+[[rules]]
+id = "thingsboard-device-credentials"
+description = "ThingsBoard IoT platform device credentials"
+severity = "high"
+category = "iot"
+regex = '''(?i)thingsboard[._-]?(?:device[._-]?|access[._-]?)?(?:token|credentials)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{20})['"]?'''
+keywords = ["thingsboard"]
+entropy = 3.5
+tags = ["thingsboard", "iot"]

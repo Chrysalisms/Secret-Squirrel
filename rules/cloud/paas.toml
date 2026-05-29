@@ -1,0 +1,92 @@
+# Edge computing, serverless, and PaaS platform secrets
+# Covers Vercel, Netlify, Heroku, Railway, Render, fly.io
+
+[[rules]]
+id = "vercel-access-token"
+description = "Vercel deployment API access token"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)vercel[._-]?(?:access[._-]?|api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24})['"]?'''
+keywords = ["vercel", "VERCEL_TOKEN"]
+entropy = 3.5
+tags = ["vercel", "serverless", "paas"]
+
+[[rules]]
+id = "netlify-api-token"
+description = "Netlify deployment API personal access token"
+severity = "critical"
+category = "cloud"
+regex = '''(?i)netlify[._-]?(?:api[._-]?|personal[._-]?access[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40})['"]?'''
+keywords = ["netlify", "NETLIFY_AUTH_TOKEN"]
+entropy = 4.5
+tags = ["netlify", "serverless", "paas"]
+
+[[rules]]
+id = "railway-api-token"
+description = "Railway.app deployment platform API token"
+severity = "high"
+category = "cloud"
+regex = '''(?i)railway[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64})['"]?'''
+keywords = ["railway", "RAILWAY_TOKEN"]
+entropy = 4.5
+tags = ["railway", "paas", "cloud"]
+
+[[rules]]
+id = "render-api-key"
+description = "Render.com cloud hosting API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)render[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?(rnd_[A-Za-z0-9]{40})['"]?'''
+keywords = ["render", "rnd_", "RENDER_API_KEY"]
+entropy = 4.5
+tags = ["render", "paas", "cloud"]
+
+[[rules]]
+id = "flyio-api-token"
+description = "fly.io platform API token"
+severity = "high"
+category = "cloud"
+regex = '''(?i)(?:fly[._-]?io|flyio)[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["flyio", "fly.io", "FLY_API_TOKEN"]
+entropy = 4.0
+tags = ["fly.io", "paas", "cloud"]
+
+[[rules]]
+id = "cloudways-api-key"
+description = "Cloudways managed cloud hosting API key"
+severity = "high"
+category = "cloud"
+regex = '''(?i)cloudways[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{40,})['"]?'''
+keywords = ["cloudways"]
+entropy = 4.0
+tags = ["cloudways", "hosting", "paas"]
+
+[[rules]]
+id = "linode-api-v4-token"
+description = "Linode API v4 personal access token"
+severity = "high"
+category = "cloud"
+regex = '''(?i)linode[._-]?(?:api[._-]?v4[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{64})['"]?'''
+keywords = ["linode", "LINODE_API_TOKEN"]
+entropy = 4.5
+tags = ["linode", "akamai", "cloud"]
+
+[[rules]]
+id = "planetscale-service-token"
+description = "PlanetScale database service token"
+severity = "high"
+category = "database"
+regex = '''pscale_tkn_[A-Za-z0-9_\-]{40,50}'''
+keywords = ["pscale_tkn_", "planetscale"]
+entropy = 4.5
+tags = ["planetscale", "database", "mysql"]
+
+[[rules]]
+id = "neon-api-key"
+description = "Neon serverless PostgreSQL API key"
+severity = "high"
+category = "database"
+regex = '''(?i)neon[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["neon", "NEON_API_KEY"]
+entropy = 4.0
+tags = ["neon", "postgres", "database", "serverless"]

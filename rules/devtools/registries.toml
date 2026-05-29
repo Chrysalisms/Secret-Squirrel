@@ -1,0 +1,92 @@
+# Package registry and artifact management secrets
+# Covers npm, PyPI, RubyGems, Maven Central, JFrog Artifactory, Nexus
+
+[[rules]]
+id = "npm-access-token-v2"
+description = "npm token (legacy or granular access token starting with npm_)"
+severity = "critical"
+category = "devtools"
+regex = '''npm_[A-Za-z0-9]{36}'''
+keywords = ["npm_", "NPM_TOKEN", ".npmrc"]
+entropy = 4.0
+tags = ["npm", "registry", "javascript"]
+
+[[rules]]
+id = "pypi-api-token"
+description = "PyPI package upload token (pypi- prefix)"
+severity = "critical"
+category = "devtools"
+regex = '''pypi-[A-Za-z0-9_\-]{300,500}'''
+keywords = ["pypi-", "PYPI_TOKEN", "twine_password"]
+entropy = 5.0
+tags = ["pypi", "python", "registry"]
+
+[[rules]]
+id = "rubygems-api-key"
+description = "RubyGems.org API key"
+severity = "critical"
+category = "devtools"
+regex = '''(?i)rubygems[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,48})['"]?'''
+keywords = ["rubygems", "GEM_HOST_API_KEY", "RUBYGEMS_API"]
+entropy = 4.0
+tags = ["rubygems", "ruby", "registry"]
+
+[[rules]]
+id = "nexus-password"
+description = "Sonatype Nexus repository manager password"
+severity = "high"
+category = "devtools"
+regex = '''(?i)nexus[._-]?(?:admin[._-]?|repo[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["nexus", "NEXUS_PASSWORD", "NEXUS_ADMIN"]
+entropy = 3.0
+tags = ["nexus", "sonatype", "registry"]
+
+[[rules]]
+id = "gradle-signing-key"
+description = "Gradle plugin portal or Maven Central signing secret"
+severity = "high"
+category = "devtools"
+regex = '''(?i)(?:gradle|signing)[._-]?(?:in[._-]?memory[._-]?)?secret[._-]?(?:key|ring|subkey)\s*[=:]\s*['"]?([A-Za-z0-9+/=]{40,})['"]?'''
+keywords = ["gradle", "signing.secretKeyRingFile", "GRADLE_SIGNING"]
+entropy = 4.5
+tags = ["gradle", "signing", "maven"]
+
+[[rules]]
+id = "maven-central-credentials"
+description = "Maven Central / Sonatype OSSRH publishing credentials"
+severity = "high"
+category = "devtools"
+regex = '''(?i)(?:ossrh|sonatype|maven)[._-]?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["OSSRH_PASSWORD", "SONATYPE_PASSWORD"]
+entropy = 3.0
+tags = ["maven", "sonatype", "registry"]
+
+[[rules]]
+id = "nuget-api-key"
+description = "NuGet package registry API key"
+severity = "critical"
+category = "devtools"
+regex = '''(?i)nuget[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})['"]?'''
+keywords = ["nuget", "NUGET_TOKEN"]
+entropy = 3.0
+tags = ["nuget", "dotnet", "registry"]
+
+[[rules]]
+id = "dockerhub-token"
+description = "Docker Hub read/write access token"
+severity = "high"
+category = "devtools"
+regex = '''(?i)docker(?:hub)?[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?(dckr_pat_[A-Za-z0-9_\-]{22})['"]?'''
+keywords = ["docker", "DOCKERHUB_TOKEN", "DOCKER_PASSWORD"]
+entropy = 4.0
+tags = ["docker", "registry", "devtools"]
+
+[[rules]]
+id = "terraform-registry-token"
+description = "Terraform public registry or private module token"
+severity = "high"
+category = "devtools"
+regex = '''(?i)terraform[._-]?(?:registry[._-]?|module[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9]{14}\.atlasv1\.[A-Za-z0-9_\-]{60,80})['"]?'''
+keywords = ["TERRAFORM_REGISTRY", "tf_token"]
+entropy = 4.5
+tags = ["terraform", "registry", "hashicorp"]

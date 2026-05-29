@@ -26,8 +26,9 @@
 //! # });
 //! ```
 
-// When the mcp-server feature is disabled we still expose run_stdio so that
-// main.rs can call it unconditionally.
+// When the mcp-server feature is disabled we still expose run_stdio and
+// run_http so that main.rs can call them unconditionally inside
+// #[cfg(feature = "mcp-server")] blocks.
 #[cfg(not(feature = "mcp-server"))]
 pub async fn run_stdio() -> crate::error::Result<()> {
     tracing::warn!(
@@ -36,8 +37,19 @@ pub async fn run_stdio() -> crate::error::Result<()> {
     Ok(())
 }
 
+#[cfg(not(feature = "mcp-server"))]
+pub async fn run_http(_port: u16) -> crate::error::Result<()> {
+    tracing::warn!(
+        "MCP HTTP server not compiled in. Rebuild with --features mcp-server to enable."
+    );
+    Ok(())
+}
+
 #[cfg(feature = "mcp-server")]
 pub use self::mcp_impl::run_stdio;
+
+#[cfg(feature = "mcp-server")]
+pub use self::mcp_impl::run_http;
 
 /// Public façade for the MCP server.
 ///
@@ -77,9 +89,15 @@ mod mcp_impl {
     use std::path::{Path, PathBuf};
     use std::sync::Arc;
     use tracing::{info, warn};
+    // axum types used by run_http, health_handler, and mcp_handler
+    use axum::{
+        extract::State,
+        routing::{get, post},
+        Json, Router,
+    };
 
     use crate::config::SquirrelConfig;
-    use crate::engine::{pipeline::Pipeline, router::Router};
+    use crate::engine::{pipeline::Pipeline, router::Router as SquirrelRouter};
     use crate::rules::RuleRegistry;
     use crate::types::Fragment;
 
@@ -126,7 +144,7 @@ mod mcp_impl {
 
     impl SquirrelMcpServer {
         pub async fn new(config: &SquirrelConfig) -> crate::error::Result<Self> {
-            let router = Router::new(&config.gpu).await;
+            let router = SquirrelRouter::new(&config.gpu).await;
             let pipeline = Pipeline::new(router, config.pipeline.clone());
             let registry = RuleRegistry::load_defaults()?;
             Ok(Self { pipeline, registry })
@@ -268,6 +286,55 @@ mod mcp_impl {
             });
             CallToolResult::success(vec![Content::text(result.to_string())])
         }
+
+        // ── HTTP-facing helpers ───────────────────────────────────────────────
+
+        /// Return the list of available tools as a JSON array (for /mcp/v1
+        /// `tools/list` requests from HTTP clients).
+        pub fn list_tools_json(&self) -> serde_json::Value {
+            serde_json::json!([
+                {"name": "scan_text",  "description": "Scan inline text for secrets (<50ms)",
+                 "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}, "context": {"type": "string"}}, "required": ["text"]}},
+                {"name": "scan_file",  "description": "Scan a file for secrets (path-sandboxed)",
+                 "inputSchema": {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]}},
+                {"name": "scan_diff",  "description": "Scan a git unified diff for secrets (added lines only)",
+                 "inputSchema": {"type": "object", "properties": {"diff": {"type": "string"}}, "required": ["diff"]}},
+                {"name": "get_rules",  "description": "List all loaded detection rules",
+                 "inputSchema": {"type": "object", "properties": {"category": {"type": "string"}, "severity": {"type": "string"}}}},
+                {"name": "validate_finding", "description": "Validate a finding by its opaque ID",
+                 "inputSchema": {"type": "object", "properties": {"finding_id": {"type": "string"}}, "required": ["finding_id"]}},
+                {"name": "scan_repo",  "description": "Scan a full repository for secrets",
+                 "inputSchema": {"type": "object", "properties": {"path": {"type": "string"}, "depth": {"type": "integer"}}, "required": ["path"]}}
+            ])
+        }
+
+        /// Dispatch a JSON-RPC `tools/call` params object through the existing
+        /// per-tool handlers and return a JSON result (for HTTP clients).
+        pub async fn call_tool_json(&self, params: serde_json::Value) -> serde_json::Value {
+            let name = params
+                .get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or("");
+            // Normalise arguments: accept both "arguments" (MCP spec) and
+            // "params" (legacy) keys.
+            let args: Option<Value> = params
+                .get("arguments")
+                .or_else(|| params.get("params"))
+                .cloned();
+
+            let result: CallToolResult = match name {
+                "scan_text"        => self.handle_scan_text(args),
+                "scan_file"        => self.handle_scan_file(args),
+                "scan_diff"        => self.handle_scan_diff(args),
+                "get_rules"        => self.handle_get_rules(),
+                "validate_finding" => self.handle_validate_finding(args),
+                other => CallToolResult::error(vec![Content::text(format!("Unknown tool: {other}"))]),
+            };
+
+            // Serialise CallToolResult to a plain JSON value so the HTTP handler
+            // can embed it in a JSON-RPC 2.0 response envelope.
+            serde_json::to_value(&result).unwrap_or_else(|_| serde_json::json!({"error": "serialisation error"}))
+        }
     }
 
     // =========================================================================
@@ -357,10 +424,87 @@ mod mcp_impl {
         info!("MCP server exited cleanly");
         Ok(())
     }
-}
+
+    // =========================================================================
+    // HTTP server entry point
+    // =========================================================================
+
+    pub async fn run_http(port: u16) -> crate::error::Result<()> {
+        let config = SquirrelConfig::default();
+        let server = Arc::new(SquirrelMcpServer::new(&config).await?);
+
+        let app = Router::new()
+            .route("/health", get(health_handler))
+            .route("/mcp/v1", post(mcp_handler))
+            .with_state(server);
+
+        let addr = format!("0.0.0.0:{port}");
+        let listener = tokio::net::TcpListener::bind(&addr)
+            .await
+            .map_err(crate::error::SquirrelError::Io)?;
+
+        axum::serve(listener, app)
+            .await
+            .map_err(|e| crate::error::SquirrelError::Mcp(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn health_handler() -> Json<serde_json::Value> {
+        Json(serde_json::json!({
+            "status": "ok",
+            "service": "secret-squirrel",
+            "version": env!("CARGO_PKG_VERSION")
+        }))
+    }
+
+    async fn mcp_handler(
+        State(server): State<std::sync::Arc<SquirrelMcpServer>>,
+        Json(request): Json<serde_json::Value>,
+    ) -> Json<serde_json::Value> {
+        let method = request
+            .get("method")
+            .and_then(|m| m.as_str())
+            .unwrap_or("");
+        let id = request
+            .get("id")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
+
+        let response = match method {
+            "tools/list" => {
+                let tools = server.list_tools_json();
+                serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "result": { "tools": tools }
+                })
+            }
+            "tools/call" => {
+                let params = request
+                    .get("params")
+                    .cloned()
+                    .unwrap_or_default();
+                let result = server.call_tool_json(params).await;
+                serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "result": result
+                })
+            }
+            _ => serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "error": { "code": -32601, "message": "Method not found" }
+            }),
+        };
+
+        Json(response)
+    }
+} // end mcp_impl
 
 // ============================================================================
-// Tests (feature-gated; only test logic that doesn't require a running server)
+// Tests (always compiled; only test logic that doesn't require a running server)
 // ============================================================================
 
 #[cfg(test)]

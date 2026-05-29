@@ -1,0 +1,206 @@
+# Secret Squirrel — AWS Extended Rules
+# Additional AWS-specific secret detection rules beyond default.toml
+
+# ==============================================================================
+# AWS — Marketplace Web Service Key
+# ==============================================================================
+
+[[rules]]
+id = "aws-mws-key"
+description = "AWS Marketplace Web Service (MWS) Authentication Token"
+regex = '''amzn\.mws\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
+keywords = ["amzn.mws.", "mws"]
+severity = "critical"
+category = "cloud"
+tags = ["aws", "mws", "marketplace", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'amzn\.mws\.00000000-0000-0000-0000-000000000000',
+    'amzn\.mws\.example',
+    'YOUR_MWS_KEY',
+]
+remediation = "Revoke at https://sellercentral.amazon.com → Settings → User permissions → MWS credentials and rotate all dependent services."
+
+# ==============================================================================
+# AWS — S3 Pre-Signed URL
+# ==============================================================================
+
+[[rules]]
+id = "aws-s3-presigned-url"
+description = "AWS S3 Pre-Signed URL containing X-Amz-Signature"
+regex = '''https://[a-zA-Z0-9\-\.]{1,100}\.s3(?:\.[a-z0-9\-]{1,30})?\.amazonaws\.com/[^\s"']{1,500}X-Amz-Signature=[a-f0-9]{64}'''
+keywords = ["X-Amz-Signature", "x-amz-signature", "amazonaws.com"]
+severity = "high"
+category = "cloud"
+tags = ["aws", "s3", "presigned", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'X-Amz-Signature=EXAMPLE',
+    'X-Amz-Signature=0{64}',
+    'example\.s3\.amazonaws\.com',
+]
+remediation = "Pre-signed URLs expire automatically; shorten the expiry window and avoid embedding them in source code. Audit S3 bucket policies for over-permissive ACLs."
+
+# ==============================================================================
+# AWS — CloudFront Key Pair ID
+# ==============================================================================
+
+[[rules]]
+id = "aws-cloudfront-key-pair"
+description = "AWS CloudFront Key Pair ID (used for signed URLs/cookies)"
+regex = '''(?i)(?:cloudfront[_\-\.\s]{0,5}key[_\-\.\s]{0,5}(?:pair[_\-\.\s]{0,5})?id|CF_KEY_PAIR_ID)\s{0,5}[:=]\s{0,5}["']?(APKA[A-Z0-9]{16})["']?'''
+keywords = ["cloudfront", "APKA", "CF_KEY_PAIR_ID"]
+severity = "high"
+category = "cloud"
+tags = ["aws", "cloudfront", "cdn", "cloud"]
+entropy_threshold = 2.5
+allowlist = [
+    'APKAEXAMPLE',
+    'APKAYOURKEY',
+    'YOUR_KEY_PAIR_ID',
+]
+remediation = "Rotate the CloudFront key pair at https://console.aws.amazon.com/iam/ → Security credentials → CloudFront key pairs."
+
+# ==============================================================================
+# AWS — SES SMTP Password
+# ==============================================================================
+
+[[rules]]
+id = "aws-ses-smtp-password"
+description = "AWS SES SMTP password derived from a secret access key"
+regex = '''(?i)(?:ses[_\-]?smtp[_\-]?(?:password|pass|pwd)|SMTP_PASSWORD)\s{0,5}[:=]\s{0,5}["']?([A-Za-z0-9+/]{44,})["']?'''
+keywords = ["ses_smtp", "SMTP_PASSWORD", "ses-smtp"]
+severity = "critical"
+category = "cloud"
+tags = ["aws", "ses", "smtp", "email", "cloud"]
+entropy_threshold = 4.0
+allowlist = [
+    'SMTP_PASSWORD=YOUR_SMTP_PASSWORD',
+    'SMTP_PASSWORD=changeme',
+    'SMTP_PASSWORD=<',
+    'SMTP_PASSWORD=$\{',
+]
+remediation = "SES SMTP passwords are derived from IAM credentials. Rotate the underlying IAM secret access key at https://console.aws.amazon.com/iam/."
+
+# ==============================================================================
+# AWS — CodeCommit Git Credentials
+# ==============================================================================
+
+[[rules]]
+id = "aws-codecommit-git-credentials"
+description = "AWS CodeCommit HTTPS Git credentials (username:password in remote URL)"
+regex = '''https://[a-zA-Z0-9_\-\.]{4,100}:[a-zA-Z0-9+=/]{20,100}@git-codecommit\.[a-z0-9\-]{1,30}\.amazonaws\.com'''
+keywords = ["git-codecommit", "amazonaws.com"]
+severity = "critical"
+category = "cloud"
+tags = ["aws", "codecommit", "git", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'username:password@git-codecommit',
+    'YOUR_USER:YOUR_PASS@git-codecommit',
+    'example@git-codecommit',
+]
+remediation = "Revoke CodeCommit HTTPS Git credentials at https://console.aws.amazon.com/iam/ → Users → Security credentials → HTTPS Git credentials for AWS CodeCommit."
+
+# ==============================================================================
+# AWS — SSO Access Token
+# ==============================================================================
+
+[[rules]]
+id = "aws-sso-access-token"
+description = "AWS SSO / IAM Identity Center short-lived access token stored in ~/.aws/sso/cache"
+regex = '''(?i)"accessToken"\s{0,3}:\s{0,3}"([a-zA-Z0-9+/]{300,}={0,2})"'''
+keywords = ["accessToken", "sso", "aws-sso"]
+severity = "high"
+category = "cloud"
+tags = ["aws", "sso", "iam-identity-center", "cloud"]
+entropy_threshold = 4.0
+allowlist = [
+    '"accessToken": "EXAMPLE"',
+    '"accessToken": "<',
+    '"accessToken": "$\{',
+]
+remediation = "AWS SSO tokens expire in 8–24 hours. Run `aws sso logout` to invalidate the cached token and re-authenticate. Ensure sso/cache directories are not committed to version control."
+
+# ==============================================================================
+# AWS — Account ID near IAM ARN
+# ==============================================================================
+
+[[rules]]
+id = "aws-account-id"
+description = "AWS 12-digit Account ID embedded in an IAM ARN or assignment"
+regex = '''arn:aws(?:-[a-z]{2,10})?:[a-z0-9\-]{1,30}:[a-z0-9\-]{0,20}:(\d{12}):'''
+keywords = ["arn:aws", "iam", "arn:aws-cn", "arn:aws-us-gov"]
+severity = "medium"
+category = "cloud"
+tags = ["aws", "iam", "account-id", "cloud"]
+entropy_threshold = 0.0
+allowlist = [
+    'arn:aws:iam::123456789012:',
+    'arn:aws:iam::000000000000:',
+    'ACCOUNT_ID',
+    '111111111111',
+    '222222222222',
+]
+remediation = "AWS Account IDs are not secrets themselves, but combined with exposed credentials they aid attackers. Avoid embedding account IDs in public repositories."
+
+# ==============================================================================
+# AWS — Cognito App Client Secret
+# ==============================================================================
+
+[[rules]]
+id = "aws-cognito-app-client-secret"
+description = "AWS Cognito User Pool App Client Secret"
+regex = '''(?i)(?:cognito[_\-\.\s]{0,5}(?:app[_\-\.\s]{0,5})?(?:client[_\-\.\s]{0,5})?secret|COGNITO_CLIENT_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{50,60})["']?'''
+keywords = ["cognito", "COGNITO_CLIENT_SECRET", "cognito_client_secret"]
+severity = "critical"
+category = "cloud"
+tags = ["aws", "cognito", "oauth", "cloud"]
+entropy_threshold = 4.0
+allowlist = [
+    'COGNITO_CLIENT_SECRET=YOUR_SECRET',
+    'COGNITO_CLIENT_SECRET=changeme',
+    'COGNITO_CLIENT_SECRET=<',
+    'cognito_client_secret = ""',
+]
+remediation = "Rotate the Cognito App Client secret at AWS Console → Cognito → User Pools → App clients → Rotate secret. Update all dependent Lambda functions and API Gateway authorizers."
+
+# ==============================================================================
+# AWS — Amplify API Key
+# ==============================================================================
+
+[[rules]]
+id = "aws-amplify-key"
+description = "AWS AppSync / Amplify API Key"
+regex = '''da2-[a-z0-9]{26}'''
+keywords = ["da2-", "amplify", "appsync"]
+severity = "high"
+category = "cloud"
+tags = ["aws", "amplify", "appsync", "graphql", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'da2-EXAMPLE',
+    'da2-xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    'da2-your-api-key-here',
+]
+remediation = "Rotate at AWS AppSync Console → Settings → API keys, or run `amplify update api`. API keys expire within 365 days but must be rotated immediately if leaked."
+
+# ==============================================================================
+# AWS — Pinpoint Project ID
+# ==============================================================================
+
+[[rules]]
+id = "aws-pinpoint-project-id"
+description = "AWS Pinpoint Project / Application ID"
+regex = '''(?i)(?:pinpoint[_\-\.\s]{0,5}(?:project|application|app)[_\-\.\s]{0,5}id|PINPOINT_APP_ID|PINPOINT_PROJECT_ID)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["pinpoint", "PINPOINT_APP_ID", "PINPOINT_PROJECT_ID"]
+severity = "medium"
+category = "cloud"
+tags = ["aws", "pinpoint", "mobile", "cloud"]
+entropy_threshold = 2.5
+allowlist = [
+    'PINPOINT_APP_ID=YOUR_APP_ID',
+    'PINPOINT_APP_ID=00000000000000000000000000000000',
+    'PINPOINT_PROJECT_ID=<',
+]
+remediation = "Pinpoint Application IDs are not themselves credentials, but combined with leaked IAM keys they allow message sending. Rotate any associated IAM credentials and restrict Pinpoint IAM policies."

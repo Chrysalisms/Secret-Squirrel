@@ -1,0 +1,13 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-robinhoodcrypto"
+description = "Parity rule for robinhoodcrypto"
+severity = "high"
+category = "crypto"
+keywords = ["robinhoodcrypto"]
+regex = '''(?i)robinhoodcrypto.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

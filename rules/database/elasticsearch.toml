@@ -1,0 +1,67 @@
+# Secret Squirrel — Elasticsearch Rules
+# Elasticsearch / OpenSearch secret detection rules
+
+# ==============================================================================
+# Elasticsearch — API Key
+# ==============================================================================
+
+[[rules]]
+id = "elasticsearch-api-key"
+description = "Elasticsearch API key (base64-encoded id:api_key pair)"
+regex = '''(?i)(?:elasticsearch[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?key|ES_API_KEY|ELASTIC_API_KEY|ELASTICSEARCH_API_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{50,200}={0,2})["']?'''
+keywords = ["ES_API_KEY", "ELASTIC_API_KEY", "ELASTICSEARCH_API_KEY", "elasticsearch_api_key"]
+severity = "critical"
+category = "database"
+tags = ["elasticsearch", "elastic", "database"]
+entropy_threshold = 4.0
+allowlist = [
+    'ES_API_KEY=YOUR_API_KEY',
+    'ELASTIC_API_KEY=<',
+    'ELASTICSEARCH_API_KEY=$\{',
+    'elasticsearch_api_key = ""',
+]
+remediation = "Revoke at Kibana → Stack Management → API keys. API keys inherit the permissions of the creating user; rotate and use minimal privilege keys."
+
+# ==============================================================================
+# Elasticsearch — Cloud ID
+# ==============================================================================
+
+[[rules]]
+id = "elasticsearch-cloud-id"
+description = "Elasticsearch Cloud ID (Elastic Cloud deployment identifier)"
+regex = '''(?i)(?:elastic(?:search)?[_\-\.\s]{0,10}cloud[_\-\.\s]{0,10}id|ELASTIC_CLOUD_ID|ELASTICSEARCH_CLOUD_ID|ES_CLOUD_ID)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]+:[a-zA-Z0-9+/=]{40,200})["']?'''
+keywords = ["ELASTIC_CLOUD_ID", "ELASTICSEARCH_CLOUD_ID", "ES_CLOUD_ID", "elastic_cloud_id"]
+severity = "medium"
+category = "database"
+tags = ["elasticsearch", "elastic-cloud", "database"]
+entropy_threshold = 3.0
+allowlist = [
+    'ELASTIC_CLOUD_ID=YOUR_CLOUD_ID',
+    'ES_CLOUD_ID=<',
+    'ELASTICSEARCH_CLOUD_ID=$\{',
+    'elastic_cloud_id = ""',
+]
+remediation = "Cloud IDs are not secrets themselves but combined with API keys grant cluster access. Rotate any associated API keys at https://cloud.elastic.co."
+
+# ==============================================================================
+# Elasticsearch — URL with Credentials
+# ==============================================================================
+
+[[rules]]
+id = "elasticsearch-username-password"
+description = "Elasticsearch URL or connection string with embedded username:password"
+regex = '''https?://[^:@\s"']{1,100}:[^@\s"']{3,100}@[a-zA-Z0-9\.\-]{1,100}(?::\d{1,5})?(?:/_|/[a-zA-Z0-9_\-]{1,100})?'''
+keywords = ["elasticsearch", "elastic://", "ES_HOST", "ELASTICSEARCH_HOST", "elastic:"]
+severity = "critical"
+category = "database"
+tags = ["elasticsearch", "database", "credentials"]
+entropy_threshold = 2.5
+allowlist = [
+    'https://elastic:changeme@',
+    'https://user:password@',
+    'https://elastic:password@localhost',
+    'https://\$\{',
+    'http://elastic:password@',
+    'https://example.com',
+]
+remediation = "Rotate the Elasticsearch user password and use API keys instead of username:password authentication. Enable TLS and disable the default elastic superuser in production."

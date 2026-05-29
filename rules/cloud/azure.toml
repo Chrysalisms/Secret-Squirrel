@@ -1,0 +1,169 @@
+# Secret Squirrel — Azure Rules
+# Azure cloud secret detection rules
+
+# ==============================================================================
+# Azure — Storage Account Connection String
+# ==============================================================================
+
+[[rules]]
+id = "azure-storage-connection-string"
+description = "Azure Storage Account connection string with AccountKey"
+regex = '''DefaultEndpointsProtocol=https?;AccountName=[a-z0-9]{3,24};AccountKey=[a-zA-Z0-9+/]{86}==;EndpointSuffix='''
+keywords = ["DefaultEndpointsProtocol", "AccountKey", "EndpointSuffix"]
+severity = "critical"
+category = "cloud"
+tags = ["azure", "storage", "connection-string", "cloud"]
+entropy_threshold = 4.0
+allowlist = [
+    'AccountKey=YOUR_ACCOUNT_KEY',
+    'AccountKey=EXAMPLE',
+    'AccountName=devstoreaccount1',
+    'UseDevelopmentStorage=true',
+]
+remediation = "Rotate the Storage Account key at Azure Portal → Storage Accounts → Access keys → Rotate key. Use Azure Key Vault and Managed Identities instead of connection strings."
+
+# ==============================================================================
+# Azure — SAS Token
+# ==============================================================================
+
+[[rules]]
+id = "azure-sas-token"
+description = "Azure Shared Access Signature (SAS) token"
+regex = '''(?:sv=20[12][0-9]-[01][0-9]-[0-3][0-9]|se=20[12][0-9])[^\s"']{20,300}(?:&sig=|sig=)[a-zA-Z0-9%+/]{40,100}(?:={0,2})'''
+keywords = ["sv=", "sig=", "se=", "sas", "SharedAccessSignature"]
+severity = "high"
+category = "cloud"
+tags = ["azure", "storage", "sas", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'sig=EXAMPLE',
+    'sig=YOUR_SIGNATURE',
+    'se=2020-01-01',
+]
+remediation = "SAS tokens cannot be revoked individually; revoke the parent Storage Account key to invalidate all SAS tokens. Re-generate with minimal permissions and short expiry."
+
+# ==============================================================================
+# Azure — AD Client Secret (beyond default.toml entry)
+# ==============================================================================
+
+[[rules]]
+id = "azure-ad-client-secret-v2"
+description = "Azure AD / Entra ID application client secret (newer format)"
+regex = '''(?i)(?:client[_\-]?secret|AZURE_CLIENT_SECRET|AAD_CLIENT_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9~._\-]{34,40})["']?'''
+keywords = ["client_secret", "AZURE_CLIENT_SECRET", "AAD_CLIENT_SECRET", "azure_client_secret"]
+severity = "critical"
+category = "cloud"
+tags = ["azure", "ad", "entra", "oauth", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'AZURE_CLIENT_SECRET=YOUR_CLIENT_SECRET',
+    'AZURE_CLIENT_SECRET=<',
+    'AZURE_CLIENT_SECRET=$\{',
+    'client_secret = ""',
+    'client_secret = "changeme"',
+]
+remediation = "Rotate at Azure Portal → Azure Active Directory → App registrations → Certificates & secrets → New client secret."
+
+# ==============================================================================
+# Azure — AD Refresh Token
+# ==============================================================================
+
+[[rules]]
+id = "azure-ad-refresh-token"
+description = "Azure AD / MSAL OAuth2 refresh token"
+regex = '''(?i)(?:refresh[_\-]?token|AZURE_REFRESH_TOKEN)\s{0,5}[:=]\s{0,5}["']?(0\.A[a-zA-Z0-9_\-\.]{100,600})["']?'''
+keywords = ["refresh_token", "AZURE_REFRESH_TOKEN", "0.A"]
+severity = "critical"
+category = "cloud"
+tags = ["azure", "ad", "oauth", "refresh-token", "cloud"]
+entropy_threshold = 4.0
+allowlist = [
+    'AZURE_REFRESH_TOKEN=YOUR_REFRESH_TOKEN',
+    'refresh_token = ""',
+    'refresh_token = "<',
+]
+remediation = "Revoke all tokens for the affected user at Azure AD → Users → Revoke sessions. Audit sign-in logs for unauthorized access."
+
+# ==============================================================================
+# Azure — CosmosDB Master Key
+# ==============================================================================
+
+[[rules]]
+id = "azure-cosmosdb-master-key"
+description = "Azure Cosmos DB primary or secondary master key (base64, ~88 chars)"
+regex = '''(?i)(?:cosmos[_\-]?(?:db[_\-]?)?(?:key|master[_\-]?key|primary[_\-]?key)|COSMOSDB_KEY|COSMOS_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{86}==)["']?'''
+keywords = ["cosmosdb", "COSMOSDB_KEY", "COSMOS_KEY", "cosmos_key"]
+severity = "critical"
+category = "cloud"
+tags = ["azure", "cosmosdb", "cloud"]
+entropy_threshold = 4.5
+allowlist = [
+    'COSMOSDB_KEY=YOUR_KEY',
+    'COSMOS_KEY=<',
+    'COSMOS_KEY=$\{',
+    'cosmos_key = ""',
+]
+remediation = "Rotate at Azure Portal → Azure Cosmos DB → Keys → Regenerate primary key. Use Azure Managed Identity to avoid storing keys in application configuration."
+
+# ==============================================================================
+# Azure — Cognitive Services API Key
+# ==============================================================================
+
+[[rules]]
+id = "azure-cognitive-services-key"
+description = "Azure Cognitive Services / AI Services subscription key"
+regex = '''(?i)(?:cognitive[_\-]?(?:services[_\-]?)?(?:key|api[_\-]?key|subscription[_\-]?key)|AZURE_COGNITIVE_KEY|COGNITIVE_SERVICES_KEY|SPEECH_KEY|VISION_KEY|TRANSLATOR_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["cognitive", "AZURE_COGNITIVE_KEY", "COGNITIVE_SERVICES_KEY", "SPEECH_KEY", "VISION_KEY"]
+severity = "critical"
+category = "cloud"
+tags = ["azure", "cognitive", "ai-services", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'COGNITIVE_SERVICES_KEY=YOUR_KEY',
+    'COGNITIVE_SERVICES_KEY=00000000000000000000000000000000',
+    'SPEECH_KEY=<',
+    'VISION_KEY=$\{',
+]
+remediation = "Rotate at Azure Portal → Cognitive Services → Keys and Endpoint → Regenerate key. Restrict access using Azure Virtual Networks and Private Endpoints."
+
+# ==============================================================================
+# Azure — DevOps Personal Access Token
+# ==============================================================================
+
+[[rules]]
+id = "azure-devops-pat"
+description = "Azure DevOps Personal Access Token"
+regex = '''(?i)(?:azure[_\-]?devops[_\-]?(?:pat|token|access[_\-]?token)|ADO_PAT|AZURE_DEVOPS_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-z2-7]{52})["']?'''
+keywords = ["azure_devops", "ADO_PAT", "AZURE_DEVOPS_TOKEN", "devops_pat"]
+severity = "critical"
+category = "cloud"
+tags = ["azure", "devops", "pat", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'ADO_PAT=YOUR_PAT',
+    'ADO_PAT=<',
+    'ADO_PAT=$\{',
+    'azure_devops_pat = ""',
+]
+remediation = "Revoke at https://dev.azure.com → User settings → Personal access tokens. Audit repository access and pipeline execution history."
+
+# ==============================================================================
+# Azure — Management API Key / Subscription Key
+# ==============================================================================
+
+[[rules]]
+id = "azure-management-api-key"
+description = "Azure API Management subscription key"
+regex = '''(?i)(?:ocp-apim-subscription-key|Ocp-Apim-Subscription-Key|APIM_SUBSCRIPTION_KEY|AZURE_API_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["Ocp-Apim-Subscription-Key", "ocp-apim-subscription-key", "APIM_SUBSCRIPTION_KEY"]
+severity = "high"
+category = "cloud"
+tags = ["azure", "apim", "api-management", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'Ocp-Apim-Subscription-Key: YOUR_KEY',
+    'Ocp-Apim-Subscription-Key: 00000000000000000000000000000000',
+    'APIM_SUBSCRIPTION_KEY=<',
+    'APIM_SUBSCRIPTION_KEY=$\{',
+]
+remediation = "Regenerate the subscription key at Azure Portal → API Management → Subscriptions → Regenerate primary key."

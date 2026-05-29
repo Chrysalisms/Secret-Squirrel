@@ -1,0 +1,85 @@
+# Secret Squirrel — Tencent Cloud / WeChat Platform Secrets
+# Covers the CredData "tencent wechat api app id" category (47 secrets, 2.1% recall)
+
+# ==============================================================================
+# Tencent Cloud / WeChat AppID
+# Format: wx + 16 hex chars (wx followed by 16 lowercase hex)
+# ==============================================================================
+
+[[rules]]
+id = "tencent-wechat-app-id"
+description = "Tencent WeChat or mini-program AppID"
+regex = '''\b(wx[0-9a-f]{16})\b'''
+keywords = ["wx", "wxappid", "appId", "AppId", "APPID", "wechat", "WeChat"]
+severity = "medium"
+category = "saas"
+tags = ["tencent", "wechat", "app-id", "china", "saas"]
+entropy_threshold = 2.0
+allowlist = [
+    'wx0000000000000000',
+    'wxexample',
+    'wxTEST',
+]
+remediation = "WeChat AppIDs are semi-public but should not be in public repositories. The AppSecret is the sensitive credential — rotate it at mp.weixin.qq.com → Settings → WeChat ID Info."
+
+# ==============================================================================
+# Tencent Cloud / WeChat AppSecret
+# Format: 32 hex characters, often paired with AppID
+# ==============================================================================
+
+[[rules]]
+id = "tencent-wechat-app-secret"
+description = "Tencent WeChat AppSecret (paired with AppID)"
+regex = '''(?i)(?:app[_\-]?secret|appsecret|AppSecret|SECRET|secret)\s{0,5}[:=]\s{0,5}["']?(?!\s*["'])(?!\$\{)(?!<)(?!YOUR)(?!EXAMPLE)([0-9a-f]{32})["']?'''
+keywords = ["AppSecret", "appsecret", "app_secret", "wechat", "WeChat"]
+severity = "critical"
+category = "saas"
+tags = ["tencent", "wechat", "app-secret", "china", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'AppSecret=YOUR_SECRET',
+    'AppSecret=<',
+    'AppSecret="$\{',
+    'AppSecret=00000000000000000000000000000000',
+    'app_secret = ""',
+    'app_secret = None',
+]
+remediation = "Rotate the WeChat AppSecret at mp.weixin.qq.com → Settings → WeChat ID Info → AppSecret. All stored access tokens using this secret are immediately invalidated."
+
+# ==============================================================================
+# Tencent Cloud SecretId / SecretKey
+# ==============================================================================
+
+[[rules]]
+id = "tencent-cloud-secret-id"
+description = "Tencent Cloud SecretId (API access identity)"
+regex = '''\b(AKI[DA-Z0-9]{35,40})\b'''
+keywords = ["SecretId", "secretId", "AKID", "tencent", "TencentCloud"]
+severity = "high"
+category = "cloud"
+tags = ["tencent", "cloud", "secret-id", "china"]
+entropy_threshold = 3.5
+allowlist = [
+    'AKIDexample',
+    'AKIDYOUR_SECRET_ID',
+]
+remediation = "Rotate the Tencent Cloud SecretId/SecretKey at console.cloud.tencent.com → Cloud Access Management → Access Keys."
+
+[[rules]]
+id = "tencent-cloud-secret-key"
+description = "Tencent Cloud SecretKey (API signing key)"
+regex = '''(?i)(?:secret[_\-]?key|secretkey|SecretKey|SECRETKEY|tencent[_\-]?secret|TC[_\-]?SECRET_KEY)\s{0,5}[:=]\s{0,5}["']?(?!\s*["'])(?!\$\{)(?!<)(?!YOUR)(?!EXAMPLE)([A-Za-z0-9]{32,40})["']?'''
+keywords = ["SecretKey", "secretKey", "secret_key", "TencentCloud", "tencent"]
+severity = "critical"
+category = "cloud"
+tags = ["tencent", "cloud", "secret-key", "china"]
+entropy_threshold = 4.0
+allowlist = [
+    'SecretKey=YOUR_SECRET_KEY',
+    'SecretKey=<',
+    'SecretKey="$\{',
+    'secret_key = ""',
+    'secret_key = None',
+    'secret_key = "changeme"',
+]
+remediation = "Rotate the Tencent Cloud SecretKey at console.cloud.tencent.com → Cloud Access Management → Access Keys. Audit CloudTrail logs for unauthorized API usage."

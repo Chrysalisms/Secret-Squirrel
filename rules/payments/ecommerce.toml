@@ -1,0 +1,92 @@
+# E-commerce and marketplace service secrets
+# Covers Shopify, WooCommerce, Magento, Square, Braintree
+
+[[rules]]
+id = "shopify-partner-api-key"
+description = "Shopify Partner API key"
+severity = "high"
+category = "payments"
+regex = '''(?i)shopify[._-]?(?:partner[._-]?)?(?:api[._-]?)?(?:key|token|secret)\s*[=:]\s*['"]?([a-fA-F0-9]{32})['"]?'''
+keywords = ["shopify"]
+entropy = 4.0
+tags = ["shopify", "ecommerce", "payments"]
+
+[[rules]]
+id = "shopify-access-token"
+description = "Shopify private app access token or custom app token"
+severity = "critical"
+category = "payments"
+regex = '''shpat_[a-fA-F0-9]{32}|shpca_[a-fA-F0-9]{32}|shppa_[a-fA-F0-9]{32}|shpss_[a-fA-F0-9]{32}|shptk_[a-fA-F0-9]{32}|shpua_[a-fA-F0-9]{32}'''
+keywords = ["shpat_", "shpca_", "shppa_", "shpss_", "shptk_"]
+entropy = 4.0
+tags = ["shopify", "ecommerce", "payments"]
+
+[[rules]]
+id = "shopify-shared-secret"
+description = "Shopify app shared secret for webhook validation"
+severity = "high"
+category = "payments"
+regex = '''(?i)shopify[._-]?(?:api[._-]?)?(?:shared[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["shopify"]
+entropy = 4.0
+tags = ["shopify", "ecommerce", "payments", "webhook"]
+
+[[rules]]
+id = "braintree-access-token"
+description = "Braintree payment gateway access token"
+severity = "critical"
+category = "payments"
+regex = '''access_token\$production\$[a-z0-9]{16}\$[a-f0-9]{32}'''
+keywords = ["braintree", "access_token$production$"]
+entropy = 4.0
+tags = ["braintree", "payments"]
+
+[[rules]]
+id = "braintree-sandbox-token"
+description = "Braintree sandbox access token (for testing)"
+severity = "medium"
+category = "payments"
+regex = '''access_token\$sandbox\$[a-z0-9]{16}\$[a-f0-9]{32}'''
+keywords = ["braintree", "access_token$sandbox$"]
+entropy = 4.0
+tags = ["braintree", "payments", "sandbox"]
+
+[[rules]]
+id = "woocommerce-key"
+description = "WooCommerce REST API consumer key or secret"
+severity = "high"
+category = "payments"
+regex = '''(?i)woocommerce[._-]?(?:consumer[._-]?)?(?:key|secret)\s*[=:]\s*['"]?(ck_[a-f0-9]{40}|cs_[a-f0-9]{40})['"]?'''
+keywords = ["woocommerce", "ck_", "cs_"]
+entropy = 4.0
+tags = ["woocommerce", "ecommerce", "payments"]
+
+[[rules]]
+id = "etsy-api-key"
+description = "Etsy API key"
+severity = "high"
+category = "payments"
+regex = '''(?i)etsy[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-zA-Z0-9]{24})['"]?'''
+keywords = ["etsy"]
+entropy = 3.5
+tags = ["etsy", "ecommerce", "payments"]
+
+[[rules]]
+id = "razorpay-key-id"
+description = "Razorpay API key ID (India payments)"
+severity = "high"
+category = "payments"
+regex = '''rzp_(?:live|test)_[a-zA-Z0-9]{14}'''
+keywords = ["rzp_live_", "rzp_test_"]
+entropy = 3.5
+tags = ["razorpay", "payments", "india"]
+
+[[rules]]
+id = "razorpay-key-secret"
+description = "Razorpay API key secret"
+severity = "critical"
+category = "payments"
+regex = '''(?i)razorpay[._-]?(?:key[._-]?)?secret\s*[=:]\s*['"]?([a-zA-Z0-9]{20,})['"]?'''
+keywords = ["razorpay"]
+entropy = 4.0
+tags = ["razorpay", "payments", "india"]

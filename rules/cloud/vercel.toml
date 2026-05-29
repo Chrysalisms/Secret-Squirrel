@@ -1,0 +1,65 @@
+# Secret Squirrel — Vercel Rules
+# Vercel deployment platform secret detection rules
+
+# ==============================================================================
+# Vercel — API Token
+# ==============================================================================
+
+[[rules]]
+id = "vercel-api-token"
+description = "Vercel personal access token or team token"
+regex = '''(?i)(?:vercel[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?token|VERCEL_TOKEN|VERCEL_API_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{24})["']?'''
+keywords = ["VERCEL_TOKEN", "VERCEL_API_TOKEN", "vercel_token"]
+severity = "critical"
+category = "cloud"
+tags = ["vercel", "deployment", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'VERCEL_TOKEN=YOUR_TOKEN',
+    'VERCEL_API_TOKEN=<',
+    'VERCEL_TOKEN=$\{',
+    'vercel_token = ""',
+]
+remediation = "Revoke at https://vercel.com/account/tokens and generate a replacement with minimum required scope. Audit deployment history for unauthorized deployments."
+
+# ==============================================================================
+# Vercel — OAuth Client Secret
+# ==============================================================================
+
+[[rules]]
+id = "vercel-oauth-client-secret"
+description = "Vercel OAuth application client secret"
+regex = '''(?i)(?:vercel[_\-\.\s]{0,10}(?:oauth[_\-\.\s]{0,5})?(?:client[_\-\.\s]{0,5})?secret|VERCEL_CLIENT_SECRET|VERCEL_OAUTH_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9]{32})["']?'''
+keywords = ["VERCEL_CLIENT_SECRET", "VERCEL_OAUTH_SECRET", "vercel_client_secret"]
+severity = "critical"
+category = "cloud"
+tags = ["vercel", "oauth", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'VERCEL_CLIENT_SECRET=YOUR_SECRET',
+    'VERCEL_OAUTH_SECRET=<',
+    'VERCEL_CLIENT_SECRET=$\{',
+    'vercel_client_secret = ""',
+]
+remediation = "Rotate the OAuth client secret at https://vercel.com/account/integrations and update any integrations that use it."
+
+# ==============================================================================
+# Vercel — Webhook Secret
+# ==============================================================================
+
+[[rules]]
+id = "vercel-webhook-secret"
+description = "Vercel webhook signing secret"
+regex = '''(?i)(?:vercel[_\-\.\s]{0,10}webhook[_\-\.\s]{0,10}secret|VERCEL_WEBHOOK_SECRET)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9_\-]{32,64})["']?'''
+keywords = ["VERCEL_WEBHOOK_SECRET", "vercel_webhook_secret"]
+severity = "high"
+category = "cloud"
+tags = ["vercel", "webhook", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'VERCEL_WEBHOOK_SECRET=YOUR_SECRET',
+    'VERCEL_WEBHOOK_SECRET=<',
+    'VERCEL_WEBHOOK_SECRET=$\{',
+    'vercel_webhook_secret = ""',
+]
+remediation = "Regenerate the webhook secret at https://vercel.com/account/webhooks and update webhook endpoint signature verification logic."

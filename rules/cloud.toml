@@ -1,0 +1,148 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-alibaba"
+description = "Parity rule for alibaba"
+severity = "high"
+category = "cloud"
+keywords = ["alibaba"]
+regex = '''(?i)alibaba.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azureapimanagementsubscriptionkey"
+description = "Parity rule for azureapimanagementsubscriptionkey"
+severity = "high"
+category = "cloud"
+keywords = ["azureapimanagementsubscriptionkey"]
+regex = '''(?i)azureapimanagementsubscriptionkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azureappconfigconnectionstring"
+description = "Parity rule for azureappconfigconnectionstring"
+severity = "high"
+category = "cloud"
+keywords = ["azureappconfigconnectionstring"]
+regex = '''(?i)azureappconfigconnectionstring.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azurebatch"
+description = "Parity rule for azurebatch"
+severity = "high"
+category = "cloud"
+keywords = ["azurebatch"]
+regex = '''(?i)azurebatch.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azurecontainerregistry"
+description = "Parity rule for azurecontainerregistry"
+severity = "high"
+category = "cloud"
+keywords = ["azurecontainerregistry"]
+regex = '''(?i)azurecontainerregistry.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azuredevopspersonalaccesstoken"
+description = "Parity rule for azuredevopspersonalaccesstoken"
+severity = "high"
+category = "cloud"
+keywords = ["azuredevopspersonalaccesstoken"]
+regex = '''(?i)azuredevopspersonalaccesstoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azuredirectmanagementkey"
+description = "Parity rule for azuredirectmanagementkey"
+severity = "high"
+category = "cloud"
+keywords = ["azuredirectmanagementkey"]
+regex = '''(?i)azuredirectmanagementkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azurefunctionkey"
+description = "Parity rule for azurefunctionkey"
+severity = "high"
+category = "cloud"
+keywords = ["azurefunctionkey"]
+regex = '''(?i)azurefunctionkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azuresastoken"
+description = "Parity rule for azuresastoken"
+severity = "high"
+category = "cloud"
+keywords = ["azuresastoken"]
+regex = '''(?i)azuresastoken.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azuresearchadminkey"
+description = "Parity rule for azuresearchadminkey"
+severity = "high"
+category = "cloud"
+keywords = ["azuresearchadminkey"]
+regex = '''(?i)azuresearchadminkey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azuresearchquerykey"
+description = "Parity rule for azuresearchquerykey"
+severity = "high"
+category = "cloud"
+keywords = ["azuresearchquerykey"]
+regex = '''(?i)azuresearchquerykey.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azure_cosmosdb"
+description = "Parity rule for azure_cosmosdb"
+severity = "high"
+category = "cloud"
+keywords = ["azure_cosmosdb"]
+regex = '''(?i)azure_cosmosdb.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-azure_openai"
+description = "Parity rule for azure_openai"
+severity = "high"
+category = "cloud"
+keywords = ["azure_openai"]
+regex = '''(?i)azure_openai.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-gcpapplicationdefaultcredentials"
+description = "Parity rule for gcpapplicationdefaultcredentials"
+severity = "high"
+category = "cloud"
+keywords = ["gcpapplicationdefaultcredentials"]
+regex = '''(?i)gcpapplicationdefaultcredentials.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-gcp"
+description = "Parity rule for gcp"
+severity = "high"
+category = "cloud"
+keywords = ["gcp"]
+regex = '''(?i)gcp.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+
+[[rules]]
+id = "trufflehog-heroku"
+description = "Parity rule for heroku"
+severity = "high"
+category = "cloud"
+keywords = ["heroku"]
+regex = '''(?i)heroku.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

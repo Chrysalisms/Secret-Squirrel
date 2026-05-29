@@ -1,0 +1,72 @@
+# Network and proxy service secrets
+# Covers Proxycrawl, ScraperAPI, BrightData, Oxylabs, Luminati
+
+[[rules]]
+id = "brightdata-api-key"
+description = "Bright Data (formerly Luminati) residential proxy API token"
+severity = "high"
+category = "saas"
+regex = '''(?i)(?:brightdata|luminati)[._-]?(?:api[._-]?)?(?:key|token|password)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,64})['"]?'''
+keywords = ["brightdata", "luminati", "BRD_API"]
+entropy = 4.0
+tags = ["brightdata", "proxy", "saas"]
+
+[[rules]]
+id = "oxylabs-api-key"
+description = "Oxylabs residential proxy API credentials"
+severity = "high"
+category = "saas"
+regex = '''(?i)oxylabs[._-]?(?:api[._-]?)?(?:key|password|token)\s*[=:]\s*['"]?([A-Za-z0-9_\-]{16,32})['"]?'''
+keywords = ["oxylabs"]
+entropy = 3.5
+tags = ["oxylabs", "proxy", "saas"]
+
+[[rules]]
+id = "ngrok-authtoken"
+description = "ngrok tunnel authentication token"
+severity = "high"
+category = "devtools"
+regex = '''(?i)ngrok[._-]?(?:auth[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{49}_[A-Za-z0-9_\-]{24})['"]?'''
+keywords = ["ngrok", "NGROK_AUTHTOKEN"]
+entropy = 4.0
+tags = ["ngrok", "tunneling", "devtools"]
+
+[[rules]]
+id = "cloudflare-tunnel-token"
+description = "Cloudflare Tunnel (cloudflared) connector token"
+severity = "high"
+category = "cloud"
+regex = '''eyJhIjoi[A-Za-z0-9_\-]{80,}'''
+keywords = ["cloudflared", "CF_TUNNEL_TOKEN", "cloudflare_tunnel"]
+entropy = 5.0
+tags = ["cloudflare", "tunnel", "cloud"]
+
+[[rules]]
+id = "wireguard-private-key"
+description = "WireGuard VPN private key (base64 encoded)"
+severity = "critical"
+category = "crypto"
+regex = '''(?i)(?:wireguard|wg)[._-]?private[._-]?key\s*[=:]\s*['"]?([A-Za-z0-9+/]{43}=)['"]?'''
+keywords = ["wireguard", "WireGuard", "PrivateKey"]
+entropy = 5.0
+tags = ["wireguard", "vpn", "crypto"]
+
+[[rules]]
+id = "openvpn-static-key"
+description = "OpenVPN static TLS auth key"
+severity = "critical"
+category = "crypto"
+regex = '''-----BEGIN OpenVPN Static key V1-----[\s\S]{0,400}-----END OpenVPN Static key V1-----'''
+keywords = ["OpenVPN Static key", "openvpn"]
+entropy = 4.5
+tags = ["openvpn", "vpn", "crypto"]
+
+[[rules]]
+id = "cf-r2-access-key"
+description = "Cloudflare R2 S3-compatible access key ID"
+severity = "high"
+category = "cloud"
+regex = '''(?i)(?:cf|cloudflare)[._-]?r2[._-]?(?:access[._-]?)?(?:key[._-]?id|token)\s*[=:]\s*['"]?([A-Za-z0-9]{32})['"]?'''
+keywords = ["r2", "CF_R2", "cloudflare_r2"]
+entropy = 4.0
+tags = ["cloudflare", "r2", "storage"]

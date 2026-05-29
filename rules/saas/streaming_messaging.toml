@@ -1,0 +1,102 @@
+# Streaming and media platform secrets
+# Covers Spotify, Apple Music, YouTube, Twitch, Vimeo, Brightcove, Mux
+
+[[rules]]
+id = "spotify-client-secret"
+description = "Spotify Web API client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)spotify[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{32})['"]?'''
+keywords = ["spotify", "SPOTIFY_SECRET", "SPOTIPY"]
+entropy = 4.0
+tags = ["spotify", "music", "streaming", "saas"]
+
+[[rules]]
+id = "twitch-client-secret"
+description = "Twitch streaming platform API client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)twitch[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([a-z0-9]{30})['"]?'''
+keywords = ["twitch", "TWITCH_SECRET"]
+entropy = 4.0
+tags = ["twitch", "streaming", "gaming"]
+
+[[rules]]
+id = "vimeo-api-token"
+description = "Vimeo video platform personal access token"
+severity = "high"
+category = "saas"
+regex = '''(?i)vimeo[._-]?(?:api[._-]?|personal[._-]?)?(?:access[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{40})['"]?'''
+keywords = ["vimeo", "VIMEO_TOKEN"]
+entropy = 4.5
+tags = ["vimeo", "video", "streaming", "saas"]
+
+[[rules]]
+id = "brightcove-client-secret"
+description = "Brightcove video cloud API client secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)brightcove[._-]?(?:client[._-]?)?secret\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,48})['"]?'''
+keywords = ["brightcove"]
+entropy = 4.0
+tags = ["brightcove", "video", "streaming"]
+
+[[rules]]
+id = "mux-access-token"
+description = "Mux video processing API secret"
+severity = "high"
+category = "saas"
+regex = '''(?i)mux[._-]?(?:api[._-]?)?(?:token|secret)\s*[=:]\s*['"]?([A-Za-z0-9/+]{42,50})['"]?'''
+keywords = ["mux", "MUX_TOKEN_SECRET"]
+entropy = 4.5
+tags = ["mux", "video", "streaming"]
+
+[[rules]]
+id = "apple-music-developer-token"
+description = "Apple MusicKit developer token (JWT format)"
+severity = "high"
+category = "saas"
+regex = '''(?i)apple[._-]?music[._-]?(?:developer[._-]?)?token\s*[=:]\s*['"]?(eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)['"]?'''
+keywords = ["apple_music", "MusicKit", "APPLE_MUSIC_TOKEN"]
+entropy = 5.0
+tags = ["apple", "music", "streaming"]
+
+[[rules]]
+id = "discord-webhook-url"
+description = "Discord webhook URL for channel notifications"
+severity = "high"
+category = "messaging"
+regex = '''https://discord(?:app)?\.com/api/webhooks/\d{17,20}/[A-Za-z0-9_\-]{68}'''
+keywords = ["discord", "discordapp.com/api/webhooks"]
+entropy = 4.0
+tags = ["discord", "webhook", "messaging"]
+
+[[rules]]
+id = "discord-bot-token"
+description = "Discord bot authentication token"
+severity = "critical"
+category = "messaging"
+regex = '''(?i)discord[._-]?(?:bot[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{24,28}\.[A-Za-z0-9_\-]{6}\.[A-Za-z0-9_\-]{27,38})['"]?'''
+keywords = ["discord", "BOT_TOKEN", "DISCORD_TOKEN"]
+entropy = 4.5
+tags = ["discord", "bot", "messaging"]
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram Bot API authentication token"
+severity = "critical"
+category = "messaging"
+regex = '''\d{9,10}:[A-Za-z0-9_\-]{35}'''
+keywords = ["telegram", "TELEGRAM_TOKEN", "bot_token"]
+entropy = 4.0
+tags = ["telegram", "bot", "messaging"]
+
+[[rules]]
+id = "matrix-access-token"
+description = "Matrix/Element chat server access token"
+severity = "high"
+category = "messaging"
+regex = '''(?i)matrix[._-]?(?:access[._-]?)?token\s*[=:]\s*['"]?(syt_[A-Za-z0-9_]{43,64})['"]?'''
+keywords = ["matrix", "MATRIX_TOKEN"]
+entropy = 4.5
+tags = ["matrix", "element", "messaging"]

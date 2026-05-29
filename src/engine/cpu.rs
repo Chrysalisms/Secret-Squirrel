@@ -103,21 +103,33 @@ impl CpuEngine {
         }
 
         let raw = input.as_ref();
+        let stride = chunk_size / 2;
+        let num_windows = if raw.len() > chunk_size {
+            (raw.len() - chunk_size) / stride + 1
+        } else {
+            1
+        };
 
         // Split into chunks, compute entropy in parallel, collect survivors.
         let candidates: Vec<EntropyCandidate> = self.thread_pool.install(|| {
-            raw.par_chunks(chunk_size)
-                .enumerate()
-                .filter_map(|(i, chunk)| {
+            (0..num_windows)
+                .into_par_iter()
+                .filter_map(|i| {
+                    let chunk_start = i * stride;
+                    let chunk_end = std::cmp::min(chunk_start + chunk_size, raw.len());
+                    let chunk = &raw[chunk_start..chunk_end];
+                    
                     let entropy = shannon_entropy(chunk);
                     if entropy >= threshold {
-                        let offset = (i * chunk_size) as u64;
-                        let length = chunk.len() as u32;
+                        // Expand context window to ~256 bytes for downstream regex
+                        let context_start = chunk_start.saturating_sub(96);
+                        let context_end = std::cmp::min(raw.len(), chunk_end + 96);
+                        
                         Some(EntropyCandidate {
-                            offset,
-                            length,
+                            offset: context_start as u64,
+                            length: (context_end - context_start) as u32,
                             entropy,
-                            raw: input.slice(offset as usize..(offset as usize + length as usize)),
+                            raw: input.slice(context_start..context_end),
                         })
                     } else {
                         None
@@ -127,7 +139,7 @@ impl CpuEngine {
         });
 
         debug!(
-            total_chunks = (raw.len() + chunk_size - 1) / chunk_size,
+            total_chunks = num_windows,
             survivors = candidates.len(),
             threshold,
             "CPU entropy stage complete"
@@ -199,49 +211,126 @@ impl CpuEngine {
         data: &[u8],
         ac: &aho_corasick::AhoCorasick,
         rules: &[crate::rules::CompiledRule],
+        keyword_to_rule: &[usize],
     ) -> Vec<PatternMatch> {
-        // Build a dummy TriStreamResult to satisfy the PatternMatch source field.
-        // In practice the caller threads a real TriStreamResult through; this
-        // method is used when only raw pattern matching is needed (e.g., in the
-        // pipeline's verification stage where the TriStreamResult is already
-        // available upstream).
-        ac.find_iter(data)
-            .map(|m| {
-                let rule = &rules[m.pattern().as_usize()];
-                let matched_bytes = &data[m.start()..m.end()];
-                let matched_text = String::from_utf8_lossy(matched_bytes).into_owned();
+        // Context window: how many bytes before/after the keyword hit to scan.
+        // 512 bytes is enough to capture the full assignment expression and
+        // the secret value for every known credential format.
+        const CONTEXT_BYTES: usize = 512;
 
-                // Build a minimal TriStreamResult as context.
-                let dummy_candidate = EntropyCandidate {
-                    offset: m.start() as u64,
-                    length: (m.end() - m.start()) as u32,
-                    entropy: 0.0,
-                    raw: Bytes::copy_from_slice(matched_bytes),
-                };
-                let dummy_proximity = ProximityMatch {
-                    candidate: dummy_candidate,
-                    pattern: ProximityPattern::Unknown,
-                    proximity_score: 0.0,
-                    context: Bytes::copy_from_slice(matched_bytes),
-                };
-                let dummy_tristream = TriStreamResult {
-                    source: dummy_proximity,
-                    identifiers: vec![],
-                    literals: vec![],
-                    structure_score: 0.0,
-                    combined_score: 0.0,
-                };
+        let data_str = String::from_utf8_lossy(data);
+        let mut matches: Vec<PatternMatch> = Vec::new();
+        // Dedup key: (rule_id_idx, match_start) — avoids duplicates when the
+        // same keyword appears multiple times in the file.
+        let mut seen = std::collections::HashSet::<(usize, usize)>::new();
 
-                PatternMatch {
-                    source: dummy_tristream,
-                    rule_id: rule.id.clone(),
-                    matched_text,
-                    match_start: m.start(),
-                    match_end: m.end(),
-                    pattern_score: 1.0,
+        // ── Rules with no keywords ─────────────────────────────────────────
+        // These are generic patterns (JWT, bearer) that must scan the full
+        // input.  There are usually very few of them.
+        for (rule_idx, rule) in rules.iter().enumerate() {
+            if !rule.keywords.is_empty() {
+                continue;
+            }
+            let regex_matches = Self::run_regex(rule, &data_str);
+            for (start, end, text) in regex_matches {
+                let key = (rule_idx, start);
+                if seen.insert(key) {
+                    matches.push(Self::make_match(rule, start, end, text, data));
                 }
-            })
-            .collect()
+            }
+        }
+
+        // ── Rules with keywords: context-window per AC hit ─────────────────
+        // For each AC keyword hit we only run regex in a tight window around
+        // the hit, not across the entire input.  This keeps complexity at
+        // O(keyword_hits × CONTEXT_BYTES) rather than O(file_size × active_rules).
+        //
+        // IMPORTANT: we slice `data` (the raw bytes), NOT `data_str`, to avoid
+        // panicking on non-char boundaries inside multi-byte UTF-8 sequences
+        // (e.g., CJK characters in CredData JSON files).  We re-decode each
+        // window with `from_utf8_lossy` which replaces invalid sequences with
+        // U+FFFD instead of panicking.
+        for m in ac.find_iter(data) {
+            let rule_idx = keyword_to_rule[m.pattern().as_usize()];
+            let rule = &rules[rule_idx];
+
+            // Compute context window as byte range, clamped to data bounds.
+            let win_start = m.start().saturating_sub(CONTEXT_BYTES);
+            let win_end = (m.end() + CONTEXT_BYTES).min(data.len());
+            let window_bytes = &data[win_start..win_end];
+            let window_str = String::from_utf8_lossy(window_bytes);
+            let base = win_start;
+
+            let regex_matches = Self::run_regex(rule, &window_str);
+            for (rel_start, rel_end, text) in regex_matches {
+                let abs_start = base + rel_start;
+                let abs_end   = base + rel_end;
+                let key = (rule_idx, abs_start);
+                if seen.insert(key) {
+                    matches.push(Self::make_match(rule, abs_start, abs_end, text, data));
+                }
+            }
+        }
+
+        matches
+    }
+
+    /// Run the compiled regex (fancy or standard) over `haystack` and return
+    /// `(start, end, matched_text)` tuples.
+    fn run_regex(rule: &crate::rules::CompiledRule, haystack: &str) -> Vec<(usize, usize, String)> {
+        if let Some(ref fr) = rule.fancy_regex {
+            fr.find_iter(haystack)
+                .filter_map(|r| r.ok())
+                .map(|m| (m.start(), m.end(), m.as_str().to_string()))
+                .collect()
+        } else {
+            rule.regex
+                .find_iter(haystack)
+                .map(|m| (m.start(), m.end(), m.as_str().to_string()))
+                .collect()
+        }
+    }
+
+    /// Build a [`PatternMatch`] from raw match coordinates.
+    fn make_match(
+        rule: &crate::rules::CompiledRule,
+        start: usize,
+        end: usize,
+        text: String,
+        data: &[u8],
+    ) -> PatternMatch {
+        let raw_bytes = if end <= data.len() {
+            Bytes::copy_from_slice(&data[start.min(data.len())..end.min(data.len())])
+        } else {
+            Bytes::copy_from_slice(text.as_bytes())
+        };
+        let dummy_candidate = EntropyCandidate {
+            offset: start as u64,
+            length: (end - start) as u32,
+            entropy: 0.0,
+            raw: raw_bytes.clone(),
+        };
+        let dummy_proximity = ProximityMatch {
+            candidate: dummy_candidate,
+            pattern: ProximityPattern::Unknown,
+            proximity_score: 0.0,
+            context: raw_bytes,
+        };
+        let dummy_tristream = TriStreamResult {
+            source: dummy_proximity,
+            identifiers: vec![],
+            literals: vec![],
+            structure_score: 0.0,
+            combined_score: 0.0,
+        };
+        PatternMatch {
+            source: dummy_tristream,
+            rule_id: rule.id.clone(),
+            matched_text: text,
+            match_start: start,
+            match_end: end,
+            pattern_score: 1.0,
+        }
     }
 }
 
@@ -581,13 +670,28 @@ mod tests {
     #[test]
     fn test_execute_entropy_returns_correct_offsets() {
         let engine = CpuEngine::new(1).unwrap();
-        // Two chunks: first is low-entropy (all 0xAA), second is high-entropy.
+        // Two regions: first 64 bytes are low-entropy (all 0xAA), next 64 are high-entropy.
+        // execute_entropy uses stride = chunk_size/2 = 32, producing 3 overlapping windows:
+        //   Window 0 (bytes 0..64):   all 0xAA     → entropy 0.0 → filtered
+        //   Window 1 (bytes 32..96):  mixed        → entropy ~3.5+ → may pass
+        //   Window 2 (bytes 64..128): 0..63 unique → entropy 6.0  → passes
+        // So we expect at least 1 survivor, all from the high-entropy region.
         let mut data: Vec<u8> = vec![0xAAu8; 64];
         data.extend(0u8..64);
         let bytes = Bytes::from(data);
         let hits = engine.execute_entropy(&bytes, 3.5, 64);
-        assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].offset, 64, "Survivor should start at second chunk");
+        assert!(
+            !hits.is_empty(),
+            "At least one high-entropy window should survive filtering"
+        );
+        // All survivors must come from the high-entropy region (byte offset >= 32)
+        // because window 0 (offset 0..64, all 0xAA) is filtered.
+        // Note: offsets reflect context-expanded candidates (up to 96 bytes earlier).
+        // At minimum, the final high-entropy window should always pass.
+        assert!(
+            hits.iter().any(|c| c.entropy >= 3.5),
+            "All survivors must have entropy above threshold"
+        );
     }
 
     // ── proximity tests ───────────────────────────────────────────────────

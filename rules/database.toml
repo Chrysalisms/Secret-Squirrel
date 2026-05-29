@@ -1,0 +1,13 @@
+
+
+# --- Imported Parity Rules ---
+
+[[rules]]
+id = "trufflehog-couchbase"
+description = "Parity rule for couchbase"
+severity = "high"
+category = "database"
+keywords = ["couchbase"]
+regex = '''(?i)couchbase.{0,50}['":=\s]([a-zA-Z0-9\-_]{16,})'''
+entropy = 0.0
+

@@ -1,0 +1,92 @@
+# CI/CD pipeline extended secrets
+# Covers Travis CI, AppVeyor, Buildkite, TeamCity, Bamboo, Jenkins
+
+[[rules]]
+id = "travis-ci-api-token"
+description = "Travis CI API token for build automation"
+severity = "high"
+category = "ci"
+regex = '''(?i)travis[._-]?(?:ci[._-]?)?(?:api[._-]?)?token\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{22})['"]?'''
+keywords = ["travis", "TRAVIS_TOKEN"]
+entropy = 3.5
+tags = ["travis", "ci", "devtools"]
+
+[[rules]]
+id = "appveyor-api-token"
+description = "AppVeyor CI/CD API token"
+severity = "high"
+category = "ci"
+regex = '''(?i)appveyor[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{20,32})['"]?'''
+keywords = ["appveyor", "APPVEYOR_TOKEN"]
+entropy = 3.5
+tags = ["appveyor", "ci", "windows"]
+
+[[rules]]
+id = "buildkite-api-access-token"
+description = "Buildkite CI/CD personal API access token"
+severity = "high"
+category = "ci"
+regex = '''(?i)buildkite[._-]?(?:api[._-]?)?(?:access[._-]?)?token\s*[=:]\s*['"]?([a-z0-9]{40})['"]?'''
+keywords = ["buildkite", "BUILDKITE_TOKEN"]
+entropy = 4.0
+tags = ["buildkite", "ci", "devtools"]
+
+[[rules]]
+id = "teamcity-api-token"
+description = "JetBrains TeamCity REST API authentication token"
+severity = "high"
+category = "ci"
+regex = '''(?i)teamcity[._-]?(?:api[._-]?|rest[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["teamcity", "TEAMCITY_TOKEN"]
+entropy = 4.0
+tags = ["teamcity", "jetbrains", "ci"]
+
+[[rules]]
+id = "bamboo-api-token"
+description = "Atlassian Bamboo CI/CD REST API token"
+severity = "high"
+category = "ci"
+regex = '''(?i)bamboo[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_\-]{32,})['"]?'''
+keywords = ["bamboo", "BAMBOO_TOKEN"]
+entropy = 4.0
+tags = ["bamboo", "atlassian", "ci"]
+
+[[rules]]
+id = "jenkins-crumb-token"
+description = "Jenkins CSRF crumb token"
+severity = "medium"
+category = "ci"
+regex = '''Jenkins-Crumb:\s*([a-f0-9]{32,64})'''
+keywords = ["Jenkins-Crumb"]
+entropy = 4.0
+tags = ["jenkins", "csrf", "ci"]
+
+[[rules]]
+id = "codefresh-api-key"
+description = "Codefresh CI/CD platform API key"
+severity = "high"
+category = "ci"
+regex = '''(?i)codefresh[._-]?(?:api[._-]?)?(?:key|token)\s*[=:]\s*['"]?([a-f0-9]{8}\.[a-f0-9]{8}\.[a-f0-9-]{24,})['"]?'''
+keywords = ["codefresh", "CF_API"]
+entropy = 3.5
+tags = ["codefresh", "ci", "devtools"]
+
+[[rules]]
+id = "wercker-token"
+description = "Oracle Wercker CI/CD API token"
+severity = "high"
+category = "ci"
+regex = '''(?i)wercker[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+keywords = ["wercker"]
+entropy = 3.0
+tags = ["wercker", "oracle", "ci"]
+
+[[rules]]
+id = "semaphore-api-token"
+description = "Semaphore CI authentication token"
+severity = "high"
+category = "ci"
+regex = '''(?i)semaphore[._-]?(?:api[._-]?)?token\s*[=:]\s*['"]?([a-zA-Z0-9_\-]{20,32})['"]?'''
+keywords = ["semaphore", "SEMAPHORE_TOKEN"]
+entropy = 4.0
+tags = ["semaphore", "ci", "devtools"]

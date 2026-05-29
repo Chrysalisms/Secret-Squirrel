@@ -1,0 +1,65 @@
+# Secret Squirrel — DigitalOcean Extended Rules
+# Additional DigitalOcean secret detection rules beyond default.toml
+
+# ==============================================================================
+# DigitalOcean — Spaces Access Key
+# ==============================================================================
+
+[[rules]]
+id = "digitalocean-spaces-access-key"
+description = "DigitalOcean Spaces access key ID (S3-compatible object storage)"
+regex = '''(?i)(?:do[_\-]?spaces[_\-]?(?:access[_\-]?)?key[_\-]?(?:id)?|SPACES_KEY|DO_SPACES_KEY|DIGITALOCEAN_SPACES_KEY)\s{0,5}[:=]\s{0,5}["']?([A-Z0-9]{20})["']?'''
+keywords = ["SPACES_KEY", "DO_SPACES_KEY", "spaces_access_key", "digitalocean_spaces"]
+severity = "critical"
+category = "cloud"
+tags = ["digitalocean", "spaces", "s3", "cloud"]
+entropy_threshold = 3.0
+allowlist = [
+    'DO_SPACES_KEY=YOUR_ACCESS_KEY',
+    'SPACES_KEY=<',
+    'SPACES_KEY=$\{',
+    'DO_SPACES_KEY=AKIAIOSFODNN7EXAMPLE',
+]
+remediation = "Rotate Spaces access keys at https://cloud.digitalocean.com/account/api/spaces. Use environment variables and never commit keys to source control."
+
+# ==============================================================================
+# DigitalOcean — Spaces Secret Key
+# ==============================================================================
+
+[[rules]]
+id = "digitalocean-spaces-secret-key"
+description = "DigitalOcean Spaces secret access key"
+regex = '''(?i)(?:do[_\-]?spaces[_\-]?secret[_\-]?(?:key|access[_\-]?key)?|SPACES_SECRET|DO_SPACES_SECRET|DIGITALOCEAN_SPACES_SECRET)\s{0,5}[:=]\s{0,5}["']?([A-Za-z0-9+/]{40})["']?'''
+keywords = ["SPACES_SECRET", "DO_SPACES_SECRET", "spaces_secret", "digitalocean_spaces_secret"]
+severity = "critical"
+category = "cloud"
+tags = ["digitalocean", "spaces", "s3", "cloud"]
+entropy_threshold = 4.0
+allowlist = [
+    'DO_SPACES_SECRET=YOUR_SECRET_KEY',
+    'SPACES_SECRET=<',
+    'SPACES_SECRET=$\{',
+    'SPACES_SECRET=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+]
+remediation = "Rotate Spaces access keys at https://cloud.digitalocean.com/account/api/spaces and update any services (e.g., s3cmd, AWS CLI with DO endpoint) that use the old keys."
+
+# ==============================================================================
+# DigitalOcean — OAuth Token
+# ==============================================================================
+
+[[rules]]
+id = "digitalocean-oauth-token"
+description = "DigitalOcean OAuth2 access token"
+regex = '''(?i)(?:digitalocean[_\-\.\s]{0,10}(?:oauth[_\-\.\s]{0,5})?(?:access[_\-\.\s]{0,5})?token|DO_OAUTH_TOKEN|DO_ACCESS_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{64})["']?'''
+keywords = ["DO_OAUTH_TOKEN", "DO_ACCESS_TOKEN", "digitalocean_oauth", "digitalocean_access_token"]
+severity = "critical"
+category = "cloud"
+tags = ["digitalocean", "oauth", "cloud"]
+entropy_threshold = 3.5
+allowlist = [
+    'DO_OAUTH_TOKEN=YOUR_TOKEN',
+    'DO_ACCESS_TOKEN=<',
+    'DO_ACCESS_TOKEN=$\{',
+    'digitalocean_oauth_token = ""',
+]
+remediation = "Revoke the OAuth token at https://cloud.digitalocean.com/account/api/tokens and generate a replacement using OAuth 2.0 with minimum required scopes."

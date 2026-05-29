@@ -191,11 +191,27 @@ impl Pipeline {
     ///
     /// Unlike [`process_fragment`], stage 4 here performs real pattern
     /// verification against the compiled rules.
+    ///
+    /// ## Two-path architecture
+    ///
+    /// - **Path A (regex-first)**: AC + regex scans the *full* fragment bytes,
+    ///   bypassing the entropy gate entirely.  This ensures that specific rules
+    ///   (GitHub PAT, Stripe SK, AWS access key, …) always get a chance to
+    ///   match even when the surrounding context is low-entropy.
+    ///
+    /// - **Path B (heuristic)**: The classic 4-stage entropy→proximity→
+    ///   tristream→pattern pipeline.  Used for *generic* high-entropy token
+    ///   detection where there is no specific prefix/suffix rule.
+    ///
+    /// Results from both paths are merged and deduplicated so that a finding
+    /// reported by both paths is only emitted once (path A wins because it
+    /// carries the correct rule_id).
     pub fn process_fragment_with_rules(
         &self,
         fragment: &Fragment,
         ac: &aho_corasick::AhoCorasick,
         rules: &[crate::rules::CompiledRule],
+        keyword_to_rule: &[usize],
     ) -> Result<Vec<PatternMatch>> {
         let input = &fragment.content;
         let path = &fragment.metadata.path;
@@ -206,69 +222,157 @@ impl Pipeline {
             "Pipeline (with rules): processing fragment"
         );
 
-        // Stages 1–3 are identical.
-        let candidates = self.router.execute_entropy(
-            input,
-            self.config.entropy_threshold,
-            self.config.entropy_chunk_size,
-        )?;
-        if candidates.is_empty() {
-            return Ok(vec![]);
-        }
+        // ── Path A: regex-first (full-file scan, capped at 512 KB) ───────
+        // Run AC + regex on the raw fragment bytes before any entropy filtering.
+        // This ensures specific rules (GitHub PAT, Stripe SK, AWS access key,
+        // …) always get a chance to match even when the surrounding context is
+        // low-entropy.  We cap at 512 KB to avoid O(n) slowdown on huge files
+        // (logs, data dumps) that virtually never contain secrets after the
+        // first few KB.
+        const MAX_REGEX_SCAN_BYTES: usize = 512 * 1024; // 512 KB
+        let scan_slice = if input.len() > MAX_REGEX_SCAN_BYTES {
+            &input[..MAX_REGEX_SCAN_BYTES]
+        } else {
+            input.as_ref()
+        };
 
-        let proximity_matches = self
-            .router
-            .execute_proximity(&candidates, self.config.proximity_threshold)?;
-        if proximity_matches.is_empty() {
-            return Ok(vec![]);
-        }
+        let direct_hits = self.router.cpu.execute_pattern(
+            scan_slice,
+            ac,
+            rules,
+            keyword_to_rule,
+        );
 
-        let tristream_results = self.router.execute_tristream(&proximity_matches)?;
-        if tristream_results.is_empty() {
-            return Ok(vec![]);
-        }
+        debug!(
+            path = %path,
+            hits = direct_hits.len(),
+            "Pipeline path A (regex-first) complete"
+        );
 
-        // Stage 4: real pattern verification.
-        let mut all_matches = Vec::new();
-        for tsr in tristream_results {
-            let raw = tsr.source.candidate.raw.clone();
-            let base_offset = tsr.source.candidate.offset as usize;
+        // ── Path B: heuristic (entropy → proximity → tristream → pattern) ─
+        // Classic pipeline for generic high-entropy detection.
+        let heuristic_matches: Vec<PatternMatch> = {
+            let candidates = self.router.execute_entropy(
+                input,
+                self.config.entropy_threshold,
+                self.config.entropy_chunk_size,
+            )?;
 
-            let hits = self.router.cpu.execute_pattern(raw.as_ref(), ac, rules);
+            if candidates.is_empty() {
+                vec![]
+            } else {
+                let proximity_matches = self
+                    .router
+                    .execute_proximity(&candidates, self.config.proximity_threshold)?;
 
-            for mut hit in hits {
-                // Adjust match offsets to be relative to the original fragment.
-                hit.match_start += base_offset;
-                hit.match_end += base_offset;
+                if proximity_matches.is_empty() {
+                    vec![]
+                } else {
+                    let tristream_results =
+                        self.router.execute_tristream(&proximity_matches)?;
 
-                // Replace the dummy TriStreamResult source from execute_pattern
-                // with the real one we computed in stage 3.
-                let rebuilt = PatternMatch {
-                    source: crate::types::TriStreamResult {
-                        source: tsr.source.clone(),
-                        identifiers: tsr.identifiers.clone(),
-                        literals: tsr.literals.clone(),
-                        structure_score: tsr.structure_score,
-                        combined_score: tsr.combined_score,
+                    let mut out = Vec::new();
+                    for tsr in tristream_results {
+                        let raw = tsr.source.candidate.raw.clone();
+                        let base_offset = tsr.source.candidate.offset as usize;
+
+                        let hits = self.router.cpu.execute_pattern(
+                            raw.as_ref(),
+                            ac,
+                            rules,
+                            keyword_to_rule,
+                        );
+
+                        for mut hit in hits {
+                            hit.match_start += base_offset;
+                            hit.match_end += base_offset;
+                            let rebuilt = PatternMatch {
+                                source: crate::types::TriStreamResult {
+                                    source: tsr.source.clone(),
+                                    identifiers: tsr.identifiers.clone(),
+                                    literals: tsr.literals.clone(),
+                                    structure_score: tsr.structure_score,
+                                    combined_score: tsr.combined_score,
+                                },
+                                rule_id: hit.rule_id,
+                                matched_text: hit.matched_text,
+                                match_start: hit.match_start,
+                                match_end: hit.match_end,
+                                pattern_score: hit.pattern_score,
+                            };
+                            out.push(rebuilt);
+                        }
+                    }
+                    out
+                }
+            }
+        };
+
+        debug!(
+            path = %path,
+            matches = heuristic_matches.len(),
+            "Pipeline path B (heuristic) complete"
+        );
+
+        // ── Merge: path A wins on duplicates ──────────────────────────────
+        // Build a set of (rule_id, match_start) keys from path A results.
+        // For path-A hits we need a TriStreamResult; synthesise a neutral one.
+        use std::collections::HashSet;
+        let mut seen: HashSet<(String, usize)> = HashSet::new();
+        let mut all_matches: Vec<PatternMatch> = Vec::new();
+
+        // Path A findings: wrap in a minimal TriStreamResult.
+        for hit in direct_hits {
+            let key = (hit.rule_id.clone(), hit.match_start);
+            if seen.insert(key) {
+                // Synthesise a minimal TriStreamResult for path-A hits.
+                let candidate_bytes =
+                    input.slice(hit.match_start.min(input.len())..hit.match_end.min(input.len()));
+                let synth = crate::types::TriStreamResult {
+                    source: crate::types::ProximityMatch {
+                        candidate: crate::types::EntropyCandidate {
+                            offset: hit.match_start as u64,
+                            length: (hit.match_end - hit.match_start) as u32,
+                            entropy: 0.0, // will be scored by fusion layer
+                            raw: candidate_bytes,
+                        },
+                        proximity_score: 0.0,
+                        pattern: crate::types::ProximityPattern::Unknown,
+                        context: bytes::Bytes::new(),
                     },
+                    identifiers: vec![],
+                    literals: vec![],
+                    structure_score: 0.0,
+                    combined_score: hit.pattern_score,
+                };
+                all_matches.push(PatternMatch {
+                    source: synth,
                     rule_id: hit.rule_id,
                     matched_text: hit.matched_text,
                     match_start: hit.match_start,
                     match_end: hit.match_end,
                     pattern_score: hit.pattern_score,
-                };
-                all_matches.push(rebuilt);
+                });
+            }
+        }
+
+        // Path B findings: add only if not already covered by path A.
+        for m in heuristic_matches {
+            let key = (m.rule_id.clone(), m.match_start);
+            if seen.insert(key) {
+                all_matches.push(m);
             }
         }
 
         debug!(
             path = %path,
             matches = all_matches.len(),
-            "Pipeline (with rules) stage 4 complete"
+            "Pipeline merged (A+B) stage complete"
         );
 
         Ok(all_matches)
     }
+
 
     /// Return a reference to the inner router (for stats gathering).
     pub fn router(&self) -> &Router {

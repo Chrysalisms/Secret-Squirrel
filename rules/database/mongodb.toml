@@ -1,0 +1,68 @@
+# Secret Squirrel — MongoDB Rules
+# MongoDB database secret detection rules
+
+# ==============================================================================
+# MongoDB — Connection String (Atlas / SRV)
+# ==============================================================================
+
+[[rules]]
+id = "mongodb-connection-string"
+description = "MongoDB connection string (mongodb+srv or mongodb) with embedded credentials"
+regex = '''mongodb(?:\+srv)?://[^:@\s"']{1,100}:[^@\s"']{3,100}@[a-zA-Z0-9\.\-]{1,100}(?::\d{1,5})?(?:/[a-zA-Z0-9_\-\.]{0,100})?(?:\?[^\s"']{0,200})?'''
+keywords = ["mongodb://", "mongodb+srv://", "MONGO_URI", "MONGODB_URI"]
+severity = "critical"
+category = "database"
+tags = ["mongodb", "atlas", "database", "connection-string"]
+entropy_threshold = 2.5
+allowlist = [
+    'mongodb://user:password@',
+    'mongodb://username:password@',
+    'mongodb://localhost',
+    'mongodb+srv://user:password@',
+    'mongodb://\$\{',
+    'mongodb://example',
+    'mongodb+srv://\$\{',
+]
+remediation = "Rotate the MongoDB user password and update the connection string in all services. Use AWS Secrets Manager or Vault to inject credentials. Enable MongoDB Atlas network access controls."
+
+# ==============================================================================
+# MongoDB — Atlas API Key
+# ==============================================================================
+
+[[rules]]
+id = "mongodb-atlas-api-key"
+description = "MongoDB Atlas programmatic API key (public/private key pair)"
+regex = '''(?i)(?:atlas[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?(?:private[_\-\.\s]{0,5})?key|MONGODB_ATLAS_PRIVATE_KEY|MONGO_ATLAS_API_KEY|MDB_API_PRIVATE_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})["']?'''
+keywords = ["MONGODB_ATLAS_PRIVATE_KEY", "MONGO_ATLAS_API_KEY", "MDB_API_PRIVATE_KEY", "atlas_private_key"]
+severity = "critical"
+category = "database"
+tags = ["mongodb", "atlas", "api-key", "database"]
+entropy_threshold = 3.0
+allowlist = [
+    'MONGODB_ATLAS_PRIVATE_KEY=YOUR_PRIVATE_KEY',
+    'MDB_API_PRIVATE_KEY=<',
+    'MONGO_ATLAS_API_KEY=$\{',
+    'atlas_private_key = ""',
+]
+remediation = "Revoke at https://cloud.mongodb.com → Access Manager → API Keys → Delete. Atlas API keys can manage clusters, users, and network access."
+
+# ==============================================================================
+# MongoDB — Atlas App ID
+# ==============================================================================
+
+[[rules]]
+id = "mongodb-api-app-id"
+description = "MongoDB Atlas App Services (Realm) application ID"
+regex = '''(?i)(?:realm[_\-\.\s]{0,10}app[_\-\.\s]{0,10}id|REALM_APP_ID|MONGODB_APP_ID|ATLAS_APP_ID)\s{0,5}[:=]\s{0,5}["']?([a-z][a-z0-9_\-]{3,30}-[a-z]{5})["']?'''
+keywords = ["REALM_APP_ID", "MONGODB_APP_ID", "ATLAS_APP_ID", "realm_app_id"]
+severity = "medium"
+category = "database"
+tags = ["mongodb", "atlas", "realm", "app-services"]
+entropy_threshold = 2.0
+allowlist = [
+    'REALM_APP_ID=YOUR_APP_ID',
+    'MONGODB_APP_ID=<',
+    'ATLAS_APP_ID=$\{',
+    'realm_app_id = ""',
+]
+remediation = "App IDs are semi-public but combined with user credentials enable unauthorized data access. Rotate any associated API keys and enable Atlas App Services authentication rules."

@@ -1,0 +1,84 @@
+# Secret Squirrel — Kubernetes Rules
+# Kubernetes cluster secret detection rules
+
+# ==============================================================================
+# Kubernetes — Service Account Token (JWT)
+# ==============================================================================
+
+[[rules]]
+id = "kubernetes-service-account-token"
+description = "Kubernetes service account token (base64-encoded JWT) in kubeconfig or secret"
+regex = '''(?i)(?:token\s{0,5}:\s{0,5}|K8S_TOKEN\s{0,5}[:=]\s{0,5}["']?|KUBE_TOKEN\s{0,5}[:=]\s{0,5}["']?)(eyJ[a-zA-Z0-9_\-]{50,}\.eyJ[a-zA-Z0-9_\-]{50,}\.[a-zA-Z0-9_\-]{50,})'''
+keywords = ["K8S_TOKEN", "KUBE_TOKEN", "service-account-token", "serviceAccountToken"]
+severity = "critical"
+category = "devtools"
+tags = ["kubernetes", "k8s", "service-account", "jwt", "devtools"]
+entropy_threshold = 4.5
+allowlist = [
+    'token: YOUR_TOKEN',
+    'K8S_TOKEN=<',
+    'KUBE_TOKEN=$\{',
+    'token: eyJEXAMPLE',
+]
+remediation = "Rotate the service account token by deleting the associated Kubernetes Secret object (it will be auto-recreated). Restrict RBAC permissions to minimum required for the workload."
+
+# ==============================================================================
+# Kubernetes — Bearer Token in kubeconfig
+# ==============================================================================
+
+[[rules]]
+id = "kubernetes-bearer-token"
+description = "Kubernetes bearer token assigned in kubeconfig user credentials"
+regex = '''(?i)(?:kubernetes[_\-]?bearer[_\-]?token|KUBERNETES_BEARER_TOKEN|KUBE_BEARER_TOKEN)\s{0,5}[:=]\s{0,5}["']?(eyJ[a-zA-Z0-9_\-]{50,}\.eyJ[a-zA-Z0-9_\-]{50,}\.[a-zA-Z0-9_\-]{50,})["']?'''
+keywords = ["KUBERNETES_BEARER_TOKEN", "KUBE_BEARER_TOKEN", "kubernetes_bearer"]
+severity = "critical"
+category = "devtools"
+tags = ["kubernetes", "k8s", "bearer", "kubeconfig", "devtools"]
+entropy_threshold = 4.5
+allowlist = [
+    'KUBERNETES_BEARER_TOKEN=YOUR_TOKEN',
+    'KUBE_BEARER_TOKEN=<',
+    'KUBERNETES_BEARER_TOKEN=$\{',
+    'kubernetes_bearer_token = ""',
+]
+remediation = "Revoke by deleting the associated Kubernetes Service Account secret. Rotate kubeconfig files and distribute new credentials to authorized users only."
+
+# ==============================================================================
+# Kubernetes — Client Certificate Data (base64)
+# ==============================================================================
+
+[[rules]]
+id = "kubernetes-client-certificate-data"
+description = "Kubernetes client-certificate-data (base64-encoded certificate) in kubeconfig"
+regex = '''(?i)client-certificate-data\s{0,5}:\s{0,5}([A-Za-z0-9+/]{200,}={0,2})'''
+keywords = ["client-certificate-data", "kubeconfig"]
+severity = "high"
+category = "devtools"
+tags = ["kubernetes", "k8s", "certificate", "kubeconfig", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    'client-certificate-data: YOUR_CERT_DATA',
+    'client-certificate-data: LS0tLSBFWEFNUExFLS0tLQ==',
+    'client-certificate-data: <',
+]
+remediation = "Rotate the client certificate by generating a new CSR and having the cluster CA sign it. Revoke the old certificate using the Kubernetes CertificateSigningRequest API."
+
+# ==============================================================================
+# Kubernetes — dockerconfigjson Secret
+# ==============================================================================
+
+[[rules]]
+id = "kubernetes-docker-config"
+description = "Kubernetes imagePullSecret containing base64-encoded .dockerconfigjson"
+regex = '''(?i)(?:\.dockerconfigjson|dockerconfigjson)\s{0,5}:\s{0,5}([A-Za-z0-9+/]{100,}={0,2})'''
+keywords = [".dockerconfigjson", "dockerconfigjson", "imagePullSecret"]
+severity = "critical"
+category = "devtools"
+tags = ["kubernetes", "k8s", "docker", "registry", "devtools"]
+entropy_threshold = 4.0
+allowlist = [
+    '.dockerconfigjson: YOUR_BASE64_VALUE',
+    '.dockerconfigjson: <',
+    'dockerconfigjson: eyJleGFtcGxlIjoidGVzdCJ9',
+]
+remediation = "Rotate the registry credentials referenced in the secret, delete and recreate the Kubernetes imagePullSecret. Use IRSA or Workload Identity for keyless registry authentication."

@@ -1,0 +1,65 @@
+# Secret Squirrel — PagerDuty Rules
+# PagerDuty incident management secret detection rules
+
+# ==============================================================================
+# PagerDuty — API Token
+# ==============================================================================
+
+[[rules]]
+id = "pagerduty-api-token"
+description = "PagerDuty REST API token (user or account token)"
+regex = '''(?i)(?:pagerduty[_\-\.\s]{0,10}(?:api[_\-\.\s]{0,5})?(?:token|key)|PAGERDUTY_TOKEN|PAGERDUTY_API_TOKEN|PD_API_TOKEN)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/\-_]{20})["']?'''
+keywords = ["PAGERDUTY_TOKEN", "PAGERDUTY_API_TOKEN", "PD_API_TOKEN", "pagerduty"]
+severity = "critical"
+category = "saas"
+tags = ["pagerduty", "monitoring", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'PAGERDUTY_TOKEN=YOUR_TOKEN',
+    'PD_API_TOKEN=<',
+    'PAGERDUTY_API_TOKEN=$\{',
+    'pagerduty_token = ""',
+]
+remediation = "Revoke at https://app.pagerduty.com/api-auth-keys. PagerDuty tokens can create/silence incidents and access on-call schedules."
+
+# ==============================================================================
+# PagerDuty — Service Key
+# ==============================================================================
+
+[[rules]]
+id = "pagerduty-service-key"
+description = "PagerDuty Events API v1 service/integration key"
+regex = '''(?i)(?:pagerduty[_\-\.\s]{0,10}service[_\-\.\s]{0,10}(?:key|token)|PAGERDUTY_SERVICE_KEY|PD_SERVICE_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["PAGERDUTY_SERVICE_KEY", "PD_SERVICE_KEY", "pagerduty_service_key"]
+severity = "high"
+category = "saas"
+tags = ["pagerduty", "events-api", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'PAGERDUTY_SERVICE_KEY=YOUR_SERVICE_KEY',
+    'PD_SERVICE_KEY=00000000000000000000000000000000',
+    'PAGERDUTY_SERVICE_KEY=<',
+    'PAGERDUTY_SERVICE_KEY=$\{',
+]
+remediation = "Rotate the integration key at PagerDuty → Services → Integrations → Generate new key. Service keys allow triggering and resolving incidents."
+
+# ==============================================================================
+# PagerDuty — Integration Key
+# ==============================================================================
+
+[[rules]]
+id = "pagerduty-integration-key"
+description = "PagerDuty Events API v2 routing key / integration key"
+regex = '''(?i)(?:pagerduty[_\-\.\s]{0,10}(?:integration|routing)[_\-\.\s]{0,10}(?:key|token)|PAGERDUTY_INTEGRATION_KEY|PAGERDUTY_ROUTING_KEY|PD_ROUTING_KEY)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32})["']?'''
+keywords = ["PAGERDUTY_INTEGRATION_KEY", "PAGERDUTY_ROUTING_KEY", "PD_ROUTING_KEY"]
+severity = "high"
+category = "saas"
+tags = ["pagerduty", "events-api-v2", "routing", "saas"]
+entropy_threshold = 3.5
+allowlist = [
+    'PAGERDUTY_INTEGRATION_KEY=YOUR_KEY',
+    'PAGERDUTY_ROUTING_KEY=00000000000000000000000000000000',
+    'PD_ROUTING_KEY=<',
+    'PAGERDUTY_INTEGRATION_KEY=$\{',
+]
+remediation = "Regenerate the routing key at PagerDuty → Event Orchestration → Routing Keys. Routing keys allow sending events to any PagerDuty service."

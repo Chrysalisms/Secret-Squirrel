@@ -1,0 +1,125 @@
+# Messaging / event-bus service secrets
+# Covers Kafka, RabbitMQ, Pusher, Firebase FCM, Ably, PubNub, Twilio Messaging
+
+[[rules]]
+id = "kafka-sasl-password"
+description = "Apache Kafka SASL authentication password"
+severity = "high"
+category = "messaging"
+regex = '''(?i)(?:kafka[._-])?sasl[._-]?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_./+]{12,})['"]?'''
+allowlist = [
+    '=$\{',
+    ': $\{',
+    '=your-',
+    '=<',
+    '=REPLACE',
+    '=changeme',
+]
+entropy = 3.5
+tags = ["kafka", "messaging"]
+
+[[rules]]
+id = "rabbitmq-url"
+description = "RabbitMQ AMQP connection URL with embedded credentials"
+severity = "high"
+category = "messaging"
+regex = '''amqp(?:s)?://([^:]+:[^@]{8,})@[\w\.\-]'''
+allowlist = [
+    'amqp://guest:guest@',
+    'amqp://user:password@',
+    'amqp://admin:admin@',
+    '=$\{',
+]
+entropy = 3.0
+tags = ["rabbitmq", "amqp", "messaging"]
+
+[[rules]]
+id = "pusher-app-secret"
+description = "Pusher application secret"
+severity = "high"
+category = "messaging"
+regex = '''(?i)pusher[._-]?(?:app[._-]?)?secret\s*[=:]\s*['"]?([a-f0-9]{20,32})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+]
+entropy = 3.5
+tags = ["pusher", "websocket"]
+
+[[rules]]
+id = "pusher-app-key"
+description = "Pusher application key"
+severity = "medium"
+category = "messaging"
+regex = '''(?i)pusher[._-]?(?:app[._-]?)?key\s*[=:]\s*['"]?([a-f0-9]{20,32})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+    '=<',
+]
+entropy = 3.5
+tags = ["pusher", "websocket"]
+
+[[rules]]
+id = "firebase-fcm-key"
+description = "Firebase Cloud Messaging (FCM) server key"
+severity = "critical"
+category = "messaging"
+regex = '''(?i)(?:fcm|firebase[._-]?cloud[._-]?messaging)[._-]?(?:server[._-]?)?key\s*[=:]\s*['"]?(AAAA[A-Za-z0-9_-]{100,})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 5.0
+tags = ["firebase", "fcm", "push-notifications"]
+
+[[rules]]
+id = "ably-api-key"
+description = "Ably realtime API key (format: appId.keyId:keySecret)"
+severity = "high"
+category = "messaging"
+regex = '''(?i)ably[._-]?(?:api[._-]?)?key\s*[=:]\s*['"]?([A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}:[A-Za-z0-9_+/=]{16,})['"]?'''
+allowlist = [
+    '=$\{',
+    '=your-',
+]
+entropy = 3.5
+tags = ["ably", "realtime", "websocket"]
+
+[[rules]]
+id = "pubnub-subscribe-key"
+description = "PubNub subscribe key"
+severity = "medium"
+category = "messaging"
+regex = '''(?i)pubnub[._-]?subscribe[._-]?key\s*[=:]\s*['"]?(sub-c-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+allowlist = [
+    '=$\{',
+    '=sub-c-00000000',
+]
+entropy = 3.0
+tags = ["pubnub", "realtime"]
+
+[[rules]]
+id = "pubnub-publish-key"
+description = "PubNub publish key"
+severity = "high"
+category = "messaging"
+regex = '''(?i)pubnub[._-]?publish[._-]?key\s*[=:]\s*['"]?(pub-c-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?'''
+allowlist = [
+    '=$\{',
+    '=pub-c-00000000',
+]
+entropy = 3.0
+tags = ["pubnub", "realtime"]
+
+[[rules]]
+id = "pubnub-secret-key"
+description = "PubNub secret key for server-side signing"
+severity = "critical"
+category = "messaging"
+regex = '''(?i)pubnub[._-]?secret[._-]?key\s*[=:]\s*['"]?(sec-c-[A-Za-z0-9-]{36,})['"]?'''
+allowlist = [
+    '=$\{',
+]
+entropy = 3.5
+tags = ["pubnub", "realtime"]

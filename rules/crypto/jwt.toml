@@ -1,0 +1,90 @@
+# Secret Squirrel — JWT and Signing Key Rules
+# JWT, PASETO, and HMAC signing secret detection rules beyond default.toml
+
+# ==============================================================================
+# JWT — Hardcoded Secret Assignment
+# ==============================================================================
+
+[[rules]]
+id = "jwt-secret-hardcoded"
+description = "JWT signing secret hardcoded in variable assignment"
+regex = '''(?i)(?:jwt[_\-\.\s]{0,10}secret|JWT_SECRET|JWT_SIGNING_SECRET|JWT_KEY|JWT_PRIVATE_KEY)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!changeme)([a-zA-Z0-9+/!@#$%^&*()_\-]{16,200})["']?'''
+keywords = ["JWT_SECRET", "JWT_SIGNING_SECRET", "JWT_KEY", "jwt_secret", "jwtSecret"]
+severity = "critical"
+category = "crypto"
+tags = ["jwt", "signing", "secret", "crypto"]
+entropy_threshold = 3.5
+allowlist = [
+    'JWT_SECRET=YOUR_SECRET',
+    'JWT_SECRET=changeme',
+    'JWT_SECRET=supersecret',
+    'JWT_SECRET=<',
+    'JWT_SECRET=$\{',
+    'jwt_secret = ""',
+]
+remediation = "Rotate the JWT signing secret and immediately invalidate all existing tokens by changing the secret. Users will need to re-authenticate. Move the secret to a secrets manager."
+
+# ==============================================================================
+# PASETO — Local Symmetric Key
+# ==============================================================================
+
+[[rules]]
+id = "paseto-local-key"
+description = "PASETO v4.local symmetric encryption key"
+regex = '''(?i)(?:paseto[_\-\.\s]{0,10}(?:local[_\-\.\s]{0,10})?(?:key|secret)|PASETO_LOCAL_KEY|PASETO_SECRET_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{43}=)["']?'''
+keywords = ["PASETO_LOCAL_KEY", "PASETO_SECRET_KEY", "paseto_local_key"]
+severity = "critical"
+category = "crypto"
+tags = ["paseto", "symmetric", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'PASETO_LOCAL_KEY=YOUR_KEY',
+    'PASETO_SECRET_KEY=<',
+    'PASETO_LOCAL_KEY=$\{',
+    'paseto_local_key = ""',
+]
+remediation = "Generate a new 32-byte random key: `openssl rand -base64 32`. Rotate the key and re-issue all active PASETO tokens."
+
+# ==============================================================================
+# PASETO — Public Key
+# ==============================================================================
+
+[[rules]]
+id = "paseto-public-key"
+description = "PASETO v4.public Ed25519 public key (low severity, but indicates key pair in use)"
+regex = '''(?i)(?:paseto[_\-\.\s]{0,10}public[_\-\.\s]{0,10}(?:key)?|PASETO_PUBLIC_KEY)\s{0,5}[:=]\s{0,5}["']?([a-zA-Z0-9+/]{43}=)["']?'''
+keywords = ["PASETO_PUBLIC_KEY", "paseto_public_key"]
+severity = "low"
+category = "crypto"
+tags = ["paseto", "public-key", "crypto"]
+entropy_threshold = 3.0
+allowlist = [
+    'PASETO_PUBLIC_KEY=YOUR_PUBLIC_KEY',
+    'PASETO_PUBLIC_KEY=<',
+    'PASETO_PUBLIC_KEY=$\{',
+    'paseto_public_key = ""',
+]
+remediation = "Public keys are not secret but confirm that a PASETO key pair is in use. Verify the corresponding private key is not also committed."
+
+# ==============================================================================
+# HMAC — Secret Key Assignment
+# ==============================================================================
+
+[[rules]]
+id = "hmac-secret-key"
+description = "HMAC or webhook signing secret hardcoded in variable assignment"
+regex = '''(?i)(?:hmac[_\-\.\s]{0,10}(?:secret[_\-\.\s]{0,10})?key|signing[_\-]?secret|webhook[_\-]?secret|HMAC_SECRET|SIGNING_SECRET|WEBHOOK_SECRET)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!changeme)([a-zA-Z0-9+/!@#$%^&*_\-]{16,200})["']?'''
+keywords = ["HMAC_SECRET", "SIGNING_SECRET", "hmac_secret", "signing_secret", "webhook_secret"]
+severity = "high"
+category = "crypto"
+tags = ["hmac", "signing", "webhook", "crypto"]
+entropy_threshold = 3.5
+allowlist = [
+    'HMAC_SECRET=YOUR_SECRET',
+    'SIGNING_SECRET=changeme',
+    'WEBHOOK_SECRET=secret',
+    'HMAC_SECRET=<',
+    'SIGNING_SECRET=$\{',
+    'hmac_secret = ""',
+]
+remediation = "Rotate the HMAC secret and update all webhook consumers. For HMAC-SHA256 signing, use a minimum 32-byte cryptographically random secret."

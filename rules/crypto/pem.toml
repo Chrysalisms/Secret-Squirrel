@@ -1,0 +1,142 @@
+# Secret Squirrel — PEM Private Key Rules
+# PEM format private key detection rules beyond default.toml
+
+# ==============================================================================
+# RSA Private Key
+# ==============================================================================
+
+[[rules]]
+id = "rsa-private-key"
+description = "RSA private key in PEM format"
+regex = '''-----BEGIN RSA PRIVATE KEY-----'''
+keywords = ["BEGIN RSA PRIVATE KEY"]
+severity = "critical"
+category = "crypto"
+tags = ["rsa", "pem", "private-key", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'YOUR_RSA_PRIVATE_KEY',
+    'EXAMPLE_RSA_KEY',
+    'placeholder',
+]
+remediation = "Rotate the RSA key pair: `openssl genrsa -out new-private.pem 4096`. Update all systems that use this key (TLS certs, SSH, code signing)."
+
+# ==============================================================================
+# EC (Elliptic Curve) Private Key
+# ==============================================================================
+
+[[rules]]
+id = "ec-private-key"
+description = "Elliptic Curve (EC) private key in PEM format"
+regex = '''-----BEGIN EC PRIVATE KEY-----'''
+keywords = ["BEGIN EC PRIVATE KEY"]
+severity = "critical"
+category = "crypto"
+tags = ["ec", "ecdsa", "pem", "private-key", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'YOUR_EC_PRIVATE_KEY',
+    'EXAMPLE_EC_KEY',
+    'placeholder',
+]
+remediation = "Generate a replacement: `openssl ecparam -name prime256v1 -genkey -noout -out new-ec.pem`. Revoke the old key from all trusting systems."
+
+# ==============================================================================
+# DSA Private Key
+# ==============================================================================
+
+[[rules]]
+id = "dsa-private-key"
+description = "DSA private key in PEM format"
+regex = '''-----BEGIN DSA PRIVATE KEY-----'''
+keywords = ["BEGIN DSA PRIVATE KEY"]
+severity = "critical"
+category = "crypto"
+tags = ["dsa", "pem", "private-key", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'YOUR_DSA_PRIVATE_KEY',
+    'EXAMPLE_DSA_KEY',
+    'placeholder',
+]
+remediation = "DSA is deprecated. Migrate to EC or RSA keys. Generate replacement: `openssl genrsa -out new-rsa.pem 4096`."
+
+# ==============================================================================
+# OpenSSH Private Key (Ed25519, ECDSA, RSA in OpenSSH format)
+# ==============================================================================
+
+[[rules]]
+id = "ed25519-private-key"
+description = "OpenSSH private key (Ed25519, ECDSA, RSA new format)"
+regex = '''-----BEGIN OPENSSH PRIVATE KEY-----'''
+keywords = ["BEGIN OPENSSH PRIVATE KEY"]
+severity = "critical"
+category = "crypto"
+tags = ["openssh", "ed25519", "ecdsa", "private-key", "ssh", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'YOUR_OPENSSH_PRIVATE_KEY',
+    'EXAMPLE_OPENSSH_KEY',
+    'placeholder',
+]
+remediation = "Generate a replacement: `ssh-keygen -t ed25519 -C 'your@email.com'`. Remove the old key from all authorized_keys files and rotate any services that authenticate with it."
+
+# ==============================================================================
+# PKCS#8 Private Key (Unencrypted)
+# ==============================================================================
+
+[[rules]]
+id = "pkcs8-private-key"
+description = "PKCS#8 unencrypted private key in PEM format"
+regex = '''-----BEGIN PRIVATE KEY-----'''
+keywords = ["BEGIN PRIVATE KEY"]
+severity = "critical"
+category = "crypto"
+tags = ["pkcs8", "pem", "private-key", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'YOUR_PRIVATE_KEY',
+    'EXAMPLE_PRIVATE_KEY',
+    'placeholder',
+]
+remediation = "Rotate the key immediately. For TLS: use Let's Encrypt or ACM for certificate management. For code signing: revoke the certificate from the CA."
+
+# ==============================================================================
+# Encrypted Private Key
+# ==============================================================================
+
+[[rules]]
+id = "encrypted-private-key"
+description = "Encrypted private key in PEM format (passphrase-protected)"
+regex = '''-----BEGIN ENCRYPTED PRIVATE KEY-----'''
+keywords = ["BEGIN ENCRYPTED PRIVATE KEY"]
+severity = "high"
+category = "crypto"
+tags = ["encrypted", "pem", "private-key", "pkcs8", "crypto"]
+entropy_threshold = 4.0
+allowlist = [
+    'YOUR_ENCRYPTED_PRIVATE_KEY',
+    'EXAMPLE_ENCRYPTED_KEY',
+    'placeholder',
+]
+remediation = "Even encrypted keys should be rotated if committed; the passphrase may be discoverable. Generate a new encrypted key: `openssl pkcs8 -topk8 -in old.pem -out new.pem`."
+
+# ==============================================================================
+# Certificate Signing Request (CSR)
+# ==============================================================================
+
+[[rules]]
+id = "certificate-request"
+description = "Certificate Signing Request (CSR) in PEM format"
+regex = '''-----BEGIN CERTIFICATE REQUEST-----'''
+keywords = ["BEGIN CERTIFICATE REQUEST", "BEGIN NEW CERTIFICATE REQUEST"]
+severity = "low"
+category = "crypto"
+tags = ["csr", "certificate", "pem", "crypto"]
+entropy_threshold = 3.0
+allowlist = [
+    'YOUR_CERTIFICATE_REQUEST',
+    'EXAMPLE_CSR',
+    'placeholder',
+]
+remediation = "CSRs themselves are not secret, but their presence in code may indicate an adjacent private key. Scan for private keys and ensure they are not committed."

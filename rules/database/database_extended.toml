@@ -1,0 +1,107 @@
+# Database connection strings — extended coverage
+# Covers MSSQL, Oracle, Cassandra, InfluxDB, Neo4j, CouchDB, Couchbase, DynamoDB local
+
+[[rules]]
+id = "mssql-connection-string"
+description = "Microsoft SQL Server connection string with embedded password"
+severity = "critical"
+category = "database"
+regex = '''(?i)(?:Data Source|Server|Uid|User Id)=[^;]+;.*Password\s*=\s*(?!\s*$)(?!\$\{)(?!<)([^;'"\s]{4,200})'''
+keywords = ["Data Source=", "SqlConnection", "mssql", "sqlserver"]
+entropy = 2.5
+tags = ["mssql", "sql-server", "database"]
+
+[[rules]]
+id = "oracle-connection-password"
+description = "Oracle database connection string password"
+severity = "critical"
+category = "database"
+regex = '''(?i)(?:oracle|jdbc:oracle)[^;'"]{0,100}password\s*=\s*(?!\s*$)(?!\$\{)(?!<)(?!YOUR)(?!changeme)([^;'"&\s]{4,200})'''
+keywords = ["jdbc:oracle", "oracle_password", "oracledb"]
+entropy = 2.5
+tags = ["oracle", "database"]
+
+[[rules]]
+id = "cassandra-password"
+description = "Apache Cassandra authentication password"
+severity = "high"
+category = "database"
+regex = '''(?i)cassandra[._-]?(?:auth[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["cassandra"]
+entropy = 3.0
+tags = ["cassandra", "database"]
+
+[[rules]]
+id = "influxdb-token"
+description = "InfluxDB authentication token"
+severity = "high"
+category = "database"
+regex = '''(?i)influxdb?[._-]?(?:api[._-]?|auth[._-]?)?token\s*[=:]\s*['"]?([A-Za-z0-9_+=/-]{64,100}==?)['"]?'''
+keywords = ["influxdb", "INFLUX_TOKEN"]
+entropy = 4.5
+tags = ["influxdb", "time-series", "database"]
+
+[[rules]]
+id = "neo4j-password"
+description = "Neo4j graph database authentication password"
+severity = "high"
+category = "database"
+regex = '''(?i)neo4j[._-]?(?:auth[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["neo4j", "NEO4J_PASSWORD"]
+entropy = 3.0
+tags = ["neo4j", "graph", "database"]
+
+[[rules]]
+id = "couchdb-connection-url"
+description = "CouchDB connection URL with embedded credentials"
+severity = "high"
+category = "database"
+regex = '''https?://([^:]+:[^@]{8,})@[\w.-]+:\d+'''
+keywords = ["couchdb", "_couchdb"]
+entropy = 3.0
+allowlist = [
+    'https://user:password@',
+    'https://admin:admin@',
+    'http://localhost:5984',
+]
+tags = ["couchdb", "database"]
+
+[[rules]]
+id = "couchbase-password"
+description = "Couchbase Server authentication password"
+severity = "high"
+category = "database"
+regex = '''(?i)couchbase[._-]?(?:auth[._-]?)?password\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_]{8,})['"]?'''
+keywords = ["couchbase", "CB_PASSWORD"]
+entropy = 3.0
+tags = ["couchbase", "database"]
+
+[[rules]]
+id = "fauna-secret-key"
+description = "FaunaDB secret key"
+severity = "high"
+category = "database"
+regex = '''(?i)fauna[._-]?(?:secret|admin[._-]?)?(?:key|token)\s*[=:]\s*['"]?(fn[a-zA-Z0-9_-]{34})['"]?'''
+keywords = ["fauna", "FAUNA_SECRET"]
+entropy = 4.0
+tags = ["fauna", "database"]
+
+[[rules]]
+id = "planetscale-password"
+description = "PlanetScale MySQL-compatible database password"
+severity = "high"
+category = "database"
+regex = '''(?i)planetscale[._-]?(?:db[._-]?)?password\s*[=:]\s*['"]?([a-z0-9]{32,48})['"]?'''
+keywords = ["planetscale", "PLANETSCALE"]
+entropy = 4.0
+tags = ["planetscale", "database", "mysql"]
+
+[[rules]]
+id = "supabase-key"
+description = "Supabase anon key or service role key"
+severity = "critical"
+category = "database"
+regex = '''(?i)supabase[._-]?(?:anon[._-]?|service[._-]?role[._-]?)?(?:key|token)\s*[=:]\s*['"]?(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)['"]?'''
+keywords = ["supabase", "SUPABASE_KEY", "SUPABASE_ANON", "SUPABASE_SERVICE"]
+entropy = 5.0
+tags = ["supabase", "database", "postgres"]

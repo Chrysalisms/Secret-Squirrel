@@ -5,7 +5,7 @@ use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::fmt;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::ZeroizeOnDrop;
 
 // ============================
 // RedactedString
