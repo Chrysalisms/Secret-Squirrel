@@ -152,7 +152,7 @@ static KNOWN_PLACEHOLDERS: &[&str] = &[
     "ghs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "github_pat_",
     // ── Stripe test keys ──────────────────────────────────────────────────
-    "sk_test_",          // prefix only — matches if the whole value is this
+    "sk_test_", // prefix only — matches if the whole value is this
     "pk_test_",
     // ── JWT examples ─────────────────────────────────────────────────────
     "your.jwt.token",
@@ -225,7 +225,7 @@ static KNOWN_PLACEHOLDERS: &[&str] = &[
     "abc123",
     "abc1234",
     // ── Sample/demo key patterns from AWS/GH docs ─────────────────────────
-    "wjalrxutnfemi/k7mdeng/bpxrficyexamplekey",  // full AWS example secret
+    "wjalrxutnfemi/k7mdeng/bpxrficyexamplekey", // full AWS example secret
     "akiatest",
     // ── Numeric sequences ─────────────────────────────────────────────────
     "123456789012345678901234567890123456",
@@ -246,20 +246,20 @@ static PLACEHOLDER_SUBSTRINGS: &[&str] = &[
     "example_",
     "sample_",
     "demo_",
-    "test_",       // only as substring in longer fake values
+    "test_", // only as substring in longer fake values
     "_here",
     "_todo",
     "changeme",
     "replace_me",
     "your_",
     "_your_",
-    "xxxx",        // four or more x's
-    "0000",        // four or more zeros
-    "aaaa",        // four or more a's
-    "1111",        // four or more 1's
+    "xxxx", // four or more x's
+    "0000", // four or more zeros
+    "aaaa", // four or more a's
+    "1111", // four or more 1's
     // CI/CD expression delimiters
-    "${{" ,        // GitHub Actions / GitLab CI expression — never a real secret
-    "secrets.",    // Reference to a secret store, not a literal value
+    "${{",      // GitHub Actions / GitLab CI expression — never a real secret
+    "secrets.", // Reference to a secret store, not a literal value
     // Mock/stub markers
     "mock_",
     "_mock",

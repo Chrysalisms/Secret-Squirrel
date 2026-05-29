@@ -33,18 +33,62 @@ struct ProximityRule {
 
 /// All proximity rules, ordered roughly by specificity (most specific first).
 static PROXIMITY_RULES: &[ProximityRule] = &[
-    ProximityRule { needle: b"= \"",    score: 0.35, pattern: ProximityPattern::Assignment   },
-    ProximityRule { needle: b"='",      score: 0.30, pattern: ProximityPattern::Assignment   },
-    ProximityRule { needle: b"= '",     score: 0.30, pattern: ProximityPattern::Assignment   },
-    ProximityRule { needle: b": \"",    score: 0.25, pattern: ProximityPattern::JsonKey      },
-    ProximityRule { needle: b": '",     score: 0.25, pattern: ProximityPattern::YamlKey      },
-    ProximityRule { needle: b"export ", score: 0.25, pattern: ProximityPattern::Export       },
-    ProximityRule { needle: b"ENV ",    score: 0.20, pattern: ProximityPattern::DockerEnv    },
-    ProximityRule { needle: b"Bearer ", score: 0.30, pattern: ProximityPattern::HeaderValue  },
-    ProximityRule { needle: b"ARG ",    score: 0.15, pattern: ProximityPattern::DockerEnv    },
+    ProximityRule {
+        needle: b"= \"",
+        score: 0.35,
+        pattern: ProximityPattern::Assignment,
+    },
+    ProximityRule {
+        needle: b"='",
+        score: 0.30,
+        pattern: ProximityPattern::Assignment,
+    },
+    ProximityRule {
+        needle: b"= '",
+        score: 0.30,
+        pattern: ProximityPattern::Assignment,
+    },
+    ProximityRule {
+        needle: b": \"",
+        score: 0.25,
+        pattern: ProximityPattern::JsonKey,
+    },
+    ProximityRule {
+        needle: b": '",
+        score: 0.25,
+        pattern: ProximityPattern::YamlKey,
+    },
+    ProximityRule {
+        needle: b"export ",
+        score: 0.25,
+        pattern: ProximityPattern::Export,
+    },
+    ProximityRule {
+        needle: b"ENV ",
+        score: 0.20,
+        pattern: ProximityPattern::DockerEnv,
+    },
+    ProximityRule {
+        needle: b"Bearer ",
+        score: 0.30,
+        pattern: ProximityPattern::HeaderValue,
+    },
+    ProximityRule {
+        needle: b"ARG ",
+        score: 0.15,
+        pattern: ProximityPattern::DockerEnv,
+    },
     // Add generic unquoted variants for higher recall
-    ProximityRule { needle: b"= ",      score: 0.20, pattern: ProximityPattern::Assignment   },
-    ProximityRule { needle: b": ",      score: 0.20, pattern: ProximityPattern::JsonKey      },
+    ProximityRule {
+        needle: b"= ",
+        score: 0.20,
+        pattern: ProximityPattern::Assignment,
+    },
+    ProximityRule {
+        needle: b": ",
+        score: 0.20,
+        pattern: ProximityPattern::JsonKey,
+    },
 ];
 
 /// Keyword identifiers that, if found in context, each contribute +0.20 to
@@ -147,12 +191,16 @@ fn score_context(context: &[u8]) -> (f32, ProximityPattern) {
     // Check proximity rules (structural patterns) — case-insensitive for text keywords
     let context_lower = context.to_ascii_lowercase();
     for rule in PROXIMITY_RULES {
-        let matched = if rule.needle.iter().all(|c| c.is_ascii_alphabetic() || *c == b' ') {
+        let matched = if rule
+            .needle
+            .iter()
+            .all(|c| c.is_ascii_alphabetic() || *c == b' ')
+        {
             memmem::find(&context_lower, &rule.needle.to_ascii_lowercase()).is_some()
         } else {
             memmem::find(context, rule.needle).is_some()
         };
-        
+
         if matched {
             total_score += rule.score;
             if rule.score > best_rule_score {
@@ -277,6 +325,9 @@ mod tests {
         let ctx = b"export PASSWORD = \"hunter2\"";
         let (score, _) = score_context(ctx);
         // export (+0.25) + PASSWORD keyword (+0.20) + = " (+0.35) = 0.80
-        assert!(score >= 0.7, "Multi-signal context should score >= 0.7, got {score}");
+        assert!(
+            score >= 0.7,
+            "Multi-signal context should score >= 0.7, got {score}"
+        );
     }
 }

@@ -87,7 +87,10 @@ fn is_js_test_call(node: &tree_sitter::Node, source: &[u8]) -> bool {
     let func = node.child_by_field_name("function");
     if let Some(func_node) = func {
         if let Ok(name) = func_node.utf8_text(source) {
-            return matches!(name, "describe" | "it" | "test" | "beforeEach" | "afterEach");
+            return matches!(
+                name,
+                "describe" | "it" | "test" | "beforeEach" | "afterEach"
+            );
         }
     }
     false
@@ -168,7 +171,10 @@ pub fn extract_context(
         }
 
         // ── Python / Go: function name check ──────────────────────────────
-        if matches!(kind, "function_definition" | "method_definition" | "function_declaration") {
+        if matches!(
+            kind,
+            "function_definition" | "method_definition" | "function_declaration"
+        ) {
             if let Some(name_node) = current.child_by_field_name("name") {
                 if let Ok(name) = name_node.utf8_text(source) {
                     if is_test_function_name(name) {
@@ -196,7 +202,7 @@ pub fn extract_context(
                     | "short_var_declaration" // Go :=
                     | "let_declaration"       // Rust
                     | "const_item"            // Rust const
-                    | "static_item"           // Rust static
+                    | "static_item" // Rust static
             )
         {
             // Only flag as assignment if target sits in the value child.
@@ -288,8 +294,7 @@ fn is_in_value_position(
 
     if let Some(value) = value_node {
         // target is in the value subtree if its byte range overlaps.
-        return value.start_byte() <= target.start_byte()
-            && target.end_byte() <= value.end_byte();
+        return value.start_byte() <= target.start_byte() && target.end_byte() <= value.end_byte();
     }
 
     // Fallback: assume RHS if target's text starts after '=' in source.
@@ -317,7 +322,10 @@ pub fn fallback_context(source: &[u8], byte_offset: usize) -> CodeContext {
     let before = &source[..offset];
 
     // ── Find the current line ──────────────────────────────────────────────
-    let line_start = before.iter().rposition(|&b| b == b'\n').map_or(0, |p| p + 1);
+    let line_start = before
+        .iter()
+        .rposition(|&b| b == b'\n')
+        .map_or(0, |p| p + 1);
     let line_end = source[offset..]
         .iter()
         .position(|&b| b == b'\n')
@@ -396,16 +404,8 @@ pub fn fallback_context(source: &[u8], byte_offset: usize) -> CodeContext {
 #[cfg(feature = "semantic")]
 pub fn supported_extensions() -> &'static [&'static str] {
     &[
-        "js", "mjs", "cjs",
-        "ts", "mts", "cts", "tsx",
-        "py", "pyi",
-        "go",
-        "rs",
-        "java",
-        "rb", "rake", "gemspec",
-        "c", "h",
-        "cpp", "cc", "cxx", "hpp", "hxx",
-        "cs",
+        "js", "mjs", "cjs", "ts", "mts", "cts", "tsx", "py", "pyi", "go", "rs", "java", "rb",
+        "rake", "gemspec", "c", "h", "cpp", "cc", "cxx", "hpp", "hxx", "cs",
     ]
 }
 
@@ -535,6 +535,9 @@ mod tests {
         #[cfg(feature = "semantic")]
         assert!(!exts.is_empty(), "semantic feature: should have extensions");
         #[cfg(not(feature = "semantic"))]
-        assert!(exts.is_empty(), "no semantic feature: should have no extensions");
+        assert!(
+            exts.is_empty(),
+            "no semantic feature: should have no extensions"
+        );
     }
 }

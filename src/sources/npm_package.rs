@@ -114,7 +114,11 @@ impl NpmPackageSource {
 
     /// Build the download URL for an NPM package.
     fn npm_tarball_url(&self) -> String {
-        let version = if self.version.is_empty() { "latest" } else { &self.version };
+        let version = if self.version.is_empty() {
+            "latest"
+        } else {
+            &self.version
+        };
         format!(
             "{}/{}/{}",
             self.registry.base_url(),
@@ -206,7 +210,8 @@ impl NpmPackageSource {
             }
 
             let size = content.len() as u64;
-            let fragment_path = format!("npm://{}/{}/{}", package_label, self.package_name, path_str);
+            let fragment_path =
+                format!("npm://{}/{}/{}", package_label, self.package_name, path_str);
             let mut attributes = HashMap::new();
             attributes.insert("package".to_string(), self.package_name.clone());
             attributes.insert("version".to_string(), self.version.clone());
@@ -232,15 +237,11 @@ impl NpmPackageSource {
 fn is_binary_extension(path: &str) -> bool {
     let lower = path.to_lowercase();
     let binary_exts = [
-        ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
-        ".woff", ".woff2", ".ttf", ".otf", ".eot",
-        ".mp4", ".webm", ".ogg", ".mp3", ".wav",
-        ".zip", ".tar", ".gz", ".tgz", ".bz2", ".xz",
-        ".exe", ".dll", ".so", ".dylib", ".a", ".lib",
-        ".pdf", ".doc", ".docx", ".xls", ".xlsx",
-        ".node", // native Node addons
-        ".wasm",
-        ".min.js", // minified JS — not useful for secret scanning
+        ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf",
+        ".otf", ".eot", ".mp4", ".webm", ".ogg", ".mp3", ".wav", ".zip", ".tar", ".gz", ".tgz",
+        ".bz2", ".xz", ".exe", ".dll", ".so", ".dylib", ".a", ".lib", ".pdf", ".doc", ".docx",
+        ".xls", ".xlsx", ".node", // native Node addons
+        ".wasm", ".min.js", // minified JS — not useful for secret scanning
         ".map",    // source maps
     ];
     binary_exts.iter().any(|ext| lower.ends_with(ext))
@@ -291,10 +292,11 @@ impl AsyncSource for NpmPackageSource {
             });
         }
 
-        let meta: serde_json::Value = meta_resp.json().await.map_err(|e| SquirrelError::Source {
-            src_name: self.name().to_string(),
-            reason: format!("Failed to parse package metadata JSON: {e}"),
-        })?;
+        let meta: serde_json::Value =
+            meta_resp.json().await.map_err(|e| SquirrelError::Source {
+                src_name: self.name().to_string(),
+                reason: format!("Failed to parse package metadata JSON: {e}"),
+            })?;
 
         // Extract tarball URL from NPM metadata
         let tarball_url = meta
@@ -471,7 +473,10 @@ mod tests {
         let js_frag = frags.iter().find(|f| f.metadata.path.contains("index.js"));
         assert!(js_frag.is_some(), "Must have index.js fragment");
         let js_content = String::from_utf8(js_frag.unwrap().content.to_vec()).unwrap();
-        assert!(js_content.contains("sk_live_"), "index.js must contain the planted secret");
+        assert!(
+            js_content.contains("sk_live_"),
+            "index.js must contain the planted secret"
+        );
 
         // All fragments should have correct source type
         for frag in &frags {
@@ -526,7 +531,10 @@ mod tests {
 
     #[test]
     fn test_registry_base_urls() {
-        assert_eq!(PackageRegistry::Npm.base_url(), "https://registry.npmjs.org");
+        assert_eq!(
+            PackageRegistry::Npm.base_url(),
+            "https://registry.npmjs.org"
+        );
         assert_eq!(PackageRegistry::Pypi.base_url(), "https://pypi.org/pypi");
         assert_eq!(
             PackageRegistry::Custom("https://my-registry.example.com".into()).base_url(),

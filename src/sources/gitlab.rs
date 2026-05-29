@@ -132,21 +132,25 @@ impl GitLabSource {
     /// Fetch metadata for a single project by ID.
     async fn fetch_project(&self, id: u64) -> Result<GlProject> {
         let url = format!("{}/projects/{}", self.base_url, id);
-        let resp = self.authed_get(&url).send().await.map_err(|e| {
-            SquirrelError::Source {
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(|e| SquirrelError::Source {
                 src_name: "gitlab".into(),
                 reason: e.to_string(),
-            }
-        })?;
+            })?;
 
         if !resp.status().is_success() {
             return Err(self.status_error(resp.status(), &url));
         }
 
-        resp.json::<GlProject>().await.map_err(|e| SquirrelError::Source {
-            src_name: "gitlab".into(),
-            reason: format!("JSON parse error fetching project {id}: {e}"),
-        })
+        resp.json::<GlProject>()
+            .await
+            .map_err(|e| SquirrelError::Source {
+                src_name: "gitlab".into(),
+                reason: format!("JSON parse error fetching project {id}: {e}"),
+            })
     }
 
     /// List all projects in a namespace (group), including subgroups.
@@ -164,12 +168,14 @@ impl GitLabSource {
                 "{}/groups/{}/projects?include_subgroups=true&per_page=100&page={page}",
                 self.base_url, encoded
             );
-            let resp = self.authed_get(&url).send().await.map_err(|e| {
-                SquirrelError::Source {
+            let resp = self
+                .authed_get(&url)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
                     src_name: "gitlab".into(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             if !resp.status().is_success() {
                 if resp.status().as_u16() == 404 {
@@ -204,12 +210,14 @@ impl GitLabSource {
                 "{}/users/{}/projects?per_page=100&page={page}",
                 self.base_url, username
             );
-            let resp = self.authed_get(&url).send().await.map_err(|e| {
-                SquirrelError::Source {
+            let resp = self
+                .authed_get(&url)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
                     src_name: "gitlab".into(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             if !resp.status().is_success() {
                 return Err(self.status_error(resp.status(), &url));
@@ -241,22 +249,23 @@ impl GitLabSource {
                 "{}/projects/{}/repository/tree?recursive=true&per_page=100&page={page}&ref={}",
                 self.base_url, project_id, branch
             );
-            let resp = self.authed_get(&url).send().await.map_err(|e| {
-                SquirrelError::Source {
+            let resp = self
+                .authed_get(&url)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
                     src_name: "gitlab".into(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             if !resp.status().is_success() {
                 return Err(self.status_error(resp.status(), &url));
             }
 
-            let batch: Vec<GlTreeEntry> =
-                resp.json().await.map_err(|e| SquirrelError::Source {
-                    src_name: "gitlab".into(),
-                    reason: format!("JSON parse error fetching tree for project {project_id}: {e}"),
-                })?;
+            let batch: Vec<GlTreeEntry> = resp.json().await.map_err(|e| SquirrelError::Source {
+                src_name: "gitlab".into(),
+                reason: format!("JSON parse error fetching tree for project {project_id}: {e}"),
+            })?;
 
             let done = batch.len() < 100;
             entries.extend(batch);
@@ -272,12 +281,7 @@ impl GitLabSource {
     /// Fetch the raw content of a single file.
     ///
     /// Returns `None` if the file should be skipped.
-    async fn fetch_raw_file(
-        &self,
-        project_id: u64,
-        path: &str,
-        branch: &str,
-    ) -> Option<Bytes> {
+    async fn fetch_raw_file(&self, project_id: u64, path: &str, branch: &str) -> Option<Bytes> {
         // GitLab requires the file path to be URL-encoded (slashes → %2F).
         let encoded_path = urlencoding_simple(path);
         let url = format!(
@@ -350,10 +354,7 @@ impl GitLabSource {
 
     /// Scan a single project and collect fragments.
     async fn scan_project(&self, project: &GlProject) -> Vec<Fragment> {
-        let branch = project
-            .default_branch
-            .as_deref()
-            .unwrap_or("HEAD");
+        let branch = project.default_branch.as_deref().unwrap_or("HEAD");
 
         let tree = match self.fetch_tree(project.id, branch).await {
             Ok(t) => t,
@@ -376,18 +377,14 @@ impl GitLabSource {
                 continue;
             }
 
-            let content =
-                match self.fetch_raw_file(project.id, &entry.path, branch).await {
-                    Some(c) => c,
-                    None => continue,
-                };
+            let content = match self.fetch_raw_file(project.id, &entry.path, branch).await {
+                Some(c) => c,
+                None => continue,
+            };
 
             let size = content.len() as u64;
             let mut attributes = HashMap::new();
-            attributes.insert(
-                "project".into(),
-                project.path_with_namespace.clone(),
-            );
+            attributes.insert("project".into(), project.path_with_namespace.clone());
             attributes.insert("project_id".into(), project.id.to_string());
             attributes.insert("sha".into(), entry.id.clone());
             attributes.insert("branch".into(), branch.to_owned());
@@ -522,9 +519,7 @@ impl GitLabSourceBuilder {
             ));
         }
 
-        let token = self
-            .token
-            .or_else(|| std::env::var("GITLAB_TOKEN").ok());
+        let token = self.token.or_else(|| std::env::var("GITLAB_TOKEN").ok());
 
         let client = reqwest::Client::new();
 
@@ -593,10 +588,7 @@ mod tests {
 
     #[test]
     fn test_name_returns_gitlab() {
-        let source = GitLabSourceBuilder::new()
-            .project_id(42)
-            .build()
-            .unwrap();
+        let source = GitLabSourceBuilder::new().project_id(42).build().unwrap();
         assert_eq!(source.name(), "gitlab");
     }
 
@@ -768,10 +760,7 @@ mod tests {
             frag.metadata.path.contains(".env"),
             "Path should contain file name"
         );
-        assert_eq!(
-            frag.metadata.attributes["project"],
-            "my-group/my-repo"
-        );
+        assert_eq!(frag.metadata.attributes["project"], "my-group/my-repo");
     }
 
     // -----------------------------------------------------------------------
@@ -786,9 +775,7 @@ mod tests {
             .mock("GET", "/projects/20")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(
-                r#"{"id":20,"default_branch":"main","path_with_namespace":"g/r"}"#,
-            )
+            .with_body(r#"{"id":20,"default_branch":"main","path_with_namespace":"g/r"}"#)
             .create_async()
             .await;
 

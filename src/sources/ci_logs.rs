@@ -168,14 +168,14 @@ impl CiLogSource {
             self.github_api_base, owner, repo, self.max_runs
         );
 
-        let resp = self
-            .gh_get(&runs_url, token)
-            .send()
-            .await
-            .map_err(|e| SquirrelError::Source {
-                src_name: "ci-logs".into(),
-                reason: format!("GitHub request failed: {e}"),
-            })?;
+        let resp =
+            self.gh_get(&runs_url, token)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
+                    src_name: "ci-logs".into(),
+                    reason: format!("GitHub request failed: {e}"),
+                })?;
 
         if !resp.status().is_success() {
             return Err(self.gh_error(resp.status(), &runs_url));
@@ -198,9 +198,7 @@ impl CiLogSource {
 
         // 2. Fetch logs for each run.
         for run in &runs_resp.workflow_runs {
-            let log_frags = self
-                .github_run_logs(owner, repo, token, run)
-                .await;
+            let log_frags = self.github_run_logs(owner, repo, token, run).await;
             all_fragments.extend(log_frags);
         }
 

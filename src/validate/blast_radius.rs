@@ -62,15 +62,23 @@ impl BlastRadius {
     pub fn assess_risk(permissions: &[String]) -> RiskLevel {
         // Critical keywords — any of these triggers Critical immediately
         const CRITICAL_KEYWORDS: &[&str] = &[
-            "admin", "root", "write", "delete", "destroy", "full",
-            "unrestricted", "superuser", "AdministratorAccess",
+            "admin",
+            "root",
+            "write",
+            "delete",
+            "destroy",
+            "full",
+            "unrestricted",
+            "superuser",
+            "AdministratorAccess",
             // Write actions (not just verbs — specific AWS-style verbs)
-            "put", ":put", "putobject", "putitem",
+            "put",
+            ":put",
+            "putobject",
+            "putitem",
         ];
         // High keywords — broad but not admin-level
-        const HIGH_KEYWORDS: &[&str] = &[
-            "create", "update", "post", "push",
-        ];
+        const HIGH_KEYWORDS: &[&str] = &["create", "update", "post", "push"];
 
         if permissions.is_empty() {
             return RiskLevel::Low;
@@ -151,7 +159,10 @@ mod tests {
 
     #[test]
     fn test_wildcard_star_is_critical() {
-        assert_eq!(BlastRadius::assess_risk(&perms(&["*"])), RiskLevel::Critical);
+        assert_eq!(
+            BlastRadius::assess_risk(&perms(&["*"])),
+            RiskLevel::Critical
+        );
     }
 
     #[test]
@@ -205,7 +216,11 @@ mod tests {
     #[test]
     fn test_multiple_reads_is_medium() {
         assert_eq!(
-            BlastRadius::assess_risk(&perms(&["s3:GetObject", "ec2:DescribeInstances", "iam:ListRoles"])),
+            BlastRadius::assess_risk(&perms(&[
+                "s3:GetObject",
+                "ec2:DescribeInstances",
+                "iam:ListRoles"
+            ])),
             RiskLevel::Medium
         );
     }

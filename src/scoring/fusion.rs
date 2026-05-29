@@ -80,11 +80,11 @@ impl FusionEngine {
         let markov_score = markov as f64;
 
         // Compute weighted sum.
-        let raw = self.entropy_weight   * entropy_score
-            + self.proximity_weight  * proximity_score
-            + self.tristream_weight  * tristream_score
-            + self.markov_weight     * markov_score
-            + self.pattern_weight    * pattern_score;
+        let raw = self.entropy_weight * entropy_score
+            + self.proximity_weight * proximity_score
+            + self.tristream_weight * tristream_score
+            + self.markov_weight * markov_score
+            + self.pattern_weight * pattern_score;
 
         // Blend in CNN if available (replaces 0.15 of total weight, redistributed).
         let (raw, cnn_score_opt) = if let Some(cnn_val) = cnn {
@@ -102,11 +102,8 @@ impl FusionEngine {
 
         // Apply provenance-aware confidence adjustment.
         let identifiers: Vec<String> = pm.source.identifiers.clone();
-        let adjusted = ConfidenceAdjuster::adjust_with_identifiers(
-            normalized,
-            metadata,
-            &identifiers,
-        );
+        let adjusted =
+            ConfidenceAdjuster::adjust_with_identifiers(normalized, metadata, &identifiers);
 
         // Apply optional AST adjustment (additive delta, clamped).
         let ast_adjustment_opt = ast.map(|a| a as f64);
@@ -135,8 +132,8 @@ mod tests {
     use crate::config::{PipelineConfig, ScoringConfig};
     use crate::stages::entropy::shannon_entropy;
     use crate::types::{
-        EntropyCandidate, FragmentMetadata, ProximityMatch, ProximityPattern,
-        SourceType, TriStreamResult,
+        EntropyCandidate, FragmentMetadata, ProximityMatch, ProximityPattern, SourceType,
+        TriStreamResult,
     };
     use bytes::Bytes;
     use std::collections::HashMap;

@@ -118,13 +118,13 @@ impl CpuEngine {
                     let chunk_start = i * stride;
                     let chunk_end = std::cmp::min(chunk_start + chunk_size, raw.len());
                     let chunk = &raw[chunk_start..chunk_end];
-                    
+
                     let entropy = shannon_entropy(chunk);
                     if entropy >= threshold {
                         // Expand context window to ~256 bytes for downstream regex
                         let context_start = chunk_start.saturating_sub(96);
                         let context_end = std::cmp::min(raw.len(), chunk_end + 96);
-                        
+
                         Some(EntropyCandidate {
                             offset: context_start as u64,
                             length: (context_end - context_start) as u32,
@@ -164,8 +164,7 @@ impl CpuEngine {
             candidates
                 .par_iter()
                 .filter_map(|candidate| {
-                    let (score, pattern) =
-                        proximity_score_and_pattern(candidate.raw.as_ref());
+                    let (score, pattern) = proximity_score_and_pattern(candidate.raw.as_ref());
                     if score >= threshold {
                         Some(ProximityMatch {
                             candidate: candidate.clone(),
@@ -264,7 +263,7 @@ impl CpuEngine {
             let regex_matches = Self::run_regex(rule, &window_str);
             for (rel_start, rel_end, text) in regex_matches {
                 let abs_start = base + rel_start;
-                let abs_end   = base + rel_end;
+                let abs_end = base + rel_end;
                 let key = (rule_idx, abs_start);
                 if seen.insert(key) {
                     matches.push(Self::make_match(rule, abs_start, abs_end, text, data));
@@ -461,8 +460,7 @@ fn classify_assignment(pat: &[u8]) -> ProximityPattern {
 // ============================================================================
 
 /// Base64 alphabet for blob detection.
-const BASE64_CHARS: &[u8] =
-    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+const BASE64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 /// Minimum length for a run to be considered a base64-like blob.
 const MIN_BASE64_BLOB_LEN: usize = 20;
@@ -481,7 +479,12 @@ fn tristream_decompose(m: ProximityMatch) -> TriStreamResult {
     // ── Stream C: structure score ─────────────────────────────────────────
     let delimiters = data
         .iter()
-        .filter(|&&b| matches!(b, b'{' | b'}' | b'[' | b']' | b':' | b'=' | b';' | b',' | b'('))
+        .filter(|&&b| {
+            matches!(
+                b,
+                b'{' | b'}' | b'[' | b']' | b':' | b'=' | b';' | b',' | b'('
+            )
+        })
         .count();
     let structure_score = if data.is_empty() {
         0.0
@@ -727,7 +730,10 @@ mod tests {
 
         // With a high threshold, noise should not match.
         let matches = engine.execute_proximity(&[candidate], 0.5);
-        assert!(matches.is_empty(), "Random bytes should not match proximity");
+        assert!(
+            matches.is_empty(),
+            "Random bytes should not match proximity"
+        );
     }
 
     // ── tri-stream tests ──────────────────────────────────────────────────

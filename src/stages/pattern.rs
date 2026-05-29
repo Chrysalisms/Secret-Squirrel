@@ -72,7 +72,9 @@ impl PatternVerifier {
         if patterns.is_empty() {
             // No keywords — we'll fall back to running all regexes every time.
             patterns.push("\x00\x00".to_string()); // NUL sentinel
-            keyword_map.push(KeywordEntry { rule_idx: usize::MAX });
+            keyword_map.push(KeywordEntry {
+                rule_idx: usize::MAX,
+            });
         }
 
         let ac = aho_corasick::AhoCorasickBuilder::new()
@@ -116,7 +118,12 @@ impl PatternVerifier {
                 for variant in variants {
                     if !variant.encoding_chain.is_empty() {
                         let decoded_str = String::from_utf8_lossy(&variant.data);
-                        self.evaluate_payload(&result, &decoded_str, Some(variant.encoding_chain), &mut matches);
+                        self.evaluate_payload(
+                            &result,
+                            &decoded_str,
+                            Some(variant.encoding_chain),
+                            &mut matches,
+                        );
                     }
                 }
             }
@@ -191,7 +198,9 @@ mod tests {
     use crate::rules::parser::{Rule, RuleCategory};
     use crate::rules::CompiledRule;
     use crate::stages::entropy::shannon_entropy;
-    use crate::types::{EntropyCandidate, ProximityMatch, ProximityPattern, Severity, TriStreamResult};
+    use crate::types::{
+        EntropyCandidate, ProximityMatch, ProximityPattern, Severity, TriStreamResult,
+    };
     use bytes::Bytes;
 
     /// Build a minimal [`TriStreamResult`] wrapping the given context string.
@@ -276,7 +285,10 @@ mod tests {
         let result = make_tri_result(context, "plain text");
         let matches = verifier.verify(vec![result]);
 
-        assert!(matches.is_empty(), "Plain text should not match AWS key rule");
+        assert!(
+            matches.is_empty(),
+            "Plain text should not match AWS key rule"
+        );
     }
 
     #[test]

@@ -126,8 +126,8 @@ fn sample_env_contains_openai_key() {
 #[test]
 fn postman_fixture_is_valid_json() {
     let content = std::fs::read_to_string(secrets_dir().join("postman_collection.json")).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&content)
-        .expect("postman_collection.json must be valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&content).expect("postman_collection.json must be valid JSON");
     assert!(parsed.get("info").is_some(), "must have info field");
     assert!(parsed.get("item").is_some(), "must have item field");
 }
@@ -135,8 +135,8 @@ fn postman_fixture_is_valid_json() {
 #[test]
 fn notebook_fixture_is_valid_json() {
     let content = std::fs::read_to_string(secrets_dir().join("analysis.ipynb")).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&content)
-        .expect("analysis.ipynb must be valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&content).expect("analysis.ipynb must be valid JSON");
     assert_eq!(parsed["nbformat"].as_u64(), Some(4), "nbformat must be 4");
     assert!(parsed["cells"].is_array(), "cells must be an array");
 }
@@ -144,7 +144,10 @@ fn notebook_fixture_is_valid_json() {
 #[test]
 fn docker_compose_contains_stripe_key() {
     let content = std::fs::read_to_string(secrets_dir().join("docker-compose.yml")).unwrap();
-    assert!(content.contains("sk_live_"), "docker-compose.yml must contain Stripe key");
+    assert!(
+        content.contains("sk_live_"),
+        "docker-compose.yml must contain Stripe key"
+    );
 }
 
 #[test]
@@ -187,9 +190,9 @@ fn safe_env_does_not_contain_real_key_patterns() {
 
 #[test]
 fn entropy_gate_filters_low_entropy_text() {
-    use secret_squirrel::stages::entropy::EntropyGate;
-    use secret_squirrel::config::PipelineConfig;
     use bytes::Bytes;
+    use secret_squirrel::config::PipelineConfig;
+    use secret_squirrel::stages::entropy::EntropyGate;
 
     let config = PipelineConfig::default();
     let gate = EntropyGate::new(&config);
@@ -212,9 +215,9 @@ fn entropy_gate_filters_low_entropy_text() {
 
 #[test]
 fn entropy_gate_aws_key_passes() {
-    use secret_squirrel::stages::entropy::EntropyGate;
-    use secret_squirrel::config::PipelineConfig;
     use bytes::Bytes;
+    use secret_squirrel::config::PipelineConfig;
+    use secret_squirrel::stages::entropy::EntropyGate;
 
     let config = PipelineConfig::default();
     let gate = EntropyGate::new(&config);
@@ -230,9 +233,9 @@ fn entropy_gate_aws_key_passes() {
 
 #[test]
 fn entropy_gate_repeated_chars_fails() {
-    use secret_squirrel::stages::entropy::EntropyGate;
-    use secret_squirrel::config::PipelineConfig;
     use bytes::Bytes;
+    use secret_squirrel::config::PipelineConfig;
+    use secret_squirrel::stages::entropy::EntropyGate;
 
     let config = PipelineConfig::default();
     let gate = EntropyGate::new(&config);
@@ -289,13 +292,13 @@ fn markov_scorer_github_token_is_random() {
 
 #[cfg(test)]
 mod formatter_integration {
-    use secret_squirrel::report::{Formatter, Reporter};
+    use chrono::Utc;
+    use secret_squirrel::report::csv::CsvReporter;
     use secret_squirrel::report::json::JsonReporter;
     use secret_squirrel::report::sarif::SarifReporter;
-    use secret_squirrel::report::csv::CsvReporter;
     use secret_squirrel::report::table::TableReporter;
+    use secret_squirrel::report::{Formatter, Reporter};
     use secret_squirrel::types::{Finding, FusedScore, Location, RedactedString, Severity};
-    use chrono::Utc;
 
     fn make_test_findings() -> Vec<Finding> {
         vec![
@@ -328,15 +331,19 @@ mod formatter_integration {
                 chain: None,
                 validation: None,
                 remediation: Some("Rotate this AWS key immediately via IAM console.".to_string()),
-                detected_at: Utc::now(), encoding_chain: None,
+                detected_at: Utc::now(),
+                encoding_chain: None,
             },
             Finding {
                 id: "test-002".to_string(),
                 rule_id: "github-token".to_string(),
                 description: "GitHub Personal Access Token".to_string(),
-                secret: RedactedString::new("ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789012".to_string()),
+                secret: RedactedString::new(
+                    "ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789012".to_string(),
+                ),
                 secret_hash: "deadbeef00000002".to_string(),
-                match_context: "GITHUB_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789012".to_string(),
+                match_context: "GITHUB_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789012"
+                    .to_string(),
                 location: Location {
                     path: "tests/fixtures/secrets/sample.env".to_string(),
                     start_line: 6,
@@ -358,8 +365,11 @@ mod formatter_integration {
                 severity: Severity::High,
                 chain: None,
                 validation: None,
-                remediation: Some("Revoke this token at https://github.com/settings/tokens".to_string()),
-                detected_at: Utc::now(), encoding_chain: None,
+                remediation: Some(
+                    "Revoke this token at https://github.com/settings/tokens".to_string(),
+                ),
+                detected_at: Utc::now(),
+                encoding_chain: None,
             },
         ]
     }
@@ -371,8 +381,8 @@ mod formatter_integration {
         let mut buf = Vec::new();
         reporter.write(&findings, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&s)
-            .expect("JSON reporter must produce valid JSON");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&s).expect("JSON reporter must produce valid JSON");
         assert!(parsed.is_array());
         assert_eq!(parsed.as_array().unwrap().len(), 2);
     }
@@ -418,8 +428,8 @@ mod formatter_integration {
         reporter.write(&findings, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
 
-        let parsed: serde_json::Value = serde_json::from_str(&s)
-            .expect("SARIF reporter must produce valid JSON");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&s).expect("SARIF reporter must produce valid JSON");
         assert_eq!(parsed["version"].as_str(), Some("2.1.0"));
         assert!(parsed["runs"].is_array());
         let results = &parsed["runs"][0]["results"];
@@ -459,9 +469,18 @@ mod formatter_integration {
         reporter.write(&findings, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         let first_line = s.lines().next().unwrap();
-        assert!(first_line.starts_with("rule_id,"), "CSV must start with rule_id header");
-        assert!(first_line.contains("severity"), "CSV header must contain severity");
-        assert!(first_line.contains("confidence"), "CSV header must contain confidence");
+        assert!(
+            first_line.starts_with("rule_id,"),
+            "CSV must start with rule_id header"
+        );
+        assert!(
+            first_line.contains("severity"),
+            "CSV header must contain severity"
+        );
+        assert!(
+            first_line.contains("confidence"),
+            "CSV header must contain confidence"
+        );
         assert!(first_line.contains("path"), "CSV header must contain path");
     }
 
@@ -483,7 +502,10 @@ mod formatter_integration {
         let mut buf = Vec::new();
         reporter.write(&findings, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
-        assert!(!s.is_empty(), "Table reporter must produce non-empty output");
+        assert!(
+            !s.is_empty(),
+            "Table reporter must produce non-empty output"
+        );
         assert!(
             s.contains("aws-access-key-id") || s.contains("AWS"),
             "Table must reference the AWS finding"
@@ -653,7 +675,7 @@ mod redaction_safety {
 
 #[cfg(test)]
 mod cnn_tokenizer {
-    use secret_squirrel::scoring::cnn::{tokenize, char_to_idx, ALPHABET_SIZE, UNK_IDX};
+    use secret_squirrel::scoring::cnn::{char_to_idx, tokenize, ALPHABET_SIZE, UNK_IDX};
 
     #[test]
     fn all_ascii_indices_in_range() {
@@ -670,7 +692,11 @@ mod cnn_tokenizer {
     fn tokenize_pads_to_max_len() {
         let tokens = tokenize("abc", 64);
         assert_eq!(tokens.len(), 64);
-        assert_eq!(tokens[3..].iter().all(|&t| t == 0), true, "tail must be zero-padded");
+        assert_eq!(
+            tokens[3..].iter().all(|&t| t == 0),
+            true,
+            "tail must be zero-padded"
+        );
     }
 
     #[test]

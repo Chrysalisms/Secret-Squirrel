@@ -240,12 +240,7 @@ fn extract_items(items: &[PostmanItem], collection_name: &str, out: &mut Vec<Res
 }
 
 /// Build a [`Fragment`] whose path is `postman://{collection}/{item}/{field}`.
-fn make_fragment(
-    collection_name: &str,
-    item_name: &str,
-    field: &str,
-    content: String,
-) -> Fragment {
+fn make_fragment(collection_name: &str, item_name: &str, field: &str, content: String) -> Fragment {
     let size = content.len() as u64;
     let path = format!("postman://{collection_name}/{item_name}/{field}");
     let mut attributes = HashMap::new();
@@ -305,11 +300,7 @@ mod tests {
     #[test]
     fn test_name_returns_postman() {
         let dir = TempDir::new().unwrap();
-        let path = write_collection(
-            &dir,
-            "test.json",
-            r#"{"info":{"name":"T"},"item":[]}"#,
-        );
+        let path = write_collection(&dir, "test.json", r#"{"info":{"name":"T"},"item":[]}"#);
         let source = PostmanSource::new(path);
         assert_eq!(source.name(), "postman");
     }
@@ -326,7 +317,10 @@ mod tests {
         let path = write_collection(&dir, "empty.json", json);
         let source = PostmanSource::new(path);
         let fragments: Vec<_> = source.fragments().collect();
-        assert!(fragments.is_empty(), "Empty collection should yield no fragments");
+        assert!(
+            fragments.is_empty(),
+            "Empty collection should yield no fragments"
+        );
     }
 
     // ── Collection variables ──────────────────────────────────────────────────
@@ -462,6 +456,8 @@ mod tests {
         let source = PostmanSource::new(path);
         let fragments: Vec<_> = source.fragments().filter_map(|r| r.ok()).collect();
 
-        assert!(fragments.iter().all(|f| f.metadata.source_type == SourceType::Postman));
+        assert!(fragments
+            .iter()
+            .all(|f| f.metadata.source_type == SourceType::Postman));
     }
 }

@@ -75,10 +75,7 @@ impl SemanticAnalyzer {
         // Populate from the static list of supported extensions.
         for &ext in languages::supported_extensions() {
             let language_name = language_name_for_ext(ext).to_owned();
-            parsers.insert(
-                ext.to_owned(),
-                ParserEntry { language_name },
-            );
+            parsers.insert(ext.to_owned(), ParserEntry { language_name });
         }
 
         Self { parsers }
@@ -226,7 +223,10 @@ mod tests {
         let exts = a.supported_extensions();
         let mut sorted = exts.clone();
         sorted.sort_unstable();
-        assert_eq!(exts, sorted, "supported_extensions() must return sorted slice");
+        assert_eq!(
+            exts, sorted,
+            "supported_extensions() must return sorted slice"
+        );
     }
 
     #[test]
@@ -236,7 +236,10 @@ mod tests {
         #[cfg(feature = "semantic")]
         {
             assert!(a.supports_extension("py"));
-            assert!(a.supports_extension(".py"), "leading dot should be stripped");
+            assert!(
+                a.supports_extension(".py"),
+                "leading dot should be stripped"
+            );
         }
         #[cfg(not(feature = "semantic"))]
         {
@@ -256,9 +259,7 @@ mod tests {
         let offset = src.iter().position(|&b| b == b'A').unwrap();
         let ctx = a.analyze(src, offset, "unknown_ext");
         assert_eq!(ctx.context_type, ContextType::Comment);
-        assert!(
-            (ctx.confidence_adjustment() - (-0.80)).abs() < f32::EPSILON
-        );
+        assert!((ctx.confidence_adjustment() - (-0.80)).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -268,9 +269,7 @@ mod tests {
         let offset = src.iter().position(|&b| b == b't').unwrap() + 20; // inside body
         let ctx = a.analyze(src, offset, "txt"); // unsupported ext → fallback
         assert_eq!(ctx.context_type, ContextType::Test);
-        assert!(
-            (ctx.confidence_adjustment() - (-0.50)).abs() < f32::EPSILON
-        );
+        assert!((ctx.confidence_adjustment() - (-0.50)).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -280,9 +279,7 @@ mod tests {
         let offset = src.iter().position(|&b| b == b'"').unwrap() + 1;
         let ctx = a.analyze(src, offset, "txt");
         assert_eq!(ctx.context_type, ContextType::Assignment);
-        assert!(
-            (ctx.confidence_adjustment() - 0.30).abs() < f32::EPSILON
-        );
+        assert!((ctx.confidence_adjustment() - 0.30).abs() < f32::EPSILON);
     }
 
     // ── SemanticContext wrapper ──────────────────────────────────────────────
@@ -292,9 +289,7 @@ mod tests {
         use crate::semantic::context::CodeContext;
         let ctx = CodeContext::comment(2);
         let sc = SemanticContext::new("py", 42, ctx);
-        assert!(
-            (sc.confidence_adjustment() - (-0.80)).abs() < f32::EPSILON
-        );
+        assert!((sc.confidence_adjustment() - (-0.80)).abs() < f32::EPSILON);
     }
 
     // ── Tree-sitter path (only compiled and run with the feature) ───────────
@@ -325,8 +320,7 @@ mod tests {
         #[test]
         fn go_test_function_detected() {
             let a = analyzer();
-            let src =
-                b"func TestLogin(t *testing.T) {\n    token := \"ghp_xxxxxxxxxxxxx\"\n}\n";
+            let src = b"func TestLogin(t *testing.T) {\n    token := \"ghp_xxxxxxxxxxxxx\"\n}\n";
             let offset = src.iter().position(|&b| b == b'g').unwrap();
             let ctx = a.analyze(src, offset, "go");
             assert_eq!(ctx.context_type, ContextType::Test);

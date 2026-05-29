@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 /// Master configuration for a Secret Squirrel scan session.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct SquirrelConfig {
     /// General scan settings
     pub scan: ScanConfig,
@@ -29,19 +30,6 @@ pub struct SquirrelConfig {
     pub scoring: ScoringConfig,
 }
 
-impl Default for SquirrelConfig {
-    fn default() -> Self {
-        Self {
-            scan: ScanConfig::default(),
-            gpu: GpuConfig::default(),
-            pipeline: PipelineConfig::default(),
-            output: OutputConfig::default(),
-            validation: ValidationConfig::default(),
-            sources: SourcesConfig::default(),
-            scoring: ScoringConfig::default(),
-        }
-    }
-}
 
 impl SquirrelConfig {
     /// Load configuration from a TOML file.

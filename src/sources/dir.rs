@@ -11,7 +11,6 @@ use crate::types::{Fragment, FragmentMetadata, SourceType};
 use bytes::Bytes;
 use ignore::WalkBuilder;
 use std::collections::HashMap;
-use std::fs::File;
 use std::path::PathBuf;
 use tracing::{debug, warn};
 
@@ -207,7 +206,10 @@ mod tests {
         let fragments: Vec<_> = source.fragments().collect();
 
         assert_eq!(fragments.len(), 3, "expected 3 text fragments");
-        assert!(fragments.iter().all(|r| r.is_ok()), "all fragments should be Ok");
+        assert!(
+            fragments.iter().all(|r| r.is_ok()),
+            "all fragments should be Ok"
+        );
     }
 
     #[test]
@@ -221,10 +223,7 @@ mod tests {
 
         let config = default_config();
         let source = DirSource::new(dir.path().to_path_buf(), 50 * 1024 * 1024, &config);
-        let fragments: Vec<_> = source
-            .fragments()
-            .filter_map(|r| r.ok())
-            .collect();
+        let fragments: Vec<_> = source.fragments().filter_map(|r| r.ok()).collect();
 
         assert_eq!(fragments.len(), 1, "binary file should be skipped");
         assert!(fragments[0].metadata.path.ends_with("text.txt"));
@@ -242,12 +241,13 @@ mod tests {
         // Set max_file_size to 10 bytes so big.txt (36 bytes) is skipped
         // but small.txt (3 bytes) passes.
         let source = DirSource::new(dir.path().to_path_buf(), 10, &config);
-        let fragments: Vec<_> = source
-            .fragments()
-            .filter_map(|r| r.ok())
-            .collect();
+        let fragments: Vec<_> = source.fragments().filter_map(|r| r.ok()).collect();
 
-        assert_eq!(fragments.len(), 1, "only the small file should pass the size filter");
+        assert_eq!(
+            fragments.len(),
+            1,
+            "only the small file should pass the size filter"
+        );
         assert!(
             fragments[0].metadata.path.ends_with("small.txt"),
             "the surviving fragment should be small.txt"

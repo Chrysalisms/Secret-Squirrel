@@ -209,3 +209,8 @@ panic = "abort"
 opt-level = 0
 debug = true
 
+
+[lints.clippy]
+doc_overindented_list_items = "allow"
+doc_lazy_continuation = "allow"
+

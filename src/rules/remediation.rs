@@ -39,8 +39,7 @@ static GUIDE_AWS: RemediationGuide = RemediationGuide {
         "5. Delete the old (deactivated) key once all references are updated.",
         "6. Enable AWS Secrets Manager or Parameter Store for future key storage.",
     ],
-    vault_suggestion:
-        "Store your new AWS credentials in AWS Secrets Manager, HashiCorp Vault, or \
+    vault_suggestion: "Store your new AWS credentials in AWS Secrets Manager, HashiCorp Vault, or \
          your CI/CD platform's native secrets store (e.g. GitHub Actions Secrets).",
 };
 
@@ -55,8 +54,7 @@ static GUIDE_GITHUB: RemediationGuide = RemediationGuide {
         "5. Replace the old token in all services, CI/CD pipelines, and dotfiles.",
         "6. Consider switching to GitHub App installation tokens for reduced scope.",
     ],
-    vault_suggestion:
-        "Store the new token in your CI/CD platform's secrets store or a password \
+    vault_suggestion: "Store the new token in your CI/CD platform's secrets store or a password \
          manager. Never commit it to any repository.",
 };
 
@@ -70,8 +68,7 @@ static GUIDE_GITLAB: RemediationGuide = RemediationGuide {
         "4. Create a new token with only the minimum required scopes.",
         "5. Update all services and CI/CD pipelines with the new token.",
     ],
-    vault_suggestion:
-        "Use GitLab CI/CD variables (masked + protected) or an external vault \
+    vault_suggestion: "Use GitLab CI/CD variables (masked + protected) or an external vault \
          (HashiCorp Vault, AWS Secrets Manager) to store the replacement token.",
 };
 
@@ -85,8 +82,7 @@ static GUIDE_SLACK: RemediationGuide = RemediationGuide {
         "4. Regenerate the bot/user token and update all integrations.",
         "5. Rotate your app's signing secret as well if it may have been exposed.",
     ],
-    vault_suggestion:
-        "Store Slack tokens in your CI/CD platform's secrets or a dedicated \
+    vault_suggestion: "Store Slack tokens in your CI/CD platform's secrets or a dedicated \
          secrets manager. Set up Slack's token rotation webhook for automatic rotation.",
 };
 
@@ -116,8 +112,7 @@ static GUIDE_OPENAI: RemediationGuide = RemediationGuide {
         "4. Create a new API key and update all services and CI pipelines.",
         "5. Set usage limits and alerts on the new key to detect future abuse.",
     ],
-    vault_suggestion:
-        "Store OpenAI API keys in your CI/CD platform's native secrets store or \
+    vault_suggestion: "Store OpenAI API keys in your CI/CD platform's native secrets store or \
          a dedicated secrets manager. Never hardcode keys in source files.",
 };
 
@@ -131,8 +126,7 @@ static GUIDE_ANTHROPIC: RemediationGuide = RemediationGuide {
         "4. Create a new key and update all services.",
         "5. Implement request logging to detect abuse early.",
     ],
-    vault_suggestion:
-        "Store Anthropic API keys in a secrets manager such as AWS Secrets Manager, \
+    vault_suggestion: "Store Anthropic API keys in a secrets manager such as AWS Secrets Manager, \
          HashiCorp Vault, or your CI/CD platform's native secrets store.",
 };
 
@@ -146,8 +140,7 @@ static GUIDE_HUGGINGFACE: RemediationGuide = RemediationGuide {
         "4. Create a new token with only the minimum required permissions (read vs. write).",
         "5. Update all services and scripts with the new token.",
     ],
-    vault_suggestion:
-        "Store HuggingFace tokens in your CI/CD secrets store. \
+    vault_suggestion: "Store HuggingFace tokens in your CI/CD secrets store. \
          Use read-only tokens for inference and write tokens only in secure pipelines.",
 };
 

@@ -84,7 +84,11 @@ mod tests {
     fn test_produces_single_fragment() {
         let source = stdin_from_bytes(b"API_KEY=sk-abc123xyz\n");
         let fragments: Vec<_> = source.fragments().collect();
-        assert_eq!(fragments.len(), 1, "stdin source must produce exactly one fragment");
+        assert_eq!(
+            fragments.len(),
+            1,
+            "stdin source must produce exactly one fragment"
+        );
     }
 
     #[test]

@@ -124,9 +124,17 @@ fn path_adjustment(path: &str) -> f64 {
 
     // Test/fixture directories → suppress.
     for suppressed in &[
-        "/test/", "/tests/", "/fixtures/", "/fixture/",
-        "/mock/", "/mocks/", "/fake/", "/stubs/", "/stub/",
-        "/__tests__/", "/testdata/",
+        "/test/",
+        "/tests/",
+        "/fixtures/",
+        "/fixture/",
+        "/mock/",
+        "/mocks/",
+        "/fake/",
+        "/stubs/",
+        "/stub/",
+        "/__tests__/",
+        "/testdata/",
     ] {
         if lower.contains(suppressed) {
             adj -= 0.20;
@@ -149,9 +157,17 @@ fn path_adjustment(path: &str) -> f64 {
 fn identifier_adjustment(identifiers: &[String]) -> f64 {
     /// Keywords that strongly indicate a secret variable.
     static BOOSTED_KEYWORDS: &[&str] = &[
-        "password", "passwd", "secret", "token",
-        "credential", "apikey", "api_key", "accesskey",
-        "access_key", "privatekey", "private_key",
+        "password",
+        "passwd",
+        "secret",
+        "token",
+        "credential",
+        "apikey",
+        "api_key",
+        "accesskey",
+        "access_key",
+        "privatekey",
+        "private_key",
     ];
 
     let mut adj = 0.0f64;
@@ -189,7 +205,10 @@ mod tests {
             score > 0.5,
             ".env file should boost confidence, got {score:.3}"
         );
-        assert!((score - 0.70).abs() < 0.001, "Expected 0.70, got {score:.3}");
+        assert!(
+            (score - 0.70).abs() < 0.001,
+            "Expected 0.70, got {score:.3}"
+        );
     }
 
     #[test]
@@ -199,7 +218,10 @@ mod tests {
             score < 0.8,
             ".env.example should suppress confidence, got {score:.3}"
         );
-        assert!((score - 0.30).abs() < 0.001, "Expected 0.30, got {score:.3}");
+        assert!(
+            (score - 0.30).abs() < 0.001,
+            "Expected 0.30, got {score:.3}"
+        );
     }
 
     #[test]
@@ -209,13 +231,19 @@ mod tests {
             score < 0.7,
             "Test file should suppress confidence, got {score:.3}"
         );
-        assert!((score - 0.40).abs() < 0.001, "Expected 0.40, got {score:.3}");
+        assert!(
+            (score - 0.40).abs() < 0.001,
+            "Expected 0.40, got {score:.3}"
+        );
     }
 
     #[test]
     fn test_markdown_file_slight_reduction() {
         let score = ConfidenceAdjuster::adjust(0.6, &meta("README.md"));
-        assert!((score - 0.50).abs() < 0.001, "Expected 0.50, got {score:.3}");
+        assert!(
+            (score - 0.50).abs() < 0.001,
+            "Expected 0.50, got {score:.3}"
+        );
     }
 
     #[test]
@@ -225,7 +253,10 @@ mod tests {
             score < 0.6,
             "tests/ directory should suppress confidence, got {score:.3}"
         );
-        assert!((score - 0.40).abs() < 0.001, "Expected 0.40, got {score:.3}");
+        assert!(
+            (score - 0.40).abs() < 0.001,
+            "Expected 0.40, got {score:.3}"
+        );
     }
 
     #[test]
@@ -248,7 +279,10 @@ mod tests {
             score > 0.5,
             "password identifier should boost score, got {score:.3}"
         );
-        assert!((score - 0.65).abs() < 0.001, "Expected 0.65, got {score:.3}");
+        assert!(
+            (score - 0.65).abs() < 0.001,
+            "Expected 0.65, got {score:.3}"
+        );
     }
 
     #[test]
@@ -268,6 +302,9 @@ mod tests {
     #[test]
     fn test_spec_file_suppressed() {
         let score = ConfidenceAdjuster::adjust(0.7, &meta("auth.spec.ts"));
-        assert!((score - 0.40).abs() < 0.001, "Expected 0.40, got {score:.3}");
+        assert!(
+            (score - 0.40).abs() < 0.001,
+            "Expected 0.40, got {score:.3}"
+        );
     }
 }

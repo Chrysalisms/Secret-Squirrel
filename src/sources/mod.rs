@@ -34,10 +34,10 @@ pub mod terraform;
 // Phase 3 sources
 pub mod ansible;
 pub mod ci_logs;
+pub mod discord;
 pub mod notebook;
 pub mod postman;
 pub mod slack;
-pub mod discord;
 
 // Phase 4 sources
 pub mod database;
@@ -49,4 +49,3 @@ pub mod azure_devops;
 pub mod bitbucket;
 
 pub use traits::{AsyncSource, SourceStream, SyncSource};
-

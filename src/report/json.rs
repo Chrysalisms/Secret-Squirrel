@@ -42,9 +42,8 @@ impl Formatter for JsonReporter {
     /// which never exposes more than 40% of the value. For the full raw
     /// value the caller must separately call [`Finding::secret.expose()`].
     fn format(&self, findings: &[Finding], _show_secrets: bool) -> String {
-        serde_json::to_string_pretty(findings).unwrap_or_else(|e| {
-            format!("{{\"error\": \"serialization failed: {}\"}}", e)
-        })
+        serde_json::to_string_pretty(findings)
+            .unwrap_or_else(|e| format!("{{\"error\": \"serialization failed: {}\"}}", e))
     }
 }
 
@@ -88,10 +87,9 @@ mod tests {
             severity: Severity::High,
             chain: None,
             validation: None,
-            remediation: Some(
-                "Rotate this key immediately in the AWS IAM console.".to_string(),
-            ),
-            detected_at: Utc::now(), encoding_chain: None,
+            remediation: Some("Rotate this key immediately in the AWS IAM console.".to_string()),
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -143,7 +141,9 @@ mod tests {
 
         // Parse the JSON and check only the "secret" field value is redacted
         let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
-        let secret_field = parsed[0]["secret"].as_str().expect("secret must be a string");
+        let secret_field = parsed[0]["secret"]
+            .as_str()
+            .expect("secret must be a string");
 
         // The full raw secret must never appear directly in the "secret" field
         assert!(
@@ -151,7 +151,10 @@ mod tests {
             "raw secret must not appear in the 'secret' JSON field, got: {secret_field}"
         );
         // But some redacted form should be present (the prefix)
-        assert!(secret_field.contains("AKIA"), "redacted prefix should be visible in 'secret' field");
+        assert!(
+            secret_field.contains("AKIA"),
+            "redacted prefix should be visible in 'secret' field"
+        );
     }
 
     #[test]

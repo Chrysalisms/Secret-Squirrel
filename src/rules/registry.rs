@@ -51,12 +51,11 @@ impl RuleRegistry {
     ///   only the embedded defaults are loaded.
     pub fn load(user_config_path: Option<&std::path::Path>) -> Result<Self> {
         // ── Step 1: load embedded defaults ───────────────────────────────────
-        let mut all_rules = parse_squirrel_config(DEFAULT_RULES_TOML).map_err(|e| {
-            SquirrelError::RuleParse {
+        let mut all_rules =
+            parse_squirrel_config(DEFAULT_RULES_TOML).map_err(|e| SquirrelError::RuleParse {
                 path: "rules/default.toml".to_string(),
                 reason: format!("embedded default rules are malformed: {e}"),
-            }
-        })?;
+            })?;
 
         info!(count = all_rules.len(), "loaded embedded default rules");
 
@@ -178,7 +177,7 @@ impl RuleRegistry {
 
         // ── Step 3: compile all rules ─────────────────────────────────────────
         let compiled = compile_rules(all_rules)?;
-        
+
         let mut keyword_to_rule = Vec::new();
         let mut keywords = Vec::new();
         for (rule_idx, rule) in compiled.iter().enumerate() {
@@ -187,7 +186,7 @@ impl RuleRegistry {
                 keyword_to_rule.push(rule_idx);
             }
         }
-        
+
         let automaton = aho_corasick::AhoCorasickBuilder::new()
             .ascii_case_insensitive(true)
             .match_kind(aho_corasick::MatchKind::LeftmostFirst)
@@ -276,10 +275,7 @@ mod tests {
     #[test]
     fn test_load_defaults() {
         let registry = RuleRegistry::load(None).unwrap();
-        assert!(
-            !registry.is_empty(),
-            "default rules should not be empty"
-        );
+        assert!(!registry.is_empty(), "default rules should not be empty");
         assert!(
             registry.len() >= 10,
             "expected at least 10 default rules, got {}",
@@ -313,7 +309,9 @@ mod tests {
         let registry = RuleRegistry::load(None).unwrap();
         // The AWS rule has keyword "AKIA" — it should match.
         assert!(
-            registry.automaton().is_match("export AWS_KEY=AKIAIOSFODNN7EXAMPLE"),
+            registry
+                .automaton()
+                .is_match("export AWS_KEY=AKIAIOSFODNN7EXAMPLE"),
             "automaton should match AKIA keyword"
         );
     }

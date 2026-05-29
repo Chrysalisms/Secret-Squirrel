@@ -115,7 +115,8 @@ impl DiscordSource {
             },
             403 => SquirrelError::Source {
                 src_name: "discord".into(),
-                reason: "rate limited or missing required permissions (Read Message History)".into(),
+                reason: "rate limited or missing required permissions (Read Message History)"
+                    .into(),
             },
             404 => SquirrelError::Source {
                 src_name: "discord".into(),
@@ -145,11 +146,10 @@ impl DiscordSource {
             return Err(self.discord_error(resp.status(), &url));
         }
 
-        let body: Vec<DiscordChannel> =
-            resp.json().await.map_err(|e| SquirrelError::Source {
-                src_name: "discord".into(),
-                reason: format!("JSON parse error (channels list): {e}"),
-            })?;
+        let body: Vec<DiscordChannel> = resp.json().await.map_err(|e| SquirrelError::Source {
+            src_name: "discord".into(),
+            reason: format!("JSON parse error (channels list): {e}"),
+        })?;
 
         // Filter out non-text channels. Guild Text channels have type = 0.
         let text_channels = body.into_iter().filter(|ch| ch.channel_type == 0);
@@ -437,7 +437,10 @@ mod tests {
 
     #[test]
     fn test_builder_requires_confirmed() {
-        let result = DiscordSourceBuilder::new().token("tok").guild_id("123").build();
+        let result = DiscordSourceBuilder::new()
+            .token("tok")
+            .guild_id("123")
+            .build();
         assert!(result.is_err());
     }
 
@@ -468,9 +471,16 @@ mod tests {
         let source = build_source(&server);
         let fragments = source.fragments().await.expect("should succeed");
 
-        assert_eq!(fragments.len(), 1, "Should produce one fragment per message");
+        assert_eq!(
+            fragments.len(),
+            1,
+            "Should produce one fragment per message"
+        );
         assert_eq!(fragments[0].metadata.source_type, SourceType::Discord);
-        assert!(fragments[0].metadata.path.starts_with("discord://12345/general/M1"));
+        assert!(fragments[0]
+            .metadata
+            .path
+            .starts_with("discord://12345/general/M1"));
 
         let first_content = String::from_utf8(fragments[0].content.to_vec()).unwrap();
         assert!(first_content.contains("AKIA1234567890ABCDEF"));

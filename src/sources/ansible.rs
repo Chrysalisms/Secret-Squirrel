@@ -45,8 +45,7 @@ const VAULT_HEADER: &[u8] = b"$ANSIBLE_VAULT;";
 
 /// Warning comment injected into vault-file fragments so the scanner can
 /// surface "found encrypted vault" findings without exposing ciphertext.
-const VAULT_WARNING: &str =
-    "# [squirrel: encrypted vault file - content not scanned]\n";
+const VAULT_WARNING: &str = "# [squirrel: encrypted vault file - content not scanned]\n";
 
 // ============================================================================
 // AnsibleSource
@@ -309,10 +308,7 @@ mod tests {
             "build() should fail when root is not provided"
         );
         assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("root is required"),
+            result.unwrap_err().to_string().contains("root is required"),
             "Error message should mention root"
         );
     }
@@ -354,7 +350,10 @@ mod tests {
             "Fragment must not expose ciphertext"
         );
         assert_eq!(frag.metadata.source_type, SourceType::Ansible);
-        assert_eq!(frag.metadata.attributes.get("vault").map(|s| s.as_str()), Some("true"));
+        assert_eq!(
+            frag.metadata.attributes.get("vault").map(|s| s.as_str()),
+            Some("true")
+        );
     }
 
     // ── Normal YAML ──────────────────────────────────────────────────────────
@@ -405,7 +404,11 @@ mod tests {
     fn test_oversized_file_skipped() {
         let dir = TempDir::new().unwrap();
         write_file(&dir, "small.yml", b"---\n- name: ok\n");
-        write_file(&dir, "big.yml", b"---\n- name: a very long playbook indeed\n");
+        write_file(
+            &dir,
+            "big.yml",
+            b"---\n- name: a very long playbook indeed\n",
+        );
 
         let source = AnsibleSourceBuilder::new()
             .root(dir.path())

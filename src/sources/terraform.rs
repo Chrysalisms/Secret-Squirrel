@@ -57,9 +57,7 @@ impl crate::sources::traits::SyncSource for TerraformSource {
     }
 
     fn fragments(&self) -> Box<dyn Iterator<Item = Result<Fragment>> + '_> {
-        let walker = WalkDir::new(&self.root)
-            .follow_links(false)
-            .into_iter();
+        let walker = WalkDir::new(&self.root).follow_links(false).into_iter();
 
         let max = self.max_file_bytes;
 
@@ -132,7 +130,11 @@ fn read_terraform_file(path: &Path, max_bytes: u64) -> Result<Fragment> {
     }
 
     let raw = std::fs::read(path)?;
-    let name = path.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+    let name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_lowercase();
 
     // For .tfstate files, extract sensitive fields to make scanning denser
     let content = if name.ends_with(".tfstate") || name.ends_with(".tfstate.backup") {
@@ -240,11 +242,9 @@ mod tests {
             .collect();
 
         assert_eq!(fragments.len(), 1);
-        assert!(
-            std::str::from_utf8(&fragments[0].content)
-                .unwrap()
-                .contains("hunter2")
-        );
+        assert!(std::str::from_utf8(&fragments[0].content)
+            .unwrap()
+            .contains("hunter2"));
         assert_eq!(fragments[0].metadata.source_type, SourceType::Terraform);
     }
 
@@ -261,11 +261,7 @@ mod tests {
                 }]
             }]
         });
-        write_file(
-            dir.path(),
-            "terraform.tfstate",
-            &state.to_string(),
-        );
+        write_file(dir.path(), "terraform.tfstate", &state.to_string());
 
         let source = TerraformSource::new(dir.path());
         let fragments: Vec<_> = source
@@ -276,8 +272,14 @@ mod tests {
 
         assert!(!fragments.is_empty());
         let content = std::str::from_utf8(&fragments[0].content).unwrap();
-        assert!(content.contains("supersecretpassword"), "content: {content}");
-        assert!(content.contains("sk-abcdefghij1234567890"), "content: {content}");
+        assert!(
+            content.contains("supersecretpassword"),
+            "content: {content}"
+        );
+        assert!(
+            content.contains("sk-abcdefghij1234567890"),
+            "content: {content}"
+        );
     }
 
     #[test]
@@ -306,10 +308,7 @@ mod tests {
         write_file(dir.path(), "big.tfstate", r#"{"resources":[]}"#);
 
         let source = TerraformSource::new(dir.path()).with_max_bytes(small_limit);
-        let fragments: Vec<_> = source
-            .fragments()
-            .filter_map(|r| r.ok())
-            .collect();
+        let fragments: Vec<_> = source.fragments().filter_map(|r| r.ok()).collect();
 
         assert_eq!(fragments.len(), 1);
         // Content should be empty (skipped)

@@ -30,8 +30,7 @@
 //! **1.0 = definitely a secret** (very random).
 
 /// The 64-character alphabet used by the Markov model.
-const ALPHABET: &[u8; 64] =
-    b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
+const ALPHABET: &[u8; 64] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
 
 /// Size of the trigram table: 64 * 64 * 64.
 const TABLE_SIZE: usize = 64 * 64 * 64;
@@ -51,7 +50,7 @@ const LOG_RARE: f32 = -13.288;
 /// Approximate range for normalization.
 /// Best-case (English trigrams) avg log ≈ −4.0; worst-case ≈ −14.0.
 #[allow(dead_code)]
-const SCORE_MIN: f32 = -4.0;  // most natural  (normalization reference bound)
+const SCORE_MIN: f32 = -4.0; // most natural  (normalization reference bound)
 #[allow(dead_code)]
 const SCORE_MAX: f32 = -14.0; // most random   (normalization reference bound)
 
@@ -104,11 +103,15 @@ impl MarkovScorer {
         }
 
         // Try to load trained trigram table from JSON file.
-        let table = Self::try_load_trained_table()
-            .unwrap_or_else(|| Self::build_heuristic_table());
+        let table = Self::try_load_trained_table().unwrap_or_else(Self::build_heuristic_table);
 
         let (score_natural, score_random) = Self::table_bounds(&table);
-        Self { table, char_index, score_natural, score_random }
+        Self {
+            table,
+            char_index,
+            score_natural,
+            score_random,
+        }
     }
 
     /// Construct a scorer using the heuristic table only (skips JSON loading).
@@ -122,7 +125,12 @@ impl MarkovScorer {
         }
         let table = Self::build_heuristic_table();
         let (score_natural, score_random) = Self::table_bounds(&table);
-        Self { table, char_index, score_natural, score_random }
+        Self {
+            table,
+            char_index,
+            score_natural,
+            score_random,
+        }
     }
 
     /// Try to load the trained trigram table from `training/data/markov_trigrams.json`.
@@ -142,8 +150,14 @@ impl MarkovScorer {
             );
             return None;
         }
-        let table: Box<[f32]> = values.iter().map(|&v| v as f32).collect::<Vec<_>>().into_boxed_slice();
-        tracing::debug!("Loaded trained Markov trigram table from training/data/markov_trigrams.json");
+        let table: Box<[f32]> = values
+            .iter()
+            .map(|&v| v as f32)
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        tracing::debug!(
+            "Loaded trained Markov trigram table from training/data/markov_trigrams.json"
+        );
         Some(table)
     }
 
@@ -171,8 +185,12 @@ impl MarkovScorer {
         let mut min_val = f32::INFINITY;
         let mut max_val = f32::NEG_INFINITY;
         for &v in table.iter() {
-            if v < min_val { min_val = v; }
-            if v > max_val { max_val = v; }
+            if v < min_val {
+                min_val = v;
+            }
+            if v > max_val {
+                max_val = v;
+            }
         }
         (max_val, min_val) // (natural=max, random=min)
     }
@@ -337,10 +355,7 @@ mod tests {
         let s = scorer();
         // AWS access key IDs are random-looking uppercase+digit strings.
         let score = s.score("AKIAIOSFODNN7EXAMPLE");
-        assert!(
-            score > 0.5,
-            "AWS key should score > 0.5, got {score:.3}"
-        );
+        assert!(score > 0.5, "AWS key should score > 0.5, got {score:.3}");
     }
 
     #[test]
@@ -348,10 +363,7 @@ mod tests {
         let s = scorer();
         // GitHub PATs: "ghp_" + 36 random alphanumeric chars.
         let score = s.score("ghp_R2yte8xVd7WqKjLm3NzOsFp9YcAhEoUBCI");
-        assert!(
-            score > 0.5,
-            "GitHub PAT should score > 0.5, got {score:.3}"
-        );
+        assert!(score > 0.5, "GitHub PAT should score > 0.5, got {score:.3}");
     }
 
     #[test]

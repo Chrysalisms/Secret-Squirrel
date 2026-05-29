@@ -164,12 +164,14 @@ impl GitHubSource {
                 "{}/orgs/{}/repos?per_page=100&page={page}",
                 self.base_url, self.owner
             );
-            let resp = self.authed_get(&url).send().await.map_err(|e| {
-                SquirrelError::Source {
+            let resp = self
+                .authed_get(&url)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
                     src_name: "github".into(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             if !resp.status().is_success() {
                 // Fallback: try the /users/ endpoint (for personal accounts).
@@ -205,12 +207,14 @@ impl GitHubSource {
                 "{}/users/{}/repos?per_page=100&page={page}",
                 self.base_url, self.owner
             );
-            let resp = self.authed_get(&url).send().await.map_err(|e| {
-                SquirrelError::Source {
+            let resp = self
+                .authed_get(&url)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
                     src_name: "github".into(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             if !resp.status().is_success() {
                 return Err(self.status_error(resp.status(), &url));
@@ -240,32 +244,31 @@ impl GitHubSource {
             "{}/repos/{}/{}/git/trees/{}?recursive=1",
             self.base_url, self.owner, repo, branch
         );
-        let resp = self.authed_get(&url).send().await.map_err(|e| {
-            SquirrelError::Source {
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(|e| SquirrelError::Source {
                 src_name: "github".into(),
                 reason: e.to_string(),
-            }
-        })?;
+            })?;
 
         if !resp.status().is_success() {
             return Err(self.status_error(resp.status(), &url));
         }
 
-        resp.json::<GhTree>().await.map_err(|e| SquirrelError::Source {
-            src_name: "github".into(),
-            reason: format!("JSON parse error fetching tree for {repo}: {e}"),
-        })
+        resp.json::<GhTree>()
+            .await
+            .map_err(|e| SquirrelError::Source {
+                src_name: "github".into(),
+                reason: format!("JSON parse error fetching tree for {repo}: {e}"),
+            })
     }
 
     /// Fetch the decoded content of a single file.
     ///
     /// Returns `None` when the file should be skipped (size limit, encoding).
-    async fn fetch_blob(
-        &self,
-        repo: &str,
-        path: &str,
-        sha: &str,
-    ) -> Option<Bytes> {
+    async fn fetch_blob(&self, repo: &str, path: &str, sha: &str) -> Option<Bytes> {
         let url = format!(
             "{}/repos/{}/{}/contents/{}",
             self.base_url, self.owner, repo, path
@@ -321,7 +324,7 @@ impl GitHubSource {
         }
 
         // GitHub inserts newlines into the base64 blob — strip them first.
-        let clean = contents.content.replace('\n', "").replace('\r', "");
+        let clean = contents.content.replace(['\n', '\r'], "");
         match BASE64.decode(&clean) {
             Ok(bytes) => {
                 debug!(
@@ -446,12 +449,14 @@ impl crate::sources::traits::AsyncSource for GitHubSource {
         let repos: Vec<(String, String)> = if let Some(repo) = &self.repo {
             // Single-repo mode: resolve the default branch via the repo endpoint.
             let url = format!("{}/repos/{}/{}", self.base_url, self.owner, repo);
-            let resp = self.authed_get(&url).send().await.map_err(|e| {
-                SquirrelError::Source {
+            let resp = self
+                .authed_get(&url)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
                     src_name: "github".into(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             if !resp.status().is_success() {
                 return Err(self.status_error(resp.status(), &url));
@@ -574,9 +579,7 @@ impl GitHubSourceBuilder {
             .ok_or_else(|| SquirrelError::Config("GitHubSource: owner must be non-empty".into()))?;
 
         // Prefer explicit token, then fall back to env var.
-        let token = self
-            .token
-            .or_else(|| std::env::var("GITHUB_TOKEN").ok());
+        let token = self.token.or_else(|| std::env::var("GITHUB_TOKEN").ok());
 
         let client = reqwest::Client::new();
 
@@ -638,10 +641,7 @@ mod tests {
     #[test]
     fn test_builder_requires_owner() {
         let result = GitHubSourceBuilder::new().build();
-        assert!(
-            result.is_err(),
-            "build() should fail when owner is not set"
-        );
+        assert!(result.is_err(), "build() should fail when owner is not set");
     }
 
     #[test]
@@ -752,7 +752,10 @@ mod tests {
             "truncated": false
         });
         let _m_tree = server
-            .mock("GET", "/repos/test-owner/test-repo/git/trees/main?recursive=1")
+            .mock(
+                "GET",
+                "/repos/test-owner/test-repo/git/trees/main?recursive=1",
+            )
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(tree_body.to_string())
@@ -816,7 +819,10 @@ mod tests {
             "truncated": false
         });
         let _m_tree = server
-            .mock("GET", "/repos/test-owner/test-repo/git/trees/main?recursive=1")
+            .mock(
+                "GET",
+                "/repos/test-owner/test-repo/git/trees/main?recursive=1",
+            )
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(tree_body.to_string())

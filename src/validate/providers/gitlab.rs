@@ -94,9 +94,7 @@ impl Validator for GitlabValidator {
 
                 ValidationResult {
                     status: ValidationStatus::Active,
-                    reason: format!(
-                        "GitLab token is active (user: {username}, admin: {is_admin})"
-                    ),
+                    reason: format!("GitLab token is active (user: {username}, admin: {is_admin})"),
                     blast_radius: Some(blast_radius),
                     validated_at: chrono::Utc::now(),
                     provider: self.provider_name().to_string(),
@@ -160,7 +158,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 

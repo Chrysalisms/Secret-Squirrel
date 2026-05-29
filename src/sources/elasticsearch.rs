@@ -154,7 +154,10 @@ impl ElasticsearchSource {
             .into_iter()
             .filter(|(_, v)| v.len() >= 8) // skip trivially short values
             .map(|(field_path, value)| {
-                let path = format!("es://{}/{}/{}/{}", self.endpoint, hit.index, hit.id, field_path);
+                let path = format!(
+                    "es://{}/{}/{}/{}",
+                    self.endpoint, hit.index, hit.id, field_path
+                );
                 let size = value.len() as u64;
                 let mut attributes = HashMap::new();
                 attributes.insert("index".to_string(), hit.index.clone());
@@ -190,7 +193,10 @@ impl AsyncSource for ElasticsearchSource {
         );
 
         if self.indices.is_empty() {
-            warn!(source = "elasticsearch", "No indices specified — skipping scan");
+            warn!(
+                source = "elasticsearch",
+                "No indices specified — skipping scan"
+            );
             return Ok(Vec::new());
         }
 
@@ -271,10 +277,13 @@ impl AsyncSource for ElasticsearchSource {
                 }
 
                 let scroll_result: EsSearchResponse =
-                    scroll_resp.json().await.map_err(|e| SquirrelError::Source {
-                        src_name: "elasticsearch".into(),
-                        reason: format!("Scroll JSON parse error: {e}"),
-                    })?;
+                    scroll_resp
+                        .json()
+                        .await
+                        .map_err(|e| SquirrelError::Source {
+                            src_name: "elasticsearch".into(),
+                            reason: format!("Scroll JSON parse error: {e}"),
+                        })?;
 
                 scroll_id = scroll_result.scroll_id;
                 current_hits = scroll_result.hits.hits;
@@ -473,7 +482,10 @@ mod tests {
         let mut fields = Vec::new();
         ElasticsearchSource::extract_string_fields(&doc, "", &mut fields);
         let keys: Vec<&str> = fields.iter().map(|(k, _)| k.as_str()).collect();
-        assert!(keys.contains(&"auth.token"), "Nested field should use dot notation");
+        assert!(
+            keys.contains(&"auth.token"),
+            "Nested field should use dot notation"
+        );
         assert!(keys.contains(&"auth.type"));
         assert!(keys.contains(&"user.name"));
     }
@@ -486,7 +498,11 @@ mod tests {
         });
         let mut fields = Vec::new();
         ElasticsearchSource::extract_string_fields(&doc, "", &mut fields);
-        assert_eq!(fields.len(), 4, "All array string elements should be extracted");
+        assert_eq!(
+            fields.len(),
+            4,
+            "All array string elements should be extracted"
+        );
     }
 
     #[tokio::test]
@@ -528,7 +544,8 @@ mod tests {
             .mock("POST", "/test-index/_search?scroll=2m&size=100")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{
+            .with_body(
+                r#"{
                 "_scroll_id": "test-scroll-123",
                 "hits": {
                     "hits": [
@@ -543,7 +560,8 @@ mod tests {
                         }
                     ]
                 }
-            }"#)
+            }"#,
+            )
             .create_async()
             .await;
 
@@ -560,13 +578,15 @@ mod tests {
         let frags = source.fragments().await.unwrap();
 
         // Should get fragments for api_key (42 chars) and username (14 chars "testuser_alice")
-        assert!(!frags.is_empty(), "Successful scan should produce fragments");
-        let api_key_frag = frags.iter().find(|f| {
-            f.metadata.attributes.get("field").map(|s| s.as_str()) == Some("api_key")
-        });
+        assert!(
+            !frags.is_empty(),
+            "Successful scan should produce fragments"
+        );
+        let api_key_frag = frags
+            .iter()
+            .find(|f| f.metadata.attributes.get("field").map(|s| s.as_str()) == Some("api_key"));
         assert!(api_key_frag.is_some(), "Must find api_key fragment");
         let content = String::from_utf8(api_key_frag.unwrap().content.to_vec()).unwrap();
         assert!(content.starts_with("sk_live_"));
     }
 }
-

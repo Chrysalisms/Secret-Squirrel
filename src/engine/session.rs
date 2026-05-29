@@ -169,10 +169,7 @@ impl ScanSession {
             seen.insert(key)
         });
 
-        debug!(
-            retained = self.findings.len(),
-            "Deduplication complete"
-        );
+        debug!(retained = self.findings.len(), "Deduplication complete");
     }
 
     /// Sort findings by severity (descending) then confidence (descending),
@@ -184,14 +181,12 @@ impl ScanSession {
 
         // Sort: highest severity first, then highest confidence.
         self.findings.sort_by(|a, b| {
-            b.severity
-                .cmp(&a.severity)
-                .then_with(|| {
-                    b.score
-                        .confidence
-                        .partial_cmp(&a.score.confidence)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
+            b.severity.cmp(&a.severity).then_with(|| {
+                b.score
+                    .confidence
+                    .partial_cmp(&a.score.confidence)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
         });
 
         self.stats.seal();
@@ -206,7 +201,9 @@ impl ScanSession {
     /// Return findings at or above the configured severity threshold.
     pub fn filtered_findings(&self) -> impl Iterator<Item = &Finding> {
         let threshold = self.config.scan.severity_threshold;
-        self.findings.iter().filter(move |f| f.severity >= threshold)
+        self.findings
+            .iter()
+            .filter(move |f| f.severity >= threshold)
     }
 
     /// Mutable iterator over all findings — used for post-scan annotation
@@ -267,7 +264,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -298,7 +296,12 @@ mod tests {
     fn test_add_finding_increments_count() {
         let mut session = ScanSession::new(SquirrelConfig::default());
         assert_eq!(session.stats.findings_count, 0);
-        session.add_finding(dummy_finding("aws-access-key", "config.env", Severity::High, 0.9));
+        session.add_finding(dummy_finding(
+            "aws-access-key",
+            "config.env",
+            Severity::High,
+            0.9,
+        ));
         assert_eq!(session.stats.findings_count, 1);
         assert_eq!(session.findings.len(), 1);
     }
@@ -326,7 +329,12 @@ mod tests {
         let mut session = ScanSession::new(SquirrelConfig::default());
 
         session.add_finding(dummy_finding("rule-low", "a.py", Severity::Low, 0.6));
-        session.add_finding(dummy_finding("rule-critical", "b.py", Severity::Critical, 0.95));
+        session.add_finding(dummy_finding(
+            "rule-critical",
+            "b.py",
+            Severity::Critical,
+            0.95,
+        ));
         session.add_finding(dummy_finding("rule-medium", "c.py", Severity::Medium, 0.7));
 
         session.finalize();

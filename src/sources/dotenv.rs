@@ -128,7 +128,11 @@ fn parse_dotenv(content: &str, path: &std::path::Path) -> Result<Vec<EnvEntry>> 
 
         // Handle backslash continuation: accumulate lines ending with `\`.
         let mut value_parts = vec![raw_value.to_string()];
-        while value_parts.last().map(|l: &String| l.ends_with('\\')).unwrap_or(false) {
+        while value_parts
+            .last()
+            .map(|l: &String| l.ends_with('\\'))
+            .unwrap_or(false)
+        {
             // Remove the trailing backslash.
             if let Some(last) = value_parts.last_mut() {
                 last.pop();
@@ -185,7 +189,11 @@ mod tests {
 
     #[test]
     fn test_simple_key_value() {
-        let entries = parse_dotenv("AWS_SECRET_KEY=AKIAIOSFODNN7EXAMPLE", std::path::Path::new(".env")).unwrap();
+        let entries = parse_dotenv(
+            "AWS_SECRET_KEY=AKIAIOSFODNN7EXAMPLE",
+            std::path::Path::new(".env"),
+        )
+        .unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].key, "AWS_SECRET_KEY");
         assert_eq!(entries[0].value, "AKIAIOSFODNN7EXAMPLE");

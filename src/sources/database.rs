@@ -276,9 +276,9 @@ impl DatabaseSourceBuilder {
             ));
         }
 
-        let connection_string = self
-            .connection_string
-            .ok_or_else(|| SquirrelError::Config("DatabaseSource: connection_string is required".into()))?;
+        let connection_string = self.connection_string.ok_or_else(|| {
+            SquirrelError::Config("DatabaseSource: connection_string is required".into())
+        })?;
 
         Ok(DatabaseSource {
             connection_string,
@@ -338,7 +338,10 @@ mod tests {
 
     #[test]
     fn test_dialect_detection_auto() {
-        assert_eq!(DbDialect::detect("jdbc:oracle:thin:@localhost:1521/orcl"), DbDialect::Auto);
+        assert_eq!(
+            DbDialect::detect("jdbc:oracle:thin:@localhost:1521/orcl"),
+            DbDialect::Auto
+        );
     }
 
     #[test]
@@ -348,7 +351,10 @@ mod tests {
             .build();
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("authorization"), "Error must mention authorization");
+        assert!(
+            err.contains("authorization"),
+            "Error must mention authorization"
+        );
     }
 
     #[test]
@@ -356,7 +362,10 @@ mod tests {
         let result = DatabaseSourceBuilder::new().confirmed(true).build();
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("connection_string"), "Error must mention connection_string");
+        assert!(
+            err.contains("connection_string"),
+            "Error must mention connection_string"
+        );
     }
 
     #[test]
@@ -410,7 +419,10 @@ mod tests {
             f.metadata.attributes.get("column").map(|s| s.as_str()) == Some("api_key")
                 && f.metadata.attributes.get("row_index").map(|s| s.as_str()) == Some("0")
         });
-        assert!(api_key_frag.is_some(), "Must find api_key fragment for row 0");
+        assert!(
+            api_key_frag.is_some(),
+            "Must find api_key fragment for row 0"
+        );
         let frag = api_key_frag.unwrap();
         assert_eq!(frag.content.as_ref(), b"sk_live_abc123");
         assert_eq!(frag.metadata.source_type, SourceType::Database);

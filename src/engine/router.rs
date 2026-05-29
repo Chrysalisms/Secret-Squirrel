@@ -198,25 +198,16 @@ impl Router {
     /// Decompose `matches` into identifier, literal, and structure streams.
     ///
     /// Routes to GPU for large match sets, otherwise uses the CPU.
-    pub fn execute_tristream(
-        &self,
-        matches: &[ProximityMatch],
-    ) -> Result<Vec<TriStreamResult>> {
+    pub fn execute_tristream(&self, matches: &[ProximityMatch]) -> Result<Vec<TriStreamResult>> {
         if self.should_use_gpu(matches.len() as u64 * 256) {
             #[cfg(feature = "gpu")]
             if let Some(gpu) = &self.gpu {
-                debug!(
-                    matches = matches.len(),
-                    "Routing tri-stream stage to GPU"
-                );
+                debug!(matches = matches.len(), "Routing tri-stream stage to GPU");
                 return Ok(gpu.execute_tristream(matches));
             }
         }
 
-        debug!(
-            matches = matches.len(),
-            "Routing tri-stream stage to CPU"
-        );
+        debug!(matches = matches.len(), "Routing tri-stream stage to CPU");
         Ok(self.cpu.execute_tristream(matches))
     }
 

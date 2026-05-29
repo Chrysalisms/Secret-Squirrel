@@ -31,16 +31,16 @@ const IDENTIFIER_CONTEXT: usize = 256;
 /// Pre-built lookup table mapping lowercase keyword → identifier score (0.0–1.0).
 /// Uppercase variants are handled by lowercasing during scan.
 static KEYWORD_SCORES: &[(&[u8], f32)] = &[
-    (b"password",   0.90),
-    (b"passwd",     0.90),
-    (b"secret",     0.90),
+    (b"password", 0.90),
+    (b"passwd", 0.90),
+    (b"secret", 0.90),
     (b"credential", 0.80),
-    (b"token",      0.80),
-    (b"private",    0.70),
-    (b"key",        0.70),
-    (b"api",        0.60),
-    (b"auth",       0.60),
-    (b"access",     0.55),
+    (b"token", 0.80),
+    (b"private", 0.70),
+    (b"key", 0.70),
+    (b"api", 0.60),
+    (b"auth", 0.60),
+    (b"access", 0.55),
 ];
 
 /// Score the identifier stream for the context bytes preceding the candidate.
@@ -184,7 +184,13 @@ fn score_stream_b(literal: &[u8]) -> (f32, Vec<Bytes>) {
             hex_chars += 1;
         }
         // Base64 alphabet: A-Za-z0-9+/= and URL-safe _-
-        if b.is_ascii_alphanumeric() || b == b'+' || b == b'/' || b == b'=' || b == b'_' || b == b'-' {
+        if b.is_ascii_alphanumeric()
+            || b == b'+'
+            || b == b'/'
+            || b == b'='
+            || b == b'_'
+            || b == b'-'
+        {
             base64_chars += 1;
         }
         if !b.is_ascii_alphanumeric() {
@@ -224,10 +230,10 @@ fn score_stream_c(context: &[u8]) -> f32 {
     if context.iter().any(|&b| b == b'"' || b == b'\'') {
         score += 0.30;
     }
-    if context.iter().any(|&b| b == b'=') {
+    if context.contains(&b'=') {
         score += 0.20;
     }
-    if context.iter().any(|&b| b == b':') {
+    if context.contains(&b':') {
         score += 0.15;
     }
     // Check for "export" keyword in context
@@ -266,7 +272,10 @@ impl TriStreamDecomposer {
     ///
     /// * `matches` — Output from [`ProximityDetector::filter`].
     pub fn decompose(&self, matches: Vec<ProximityMatch>) -> Vec<TriStreamResult> {
-        matches.into_iter().map(|pm| self.decompose_one(pm)).collect()
+        matches
+            .into_iter()
+            .map(|pm| self.decompose_one(pm))
+            .collect()
     }
 
     /// Decompose a single [`ProximityMatch`].
@@ -345,20 +354,26 @@ mod tests {
         // Stream A must detect PASSWORD → score ~0.9
         // We check that identifiers include DB_PASSWORD and combined is non-trivial.
         assert!(
-            result.identifiers.iter().any(|id| id.to_lowercase().contains("password")),
+            result
+                .identifiers
+                .iter()
+                .any(|id| id.to_lowercase().contains("password")),
             "Should detect PASSWORD identifier, got: {:?}",
             result.identifiers
         );
         // combined_score should be meaningful (not zero)
-        assert!(result.combined_score > 0.3, "combined score should be > 0.3");
+        assert!(
+            result.combined_score > 0.3,
+            "combined score should be > 0.3"
+        );
     }
 
     #[test]
     fn test_stream_b_jwt_detected() {
         // A well-formed JWT: header.payload.signature (base64url segments)
-        let header  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+        let header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
         let payload = "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0";
-        let sig     = "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+        let sig = "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
         let jwt = format!("{header}.{payload}.{sig}");
 
         let line = format!("Authorization: Bearer {jwt}");
@@ -373,14 +388,20 @@ mod tests {
         let decomposer = TriStreamDecomposer::new();
         let result = decomposer.decompose_one(pm);
         // With stream B = 0.95 (weight 0.45) the combined should be significant.
-        assert!(result.combined_score > 0.4, "JWT combined score should be > 0.4");
+        assert!(
+            result.combined_score > 0.4,
+            "JWT combined score should be > 0.4"
+        );
     }
 
     #[test]
     fn test_stream_b_uuid_detected() {
         let uuid = b"550e8400-e29b-41d4-a716-446655440000";
         let (score, _) = score_stream_b(uuid);
-        assert!((score - 0.65).abs() < 0.001, "UUID score should be 0.65, got {score}");
+        assert!(
+            (score - 0.65).abs() < 0.001,
+            "UUID score should be 0.65, got {score}"
+        );
     }
 
     #[test]
@@ -388,7 +409,10 @@ mod tests {
         // Pure hex string (e.g., MD5 hash)
         let hex = b"d41d8cd98f00b204e9800998ecf8427e";
         let (score, _) = score_stream_b(hex);
-        assert!((score - 0.70).abs() < 0.001, "Hex string score should be 0.70, got {score}");
+        assert!(
+            (score - 0.70).abs() < 0.001,
+            "Hex string score should be 0.70, got {score}"
+        );
     }
 
     #[test]
@@ -410,7 +434,10 @@ mod tests {
         let ctx = b"SECRET_KEY = \"abc\"";
         let score = score_stream_c(ctx);
         // Should detect quote (+0.30) + '=' (+0.20) = 0.50
-        assert!(score >= 0.49, "Structure score should be >= 0.50, got {score}");
+        assert!(
+            score >= 0.49,
+            "Structure score should be >= 0.50, got {score}"
+        );
     }
 
     #[test]
@@ -424,7 +451,13 @@ mod tests {
     #[test]
     fn test_is_uuid() {
         assert!(is_uuid(b"550e8400-e29b-41d4-a716-446655440000"));
-        assert!(!is_uuid(b"550e8400-e29b-41d4-a716"), "Short UUID should fail");
-        assert!(!is_uuid(b"550e8400-e29b-41d4-a716-44665544000G"), "Non-hex char should fail");
+        assert!(
+            !is_uuid(b"550e8400-e29b-41d4-a716"),
+            "Short UUID should fail"
+        );
+        assert!(
+            !is_uuid(b"550e8400-e29b-41d4-a716-44665544000G"),
+            "Non-hex char should fail"
+        );
     }
 }

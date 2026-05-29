@@ -269,9 +269,8 @@ impl Reporter for SarifReporter {
 impl Formatter for SarifReporter {
     fn format(&self, findings: &[Finding], _show_secrets: bool) -> String {
         let sarif = build_sarif(findings);
-        serde_json::to_string_pretty(&sarif).unwrap_or_else(|e| {
-            format!("{{\"error\": \"sarif serialization failed: {}\"}}", e)
-        })
+        serde_json::to_string_pretty(&sarif)
+            .unwrap_or_else(|e| format!("{{\"error\": \"sarif serialization failed: {}\"}}", e))
     }
 }
 
@@ -315,8 +314,11 @@ mod tests {
             severity: Severity::Critical,
             chain: None,
             validation: None,
-            remediation: Some("Revoke this PAT in GitHub Settings → Developer settings.".to_string()),
-            detected_at: Utc::now(), encoding_chain: None,
+            remediation: Some(
+                "Revoke this PAT in GitHub Settings → Developer settings.".to_string(),
+            ),
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -327,8 +329,7 @@ mod tests {
         reporter.write(&[], &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
 
-        let parsed: serde_json::Value =
-            serde_json::from_str(&s).expect("must be valid JSON");
+        let parsed: serde_json::Value = serde_json::from_str(&s).expect("must be valid JSON");
         assert_eq!(parsed["version"], "2.1.0", "SARIF version must be 2.1.0");
         assert!(parsed["runs"].is_array(), "runs must be an array");
         let results = &parsed["runs"][0]["results"];
@@ -344,8 +345,7 @@ mod tests {
         reporter.write(&findings, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
 
-        let parsed: serde_json::Value =
-            serde_json::from_str(&s).expect("must be valid JSON");
+        let parsed: serde_json::Value = serde_json::from_str(&s).expect("must be valid JSON");
 
         // Top-level schema keys
         assert!(parsed["$schema"].is_string(), "$schema key must be present");
@@ -407,10 +407,12 @@ mod tests {
         let s = String::from_utf8(buf).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
 
-        let region = &parsed["runs"][0]["results"][0]["locations"][0]
-            ["physicalLocation"]["region"];
+        let region = &parsed["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["region"];
         // Our location has start_col=7 (0-indexed), SARIF should emit 8
-        assert_eq!(region["startColumn"], 8, "columns must be converted to 1-indexed");
+        assert_eq!(
+            region["startColumn"], 8,
+            "columns must be converted to 1-indexed"
+        );
     }
 
     #[test]

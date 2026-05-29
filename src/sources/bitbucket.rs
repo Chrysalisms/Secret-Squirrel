@@ -229,12 +229,14 @@ impl BitbucketSource {
                 "{}/2.0/repositories/{}?page={}&pagelen=50",
                 self.host, self.workspace, page
             );
-            let resp = self.authed_get(&url).send().await.map_err(|e| {
-                SquirrelError::Source {
+            let resp = self
+                .authed_get(&url)
+                .send()
+                .await
+                .map_err(|e| SquirrelError::Source {
                     src_name: "bitbucket".into(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             if !resp.status().is_success() {
                 return Err(self.status_error(resp.status(), &url));
@@ -261,17 +263,15 @@ impl BitbucketSource {
 
     /// Resolve the default branch for a repository.
     async fn default_branch(&self, slug: &str) -> String {
-        let url = format!(
-            "{}/2.0/repositories/{}/{}",
-            self.host, self.workspace, slug
-        );
+        let url = format!("{}/2.0/repositories/{}/{}", self.host, self.workspace, slug);
         match self.authed_get(&url).send().await {
-            Ok(resp) if resp.status().is_success() => {
-                match resp.json::<BbRepo>().await {
-                    Ok(repo) => repo.mainbranch.map(|b| b.name).unwrap_or_else(|| "main".into()),
-                    Err(_) => "main".into(),
-                }
-            }
+            Ok(resp) if resp.status().is_success() => match resp.json::<BbRepo>().await {
+                Ok(repo) => repo
+                    .mainbranch
+                    .map(|b| b.name)
+                    .unwrap_or_else(|| "main".into()),
+                Err(_) => "main".into(),
+            },
             _ => "main".into(),
         }
     }
@@ -295,21 +295,24 @@ impl BitbucketSource {
                 format!("{url}?pagelen=100")
             };
 
-            let resp = self.authed_get(&fetch_url).send().await.map_err(|e| {
-                SquirrelError::Source {
-                    src_name: "bitbucket".into(),
-                    reason: e.to_string(),
-                }
-            })?;
+            let resp =
+                self.authed_get(&fetch_url)
+                    .send()
+                    .await
+                    .map_err(|e| SquirrelError::Source {
+                        src_name: "bitbucket".into(),
+                        reason: e.to_string(),
+                    })?;
 
             if !resp.status().is_success() {
                 return Err(self.status_error(resp.status(), &fetch_url));
             }
 
-            let body: BbPage<BbSrcEntry> = resp.json().await.map_err(|e| SquirrelError::Source {
-                src_name: "bitbucket".into(),
-                reason: format!("JSON parse error listing files for {slug}: {e}"),
-            })?;
+            let body: BbPage<BbSrcEntry> =
+                resp.json().await.map_err(|e| SquirrelError::Source {
+                    src_name: "bitbucket".into(),
+                    reason: format!("JSON parse error listing files for {slug}: {e}"),
+                })?;
 
             next_url = body.next.clone();
             for entry in body.values {
@@ -705,12 +708,7 @@ impl BitbucketSource {
             let prs = self.list_pull_requests(slug).await;
             for pr in &prs {
                 // PR description.
-                let description = pr
-                    .description
-                    .as_deref()
-                    .unwrap_or("")
-                    .trim()
-                    .to_owned();
+                let description = pr.description.as_deref().unwrap_or("").trim().to_owned();
                 if !description.is_empty() {
                     let title = pr.title.as_deref().unwrap_or("");
                     let combined = format!("PR #{}: {}\n\n{}", pr.id, title, description);
@@ -838,7 +836,10 @@ mod tests {
     fn test_auth_header_basic() {
         let source = BitbucketSource::new("ws", "user:mypassword");
         let header = source.auth_header();
-        assert!(header.starts_with("Basic "), "Should be Basic auth: {header}");
+        assert!(
+            header.starts_with("Basic "),
+            "Should be Basic auth: {header}"
+        );
         // Decode and verify
         let encoded = header.trim_start_matches("Basic ");
         let decoded = String::from_utf8(BASE64.decode(encoded).unwrap()).unwrap();
@@ -854,8 +855,8 @@ mod tests {
 
     #[test]
     fn test_with_repos_sets_slugs() {
-        let source = BitbucketSource::new("ws", "u:p")
-            .with_repos(vec!["repo-a".into(), "repo-b".into()]);
+        let source =
+            BitbucketSource::new("ws", "u:p").with_repos(vec!["repo-a".into(), "repo-b".into()]);
         assert_eq!(source.repo_slugs, vec!["repo-a", "repo-b"]);
     }
 

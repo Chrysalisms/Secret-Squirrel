@@ -54,14 +54,14 @@ impl FindingRef {
 ///
 /// These are searched as byte substrings within the match context.
 static _PROPAGATION_PATTERNS: &[&str] = &[
-    "${",        // Shell / Docker Compose variable expansion
-    "$(",        // Shell command substitution (less common)
-    "getenv(",   // Python os.getenv()
-    "environ[",  // Python os.environ[]
-    "ENV[",      // Ruby ENV[]
+    "${",             // Shell / Docker Compose variable expansion
+    "$(",             // Shell command substitution (less common)
+    "getenv(",        // Python os.getenv()
+    "environ[",       // Python os.environ[]
+    "ENV[",           // Ruby ENV[]
     "System.getenv(", // Java
-    "process.env.", // JavaScript/Node.js
-    "os.Getenv(", // Go
+    "process.env.",   // JavaScript/Node.js
+    "os.Getenv(",     // Go
 ];
 
 /// Cross-file credential chain engine.
@@ -174,7 +174,9 @@ impl CorrelationEngine {
             // Sort by (path, line) to find the earliest (origin) occurrence.
             let mut sorted = refs.clone();
             sorted.sort_by(|a, b| {
-                a.location.path.cmp(&b.location.path)
+                a.location
+                    .path
+                    .cmp(&b.location.path)
                     .then(a.location.start_line.cmp(&b.location.start_line))
                     .then(a.location.byte_offset.cmp(&b.location.byte_offset))
             });
@@ -221,9 +223,7 @@ impl CorrelationEngine {
             }
 
             let mut sorted = refs.clone();
-            sorted.sort_by(|a, b| {
-                a.location.byte_offset.cmp(&b.location.byte_offset)
-            });
+            sorted.sort_by(|a, b| a.location.byte_offset.cmp(&b.location.byte_offset));
 
             let origin = &sorted[0];
             let usage_ids: Vec<String> = sorted
@@ -302,7 +302,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -312,18 +313,20 @@ mod tests {
         // consumed in app.py.
         let mut engine = CorrelationEngine::new(10 * 1024 * 1024); // 10MB budget
 
-        let f_env = make_finding("id-env",    ".env",              1, "hash-db-pw");
-        let f_dc  = make_finding("id-dc",     "docker-compose.yml", 5, "hash-db-pw");
-        let f_app = make_finding("id-app",    "app.py",            42, "hash-db-pw");
+        let f_env = make_finding("id-env", ".env", 1, "hash-db-pw");
+        let f_dc = make_finding("id-dc", "docker-compose.yml", 5, "hash-db-pw");
+        let f_app = make_finding("id-app", "app.py", 42, "hash-db-pw");
 
         engine.add_finding(&f_env, Some("DB_PASSWORD"));
-        engine.add_finding(&f_dc,  Some("DB_PASSWORD"));
+        engine.add_finding(&f_dc, Some("DB_PASSWORD"));
         engine.add_finding(&f_app, Some("DB_PASSWORD"));
 
         let chains = engine.resolve_chains();
 
         assert!(!chains.is_empty(), "Should detect at least one chain");
-        let chain = chains.iter().find(|c| c.variable_name == "DB_PASSWORD")
+        let chain = chains
+            .iter()
+            .find(|c| c.variable_name == "DB_PASSWORD")
             .expect("Should find DB_PASSWORD chain");
 
         // Origin should be the .env file (alphabetically first / lowest offset).
@@ -341,7 +344,10 @@ mod tests {
         engine.add_finding(&f, Some("API_KEY"));
 
         let chains = engine.resolve_chains();
-        assert!(chains.is_empty(), "Single-file findings should not form a chain");
+        assert!(
+            chains.is_empty(),
+            "Single-file findings should not form a chain"
+        );
     }
 
     #[test]
@@ -374,13 +380,16 @@ mod tests {
     #[test]
     fn test_docker_compose_classified_as_propagation() {
         let mut engine = CorrelationEngine::new(10 * 1024 * 1024);
-        let f_env = make_finding("id-env", ".env",               1, "hash-pw");
-        let f_dc  = make_finding("id-dc",  "docker-compose.yml", 5, "hash-pw");
+        let f_env = make_finding("id-env", ".env", 1, "hash-pw");
+        let f_dc = make_finding("id-dc", "docker-compose.yml", 5, "hash-pw");
         engine.add_finding(&f_env, Some("DB_PASS"));
-        engine.add_finding(&f_dc,  Some("DB_PASS"));
+        engine.add_finding(&f_dc, Some("DB_PASS"));
 
         let chains = engine.resolve_chains();
-        let chain = chains.iter().find(|c| c.variable_name == "DB_PASS").unwrap();
+        let chain = chains
+            .iter()
+            .find(|c| c.variable_name == "DB_PASS")
+            .unwrap();
 
         // docker-compose.yml should be classified as propagation.
         assert!(

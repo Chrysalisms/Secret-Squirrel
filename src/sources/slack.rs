@@ -256,8 +256,7 @@ impl SlackSource {
             .filter(|msg| !msg.text.is_empty())
             .map(|msg| {
                 let size = msg.text.len() as u64;
-                let path =
-                    format!("slack://{}/{}", channel.name, msg.ts);
+                let path = format!("slack://{}/{}", channel.name, msg.ts);
 
                 let mut attributes = HashMap::new();
                 attributes.insert("channel_id".to_string(), channel.id.clone());
@@ -475,7 +474,10 @@ mod tests {
     #[test]
     fn test_builder_requires_confirmed() {
         let result = SlackSourceBuilder::new().token("tok").build();
-        assert!(result.is_err(), "build() should fail without confirmed=true");
+        assert!(
+            result.is_err(),
+            "build() should fail without confirmed=true"
+        );
         let err = result.unwrap_err().to_string();
         assert!(
             err.contains("authorization"),
@@ -573,7 +575,11 @@ mod tests {
         let source = build_source(&server);
         let fragments = source.fragments().await.expect("should succeed");
 
-        assert_eq!(fragments.len(), 2, "Should produce one fragment per message");
+        assert_eq!(
+            fragments.len(),
+            2,
+            "Should produce one fragment per message"
+        );
         assert_eq!(fragments[0].metadata.source_type, SourceType::Slack);
         assert!(fragments[0].metadata.path.starts_with("slack://general/"));
 
@@ -591,13 +597,15 @@ mod tests {
             .mock("GET", "/conversations.list?limit=200&exclude_archived=true")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{
+            .with_body(
+                r#"{
                 "ok": true,
                 "channels": [
                     {"id": "C001", "name": "general"},
                     {"id": "C002", "name": "random"}
                 ]
-            }"#)
+            }"#,
+            )
             .create_async()
             .await;
 

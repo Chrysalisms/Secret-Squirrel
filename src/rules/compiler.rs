@@ -106,7 +106,7 @@ fn looks_like_redos(pattern: &str) -> bool {
     let bytes = pattern.as_bytes();
     let len = bytes.len();
     let mut depth = 0i32;
-    let mut group_has_quantifier = vec![false; 64];
+    let mut group_has_quantifier = [false; 64];
     let mut in_char_class = false;
 
     let mut i = 0;
@@ -181,7 +181,7 @@ fn has_lookaround(pattern: &str) -> bool {
             i += 2;
             continue;
         }
-        // Look for (? then = ! < 
+        // Look for (? then = ! <
         if bytes[i] == b'(' && bytes[i + 1] == b'?' {
             let c = bytes[i + 2];
             if matches!(c, b'=' | b'!') {
@@ -207,6 +207,7 @@ fn has_lookaround(pattern: &str) -> bool {
 /// file doesn't bring down the entire scan session.
 pub fn compile_rules(rules: Vec<Rule>) -> Result<Vec<CompiledRule>> {
     let mut compiled = Vec::with_capacity(rules.len());
+    let placeholder_regex = regex::Regex::new(r"\A\z").expect("static regex");
 
     for rule in rules {
         // ── ReDoS guard ──────────────────────────────────────────────────────
@@ -229,7 +230,7 @@ pub fn compile_rules(rules: Vec<Rule>) -> Result<Vec<CompiledRule>> {
             match fancy_regex::Regex::new(&rule.regex) {
                 Ok(fr) => {
                     // Provide a trivial never-matching standard regex as placeholder.
-                    let placeholder = regex::Regex::new(r"\A\z").expect("static regex");
+                    let placeholder = placeholder_regex.clone();
                     (placeholder, Some(fr))
                 }
                 Err(e) => {
@@ -249,7 +250,7 @@ pub fn compile_rules(rules: Vec<Rule>) -> Result<Vec<CompiledRule>> {
                     // (handles inline flag groups like (?-i:...) or other extensions).
                     match fancy_regex::Regex::new(&rule.regex) {
                         Ok(fr) => {
-                            let placeholder = regex::Regex::new(r"\A\z").expect("static regex");
+                            let placeholder = placeholder_regex.clone();
                             (placeholder, Some(fr))
                         }
                         Err(_) => {

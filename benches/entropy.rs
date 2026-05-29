@@ -9,8 +9,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 use bytes::Bytes;
-use secret_squirrel::stages::entropy::{shannon_entropy, EntropyGate};
 use secret_squirrel::config::PipelineConfig;
+use secret_squirrel::stages::entropy::{shannon_entropy, EntropyGate};
 
 // ── Raw shannon_entropy benchmarks ──────────────────────────────────────────
 
@@ -110,5 +110,10 @@ fn bench_tokenizer(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_shannon_entropy, bench_entropy_gate, bench_tokenizer);
+criterion_group!(
+    benches,
+    bench_shannon_entropy,
+    bench_entropy_gate,
+    bench_tokenizer
+);
 criterion_main!(benches);

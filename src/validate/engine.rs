@@ -139,10 +139,7 @@ impl ValidationEngine {
         reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .timeout(std::time::Duration::from_secs(5))
-            .user_agent(concat!(
-                "secret-squirrel/",
-                env!("CARGO_PKG_VERSION")
-            ))
+            .user_agent(concat!("secret-squirrel/", env!("CARGO_PKG_VERSION")))
             // Prefer rustls to avoid OpenSSL linking issues
             .build()
             .expect("Failed to build reqwest client — this is a programming error")
@@ -234,7 +231,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -255,19 +253,21 @@ mod tests {
         }
 
         async fn validate(&self, _finding: &Finding) -> ValidationResult {
-            ValidationResult::simple(
-                ValidationStatus::Active,
-                "stub active",
-                self.name,
-            )
+            ValidationResult::simple(ValidationStatus::Active, "stub active", self.name)
         }
     }
 
     #[tokio::test]
     async fn test_engine_dispatches_to_correct_validator() {
         let engine = ValidationEngine::with_validators(vec![
-            Box::new(StubValidator { prefix: "github-", name: "github" }),
-            Box::new(StubValidator { prefix: "aws-", name: "aws" }),
+            Box::new(StubValidator {
+                prefix: "github-",
+                name: "github",
+            }),
+            Box::new(StubValidator {
+                prefix: "aws-",
+                name: "aws",
+            }),
         ]);
 
         let gh_finding = make_finding("github-token");
@@ -281,9 +281,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_engine_returns_none_for_unknown_rule() {
-        let engine = ValidationEngine::with_validators(vec![
-            Box::new(StubValidator { prefix: "github-", name: "github" }),
-        ]);
+        let engine = ValidationEngine::with_validators(vec![Box::new(StubValidator {
+            prefix: "github-",
+            name: "github",
+        })]);
 
         let unknown = make_finding("custom-internal-key");
         assert!(engine.validate_finding(&unknown).await.is_none());
@@ -292,8 +293,14 @@ mod tests {
     #[tokio::test]
     async fn test_engine_returns_first_matching_validator() {
         let engine = ValidationEngine::with_validators(vec![
-            Box::new(StubValidator { prefix: "aws-", name: "first" }),
-            Box::new(StubValidator { prefix: "aws-", name: "second" }),
+            Box::new(StubValidator {
+                prefix: "aws-",
+                name: "first",
+            }),
+            Box::new(StubValidator {
+                prefix: "aws-",
+                name: "second",
+            }),
         ]);
 
         let finding = make_finding("aws-access-key-id");
@@ -304,11 +311,7 @@ mod tests {
 
     #[test]
     fn test_validation_result_simple() {
-        let r = ValidationResult::simple(
-            ValidationStatus::Inactive,
-            "key revoked",
-            "github",
-        );
+        let r = ValidationResult::simple(ValidationStatus::Inactive, "key revoked", "github");
         assert_eq!(r.provider, "github");
         assert_eq!(r.reason, "key revoked");
         assert!(r.blast_radius.is_none());
@@ -317,8 +320,14 @@ mod tests {
     #[test]
     fn test_provider_names() {
         let engine = ValidationEngine::with_validators(vec![
-            Box::new(StubValidator { prefix: "a-", name: "alpha" }),
-            Box::new(StubValidator { prefix: "b-", name: "beta" }),
+            Box::new(StubValidator {
+                prefix: "a-",
+                name: "alpha",
+            }),
+            Box::new(StubValidator {
+                prefix: "b-",
+                name: "beta",
+            }),
         ]);
         let names = engine.provider_names();
         assert_eq!(names, vec!["alpha", "beta"]);

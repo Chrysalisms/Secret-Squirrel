@@ -47,14 +47,14 @@ pub const UNK_IDX: i64 = 99;
 #[inline]
 pub fn char_to_idx(c: u8) -> i64 {
     match c {
-        b'a'..=b'z' => (c - b'a') as i64,          // 0–25
-        b'A'..=b'Z' => (c - b'A' + 26) as i64,     // 26–51
-        b'0'..=b'9' => (c - b'0' + 52) as i64,     // 52–61
-        b' ' => 86,                                  // space
-        33..=47 => (c - 33 + 62) as i64,            // 62–76
-        58..=64 => (c - 58 + 77) as i64,            // 77–83
-        91..=96 => (c - 91 + 84) as i64,            // 84–89
-        123..=126 => (c - 123 + 90) as i64,         // 90–93
+        b'a'..=b'z' => (c - b'a') as i64,      // 0–25
+        b'A'..=b'Z' => (c - b'A' + 26) as i64, // 26–51
+        b'0'..=b'9' => (c - b'0' + 52) as i64, // 52–61
+        b' ' => 86,                            // space
+        33..=47 => (c - 33 + 62) as i64,       // 62–76
+        58..=64 => (c - 58 + 77) as i64,       // 77–83
+        91..=96 => (c - 91 + 84) as i64,       // 84–89
+        123..=126 => (c - 123 + 90) as i64,    // 90–93
         _ => UNK_IDX,
     }
 }
@@ -67,11 +67,7 @@ pub fn char_to_idx(c: u8) -> i64 {
 ///   at the boundary will be mapped to `UNK_IDX` by `char_to_idx`.
 #[must_use]
 pub fn tokenize(input: &str, max_len: usize) -> Vec<i64> {
-    let mut tokens: Vec<i64> = input
-        .bytes()
-        .take(max_len)
-        .map(char_to_idx)
-        .collect();
+    let mut tokens: Vec<i64> = input.bytes().take(max_len).map(char_to_idx).collect();
     tokens.resize(max_len, 0);
     tokens
 }
@@ -109,11 +105,11 @@ impl ModelTier {
     #[must_use]
     pub fn filename(&self) -> &'static str {
         match self {
-            ModelTier::None     => "",
-            ModelTier::Tiny     => "squirrel-tiny-fp32.onnx",
-            ModelTier::Large    => "squirrel-large-fp32.onnx",
+            ModelTier::None => "",
+            ModelTier::Tiny => "squirrel-tiny-fp32.onnx",
+            ModelTier::Large => "squirrel-large-fp32.onnx",
             ModelTier::Enhanced => "squirrel-tinybert-fp32.onnx",
-            ModelTier::Maximum  => "squirrel-distilbert-fp32.onnx",
+            ModelTier::Maximum => "squirrel-distilbert-fp32.onnx",
         }
     }
 
@@ -130,11 +126,11 @@ impl ModelTier {
     #[must_use]
     pub fn approx_size_bytes(&self) -> u64 {
         match self {
-            ModelTier::None     => 0,
-            ModelTier::Tiny     => 2_000_000,
-            ModelTier::Large    => 4_000_000,
+            ModelTier::None => 0,
+            ModelTier::Tiny => 2_000_000,
+            ModelTier::Large => 4_000_000,
             ModelTier::Enhanced => 55_000_000,
-            ModelTier::Maximum  => 260_000_000,
+            ModelTier::Maximum => 260_000_000,
         }
     }
 
@@ -142,11 +138,11 @@ impl ModelTier {
     #[must_use]
     pub fn expected_accuracy(&self) -> &'static str {
         match self {
-            ModelTier::None     => "N/A (Markov chain)",
-            ModelTier::Tiny     => "96-97%",
-            ModelTier::Large    => "98-99%",
+            ModelTier::None => "N/A (Markov chain)",
+            ModelTier::Tiny => "96-97%",
+            ModelTier::Large => "98-99%",
             ModelTier::Enhanced => "~99%",
-            ModelTier::Maximum  => "~99.5%",
+            ModelTier::Maximum => "~99.5%",
         }
     }
 
@@ -181,13 +177,13 @@ pub mod classifier {
     use std::path::Path;
 
     use ort::{
+        execution_providers::{CPUExecutionProvider, ExecutionProviderDispatch},
         session::Session,
         value::Tensor,
-        execution_providers::{CPUExecutionProvider, ExecutionProviderDispatch},
     };
 
-    use crate::error::{Result, SquirrelError};
     use super::{tokenize, ModelTier};
+    use crate::error::{Result, SquirrelError};
 
     /// ONNX-Runtime-backed CNN classifier for credential detection.
     ///
@@ -233,21 +229,26 @@ pub mod classifier {
             // We only set them if not already set by the caller.
             if std::env::var("OMP_NUM_THREADS").is_err() {
                 // SAFETY: single-threaded at this point; no concurrent env mutations.
-                unsafe { std::env::set_var("OMP_NUM_THREADS", "2"); }
+                unsafe {
+                    std::env::set_var("OMP_NUM_THREADS", "2");
+                }
             }
             if std::env::var("ORT_NUM_INTRA_THREADS").is_err() {
-                unsafe { std::env::set_var("ORT_NUM_INTRA_THREADS", "2"); }
+                unsafe {
+                    std::env::set_var("ORT_NUM_INTRA_THREADS", "2");
+                }
             }
             if std::env::var("ORT_NUM_INTER_THREADS").is_err() {
-                unsafe { std::env::set_var("ORT_NUM_INTER_THREADS", "1"); }
+                unsafe {
+                    std::env::set_var("ORT_NUM_INTER_THREADS", "1");
+                }
             }
 
             // Build a CPU-only execution provider list.
             // `with_execution_providers` takes `impl AsRef<[ExecutionProviderDispatch]>`,
             // so we convert first and store in a Vec (which implements AsRef<[T]>).
-            let cpu_eps: Vec<ExecutionProviderDispatch> = vec![
-                CPUExecutionProvider::default().into(),
-            ];
+            let cpu_eps: Vec<ExecutionProviderDispatch> =
+                vec![CPUExecutionProvider::default().into()];
 
             let mut builder = Session::builder()
                 .map_err(|e| SquirrelError::Cnn(format!("ort SessionBuilder::new failed: {e}")))?;
@@ -264,13 +265,15 @@ pub mod classifier {
                     e.recover()
                 });
 
-            let session = builder
-                .commit_from_file(path)
-                .map_err(|e| SquirrelError::Cnn(format!(
-                    "ort failed to load model {:?}: {e}", path
-                )))?;
+            let session = builder.commit_from_file(path).map_err(|e| {
+                SquirrelError::Cnn(format!("ort failed to load model {:?}: {e}", path))
+            })?;
 
-            Ok(Self { session, tier, max_seq_len })
+            Ok(Self {
+                session,
+                tier,
+                max_seq_len,
+            })
         }
 
         /// Resolve a [`ModelTier`] to a filename inside `model_dir` and load it.
@@ -322,10 +325,10 @@ pub mod classifier {
             //
             // ort 2.0 tuple API: `Tensor::from_array((shape, data_vec))`
             // shape elements can be usize or i64.
-            let tensor = Tensor::<i64>::from_array(
-                ([1_usize, self.max_seq_len], tokens)
-            )
-            .map_err(|e| SquirrelError::Cnn(format!("Tensor::<i64>::from_array failed: {e}")))?;
+            let tensor =
+                Tensor::<i64>::from_array(([1_usize, self.max_seq_len], tokens)).map_err(|e| {
+                    SquirrelError::Cnn(format!("Tensor::<i64>::from_array failed: {e}"))
+                })?;
 
             // 3. Run inference.
             //

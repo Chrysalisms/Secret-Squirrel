@@ -195,7 +195,10 @@ mod tests {
         }
         cb.record_failure("stripe");
         assert_eq!(cb.state("stripe"), CircuitState::Open);
-        assert!(!cb.allow("stripe"), "Circuit should be open and reject requests");
+        assert!(
+            !cb.allow("stripe"),
+            "Circuit should be open and reject requests"
+        );
     }
 
     #[test]
@@ -267,7 +270,10 @@ mod tests {
             entry.last_failure = Some(Instant::now() - Duration::from_secs(2));
         }
 
-        assert!(cb.allow("slack"), "After cooldown, circuit should allow probe");
+        assert!(
+            cb.allow("slack"),
+            "After cooldown, circuit should allow probe"
+        );
         assert_eq!(cb.state("slack"), CircuitState::HalfOpen);
     }
 }

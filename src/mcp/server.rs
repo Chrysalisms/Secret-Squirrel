@@ -31,9 +31,7 @@
 // #[cfg(feature = "mcp-server")] blocks.
 #[cfg(not(feature = "mcp-server"))]
 pub async fn run_stdio() -> crate::error::Result<()> {
-    tracing::warn!(
-        "MCP server not compiled in. Rebuild with --features mcp-server to enable."
-    );
+    tracing::warn!("MCP server not compiled in. Rebuild with --features mcp-server to enable.");
     Ok(())
 }
 
@@ -76,14 +74,13 @@ impl McpServer {
 mod mcp_impl {
     use bytes::Bytes;
     use rmcp::{
-        ServerHandler, ServiceExt,
         model::{
             CallToolRequestParams, CallToolResult, Content, Implementation, InitializeResult,
             ListToolsResult, PaginatedRequestParams, ServerCapabilities, Tool,
         },
         service::RequestContext,
         transport::stdio,
-        ErrorData as McpError, RoleServer,
+        ErrorData as McpError, RoleServer, ServerHandler, ServiceExt,
     };
     use serde_json::Value;
     use std::path::{Path, PathBuf};
@@ -195,11 +192,9 @@ mod mcp_impl {
         }
 
         fn handle_scan_file(&self, args: Option<Value>) -> CallToolResult {
-            let path_str = match args.and_then(|v| {
-                v.get("path")
-                    .and_then(|p| p.as_str())
-                    .map(str::to_string)
-            }) {
+            let path_str = match args
+                .and_then(|v| v.get("path").and_then(|p| p.as_str()).map(str::to_string))
+            {
                 Some(p) => p,
                 None => {
                     return CallToolResult::error(vec![Content::text("Missing 'path' argument")])
@@ -311,10 +306,7 @@ mod mcp_impl {
         /// Dispatch a JSON-RPC `tools/call` params object through the existing
         /// per-tool handlers and return a JSON result (for HTTP clients).
         pub async fn call_tool_json(&self, params: serde_json::Value) -> serde_json::Value {
-            let name = params
-                .get("name")
-                .and_then(|n| n.as_str())
-                .unwrap_or("");
+            let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
             // Normalise arguments: accept both "arguments" (MCP spec) and
             // "params" (legacy) keys.
             let args: Option<Value> = params
@@ -323,17 +315,20 @@ mod mcp_impl {
                 .cloned();
 
             let result: CallToolResult = match name {
-                "scan_text"        => self.handle_scan_text(args),
-                "scan_file"        => self.handle_scan_file(args),
-                "scan_diff"        => self.handle_scan_diff(args),
-                "get_rules"        => self.handle_get_rules(),
+                "scan_text" => self.handle_scan_text(args),
+                "scan_file" => self.handle_scan_file(args),
+                "scan_diff" => self.handle_scan_diff(args),
+                "get_rules" => self.handle_get_rules(),
                 "validate_finding" => self.handle_validate_finding(args),
-                other => CallToolResult::error(vec![Content::text(format!("Unknown tool: {other}"))]),
+                other => {
+                    CallToolResult::error(vec![Content::text(format!("Unknown tool: {other}"))])
+                }
             };
 
             // Serialise CallToolResult to a plain JSON value so the HTTP handler
             // can embed it in a JSON-RPC 2.0 response envelope.
-            serde_json::to_value(&result).unwrap_or_else(|_| serde_json::json!({"error": "serialisation error"}))
+            serde_json::to_value(&result)
+                .unwrap_or_else(|_| serde_json::json!({"error": "serialisation error"}))
         }
     }
 
@@ -343,41 +338,58 @@ mod mcp_impl {
 
     impl ServerHandler for SquirrelMcpServer {
         fn get_info(&self) -> InitializeResult {
-            InitializeResult::new(
-                ServerCapabilities::builder().enable_tools().build(),
-            )
-            .with_server_info(
-                Implementation::new("secret-squirrel", env!("CARGO_PKG_VERSION")),
-            )
-            .with_instructions(
-                "Secret Squirrel: GPU-accelerated credential scanner. \
+            InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
+                .with_server_info(Implementation::new(
+                    "secret-squirrel",
+                    env!("CARGO_PKG_VERSION"),
+                ))
+                .with_instructions(
+                    "Secret Squirrel: GPU-accelerated credential scanner. \
                  Tools: scan_text, scan_file, scan_diff, get_rules, validate_finding.",
-            )
+                )
         }
 
         fn list_tools(
             &self,
             _request: Option<PaginatedRequestParams>,
             _context: RequestContext<RoleServer>,
-        ) -> impl std::future::Future<Output = Result<ListToolsResult, McpError>>
-               + Send + '_ {
+        ) -> impl std::future::Future<Output = Result<ListToolsResult, McpError>> + Send + '_
+        {
             async move {
                 let make_tool = |name: &'static str, desc: &'static str, schema: Value| {
                     Tool::new(name, desc, json_to_schema(schema))
                 };
                 let tools = vec![
-                    make_tool("scan_text", "Scan inline text for secrets (<50ms)",
-                        serde_json::json!({"type":"object","properties":{"text":{"type":"string"},"context":{"type":"string"}},"required":["text"]})),
-                    make_tool("scan_file", "Scan a file for secrets (path-sandboxed)",
-                        serde_json::json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]})),
-                    make_tool("scan_diff", "Scan a git unified diff for secrets (added lines only)",
-                        serde_json::json!({"type":"object","properties":{"diff":{"type":"string"}},"required":["diff"]})),
-                    make_tool("get_rules", "List all loaded detection rules",
-                        serde_json::json!({"type":"object","properties":{"category":{"type":"string"},"severity":{"type":"string"}}})),
-                    make_tool("validate_finding", "Validate a finding by its opaque ID (never raw secret values)",
-                        serde_json::json!({"type":"object","properties":{"finding_id":{"type":"string"}},"required":["finding_id"]})),
-                    make_tool("scan_repo", "Scan a full repository for secrets",
-                        serde_json::json!({"type":"object","properties":{"path":{"type":"string"},"depth":{"type":"integer"}},"required":["path"]})),
+                    make_tool(
+                        "scan_text",
+                        "Scan inline text for secrets (<50ms)",
+                        serde_json::json!({"type":"object","properties":{"text":{"type":"string"},"context":{"type":"string"}},"required":["text"]}),
+                    ),
+                    make_tool(
+                        "scan_file",
+                        "Scan a file for secrets (path-sandboxed)",
+                        serde_json::json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}),
+                    ),
+                    make_tool(
+                        "scan_diff",
+                        "Scan a git unified diff for secrets (added lines only)",
+                        serde_json::json!({"type":"object","properties":{"diff":{"type":"string"}},"required":["diff"]}),
+                    ),
+                    make_tool(
+                        "get_rules",
+                        "List all loaded detection rules",
+                        serde_json::json!({"type":"object","properties":{"category":{"type":"string"},"severity":{"type":"string"}}}),
+                    ),
+                    make_tool(
+                        "validate_finding",
+                        "Validate a finding by its opaque ID (never raw secret values)",
+                        serde_json::json!({"type":"object","properties":{"finding_id":{"type":"string"}},"required":["finding_id"]}),
+                    ),
+                    make_tool(
+                        "scan_repo",
+                        "Scan a full repository for secrets",
+                        serde_json::json!({"type":"object","properties":{"path":{"type":"string"},"depth":{"type":"integer"}},"required":["path"]}),
+                    ),
                 ];
                 Ok(ListToolsResult::with_all_items(tools))
             }
@@ -387,11 +399,12 @@ mod mcp_impl {
             &self,
             request: CallToolRequestParams,
             _context: RequestContext<RoleServer>,
-        ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+        ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_
+        {
             // Extract arguments as a serde_json::Value::Object
-            let args = request.arguments.map(|m| {
-                Value::Object(m.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
-            });
+            let args = request
+                .arguments
+                .map(|m| Value::Object(m.into_iter().map(|(k, v)| (k.to_string(), v)).collect()));
             let name = request.name.to_string();
             async move {
                 let result = match name.as_str() {
@@ -400,9 +413,9 @@ mod mcp_impl {
                     "scan_diff" => self.handle_scan_diff(args),
                     "get_rules" => self.handle_get_rules(),
                     "validate_finding" => self.handle_validate_finding(args),
-                    other => CallToolResult::error(vec![Content::text(format!(
-                        "Unknown tool: {other}"
-                    ))]),
+                    other => {
+                        CallToolResult::error(vec![Content::text(format!("Unknown tool: {other}"))])
+                    }
                 };
                 Ok(result)
             }
@@ -417,9 +430,10 @@ mod mcp_impl {
         info!("Starting Secret Squirrel MCP server on stdio");
         let config = SquirrelConfig::default();
         let handler = SquirrelMcpServer::new(&config).await?;
-        let server = handler.serve(stdio()).await.map_err(|e| {
-            crate::error::SquirrelError::Io(std::io::Error::other(e.to_string()))
-        })?;
+        let server = handler
+            .serve(stdio())
+            .await
+            .map_err(|e| crate::error::SquirrelError::Io(std::io::Error::other(e.to_string())))?;
         let _ = server.waiting().await;
         info!("MCP server exited cleanly");
         Ok(())
@@ -463,10 +477,7 @@ mod mcp_impl {
         State(server): State<std::sync::Arc<SquirrelMcpServer>>,
         Json(request): Json<serde_json::Value>,
     ) -> Json<serde_json::Value> {
-        let method = request
-            .get("method")
-            .and_then(|m| m.as_str())
-            .unwrap_or("");
+        let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
         let id = request
             .get("id")
             .cloned()
@@ -482,10 +493,7 @@ mod mcp_impl {
                 })
             }
             "tools/call" => {
-                let params = request
-                    .get("params")
-                    .cloned()
-                    .unwrap_or_default();
+                let params = request.get("params").cloned().unwrap_or_default();
                 let result = server.call_tool_json(params).await;
                 serde_json::json!({
                     "jsonrpc": "2.0",
@@ -510,33 +518,46 @@ mod mcp_impl {
     ) -> Json<serde_json::Value> {
         let payload: serde_json::Value = match serde_json::from_slice(&body) {
             Ok(p) => p,
-            Err(_) => return Json(serde_json::json!({"status": "error", "message": "invalid json"})),
+            Err(_) => {
+                return Json(serde_json::json!({"status": "error", "message": "invalid json"}))
+            }
         };
 
         // Check if it's a pull_request event
-        let event = headers.get("x-github-event").and_then(|h| h.to_str().ok()).unwrap_or("");
+        let event = headers
+            .get("x-github-event")
+            .and_then(|h| h.to_str().ok())
+            .unwrap_or("");
         if event != "pull_request" {
-            return Json(serde_json::json!({"status": "ignored", "reason": "not a pull_request event"}));
+            return Json(
+                serde_json::json!({"status": "ignored", "reason": "not a pull_request event"}),
+            );
         }
 
         let action = payload.get("action").and_then(|a| a.as_str()).unwrap_or("");
         if action != "opened" && action != "synchronize" {
-            return Json(serde_json::json!({"status": "ignored", "reason": "action not opened or synchronize"}));
+            return Json(
+                serde_json::json!({"status": "ignored", "reason": "action not opened or synchronize"}),
+            );
         }
 
         let pr = match payload.get("pull_request") {
             Some(pr) => pr,
-            None => return Json(serde_json::json!({"status": "error", "message": "missing pull_request object"})),
+            None => {
+                return Json(
+                    serde_json::json!({"status": "error", "message": "missing pull_request object"}),
+                )
+            }
         };
 
         let diff_url = pr.get("diff_url").and_then(|u| u.as_str()).unwrap_or("");
-        
+
         info!("Received GitHub PR Webhook for diff: {}", diff_url);
-        
+
         // Return 200 OK immediately to acknowledge the webhook.
-        // In a real implementation, we would spawn a background task to fetch the diff 
+        // In a real implementation, we would spawn a background task to fetch the diff
         // and scan it, or post the result back to the GitHub PR via the Checks API.
-        
+
         Json(serde_json::json!({"status": "accepted", "diff_url": diff_url}))
     }
 } // end mcp_impl
@@ -549,8 +570,8 @@ mod mcp_impl {
 mod tests {
     // Tests for the tool definitions are in tools.rs.
     // Here we test the path-sandboxing helper (always compiled in).
-    use crate::mcp::tools::validate_path;
     use crate::error::SquirrelError;
+    use crate::mcp::tools::validate_path;
 
     #[test]
     fn test_sandbox_rejects_absolute_unix() {

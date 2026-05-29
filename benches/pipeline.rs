@@ -1,3 +1,4 @@
+use bytes::Bytes;
 /// Criterion benchmark: full pipeline stages throughput.
 ///
 /// Tests the complete 4-stage pipeline (entropy → proximity → tristream → pattern)
@@ -7,7 +8,6 @@
 ///   cargo bench --bench pipeline
 ///   cargo bench --bench pipeline -- --save-baseline main
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use bytes::Bytes;
 
 // ── Aho-Corasick pattern matching ────────────────────────────────────────────
 
@@ -16,10 +16,28 @@ fn bench_aho_corasick(c: &mut Criterion) {
 
     // Realistic set of secret prefixes (Stage 4 patterns)
     let patterns = vec![
-        "AKIA", "ghp_", "gho_", "ghs_", "glpat-", "xoxb-", "xoxp-",
-        "sk_live_", "sk_test_", "sk-", "sk-ant-", "hf_",
-        "SG.", "eyJ", "Bearer ", "-----BEGIN",
-        "password", "secret", "token", "api_key", "apikey", "access_key",
+        "AKIA",
+        "ghp_",
+        "gho_",
+        "ghs_",
+        "glpat-",
+        "xoxb-",
+        "xoxp-",
+        "sk_live_",
+        "sk_test_",
+        "sk-",
+        "sk-ant-",
+        "hf_",
+        "SG.",
+        "eyJ",
+        "Bearer ",
+        "-----BEGIN",
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "access_key",
     ];
 
     let ac = AhoCorasick::new(&patterns).unwrap();
@@ -31,21 +49,22 @@ fn bench_aho_corasick(c: &mut Criterion) {
         // Realistic mixed content (mostly prose, occasional keyword)
         let haystack: Vec<u8> = (0..size)
             .map(|i| {
-                if i % 500 == 0 { b'S' } // occasional 'S' for 'SG.' match
-                else { b'a' + ((i * 7 + 3) % 26) as u8 }
+                if i % 500 == 0 {
+                    b'S'
+                }
+                // occasional 'S' for 'SG.' match
+                else {
+                    b'a' + ((i * 7 + 3) % 26) as u8
+                }
             })
             .collect();
         group.throughput(Throughput::Bytes(size as u64));
-        group.bench_with_input(
-            BenchmarkId::new("pattern_scan", size),
-            &haystack,
-            |b, h| {
-                b.iter(|| {
-                    let count = ac.find_iter(black_box(h)).count();
-                    black_box(count)
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("pattern_scan", size), &haystack, |b, h| {
+            b.iter(|| {
+                let count = ac.find_iter(black_box(h)).count();
+                black_box(count)
+            })
+        });
     }
     group.finish();
 }
@@ -53,9 +72,9 @@ fn bench_aho_corasick(c: &mut Criterion) {
 // ── EntropyGate + ProximityDetector ─────────────────────────────────────────
 
 fn bench_entropy_plus_proximity(c: &mut Criterion) {
+    use secret_squirrel::config::PipelineConfig;
     use secret_squirrel::stages::entropy::EntropyGate;
     use secret_squirrel::stages::proximity::ProximityDetector;
-    use secret_squirrel::config::PipelineConfig;
 
     let config = PipelineConfig::default();
     let gate = EntropyGate::new(&config);
@@ -64,7 +83,7 @@ fn bench_entropy_plus_proximity(c: &mut Criterion) {
     // 1 MB of realistic source content: mix of prose and secret-shaped lines
     let mut payload = Vec::with_capacity(1_048_576);
     let secret_line = b"AWS_SECRET_ACCESS_KEY = \"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\"\n";
-    let prose_line  = b"// this function computes the hash of the input data using sha256\n";
+    let prose_line = b"// this function computes the hash of the input data using sha256\n";
     for i in 0..15_000 {
         if i % 100 == 0 {
             payload.extend_from_slice(secret_line);
@@ -117,11 +136,9 @@ fn bench_markov_scorer(c: &mut Criterion) {
     let mut group = c.benchmark_group("markov_scorer");
     for secret in &secrets {
         let label = &secret[..secret.len().min(24)];
-        group.bench_with_input(
-            BenchmarkId::new("score", label),
-            secret,
-            |b, s| b.iter(|| scorer.score(black_box(s))),
-        );
+        group.bench_with_input(BenchmarkId::new("score", label), secret, |b, s| {
+            b.iter(|| scorer.score(black_box(s)))
+        });
     }
 
     // Bulk throughput: score 10,000 strings
@@ -129,7 +146,9 @@ fn bench_markov_scorer(c: &mut Criterion) {
         b.iter(|| {
             let mut sum = 0.0f32;
             for i in 0..10_000 {
-                let s: String = (0..40).map(|j| ((b'a' + ((i * 7 + j * 3) % 26) as u8) as char)).collect();
+                let s: String = (0..40)
+                    .map(|j| ((b'a' + ((i * 7 + j * 3) % 26) as u8) as char))
+                    .collect();
                 sum += scorer.score(black_box(&s));
             }
             black_box(sum)
@@ -139,5 +158,10 @@ fn bench_markov_scorer(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_aho_corasick, bench_entropy_plus_proximity, bench_markov_scorer);
+criterion_group!(
+    benches,
+    bench_aho_corasick,
+    bench_entropy_plus_proximity,
+    bench_markov_scorer
+);
 criterion_main!(benches);

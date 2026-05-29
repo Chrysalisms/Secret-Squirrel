@@ -14,9 +14,9 @@
 //! | [`cnn`]           | CNN tokenizer, `ModelTier`, and (with `cnn` feature)  |
 //! |                   | ONNX-backed `CnnClassifier`                           |
 
+pub mod cnn;
 pub mod confidence;
 pub mod correlation;
-pub mod cnn;
 pub mod dedup;
 pub mod fusion;
 pub mod hard_negatives;

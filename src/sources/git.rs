@@ -163,8 +163,7 @@ impl SyncSource for GitSource {
                         attrs.insert("message".to_string(), message.clone());
 
                         // Construct a virtual path: "<file>@<short-hash>"
-                        let virtual_path =
-                            format!("{}@{}", file_path, &commit_hash[..8]);
+                        let virtual_path = format!("{}@{}", file_path, &commit_hash[..8]);
 
                         Ok(Fragment {
                             content: Bytes::from(raw),
@@ -233,7 +232,10 @@ mod tests {
         let source = GitSource::new(dir.path().to_path_buf(), 0).unwrap();
         let fragments: Vec<_> = source.fragments().filter_map(|r| r.ok()).collect();
 
-        assert!(!fragments.is_empty(), "expected at least one fragment from git history");
+        assert!(
+            !fragments.is_empty(),
+            "expected at least one fragment from git history"
+        );
 
         let has_secret = fragments.iter().any(|f| {
             let content = std::str::from_utf8(&f.content).unwrap_or("");
@@ -275,15 +277,8 @@ mod tests {
             let tree = repo.find_tree(tree_oid).unwrap();
             let sig = Signature::now("Test User", "test@example.com").unwrap();
             let head = repo.head().unwrap().peel_to_commit().unwrap();
-            repo.commit(
-                Some("HEAD"),
-                &sig,
-                &sig,
-                "Second commit",
-                &tree,
-                &[&head],
-            )
-            .unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "Second commit", &tree, &[&head])
+                .unwrap();
         }
 
         // With depth=1 only the latest commit should be walked.
@@ -292,7 +287,10 @@ mod tests {
         let has_second = fragments
             .iter()
             .any(|f| f.metadata.path.contains("second.txt"));
-        assert!(has_second, "depth=1 should include the latest commit's file");
+        assert!(
+            has_second,
+            "depth=1 should include the latest commit's file"
+        );
     }
 
     #[test]

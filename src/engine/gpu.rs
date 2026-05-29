@@ -51,7 +51,7 @@ pub mod gpu_impl {
     use tracing::{debug, warn};
 
     // ── WGSL shader source ────────────────────────────────────────────────
-    
+
     const ENTROPY_SHADER: &str = include_str!("shaders/entropy.wgsl");
 
     // ── GpuEngine ────────────────────────────────────────────────────────
@@ -147,12 +147,11 @@ pub mod gpu_impl {
                     ],
                 });
 
-            let pipeline_layout =
-                device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("entropy-pipeline-layout"),
-                    bind_group_layouts: &[&entropy_bind_group_layout],
-                    push_constant_ranges: &[],
-                });
+            let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("entropy-pipeline-layout"),
+                bind_group_layouts: &[&entropy_bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
             let entropy_pipeline =
                 device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
@@ -179,14 +178,10 @@ pub mod gpu_impl {
         /// Returns candidates whose entropy exceeds `threshold`.  Each
         /// candidate carries the byte offset and length within the original
         /// input so later stages can retrieve the raw bytes.
-        pub fn execute_entropy(
-            &self,
-            input: &Bytes,
-            threshold: f32,
-        ) -> Vec<EntropyCandidate> {
+        pub fn execute_entropy(&self, input: &Bytes, threshold: f32) -> Vec<EntropyCandidate> {
             // ── 1. Pad input to a multiple of 64 bytes ────────────────────
             let chunk_size: usize = 64;
-            let padded_len = (input.len() + chunk_size - 1) / chunk_size * chunk_size;
+            let padded_len = input.len().div_ceil(chunk_size) * chunk_size;
             let num_chunks = padded_len / chunk_size;
 
             // Pack bytes as u32 for the shader (4 bytes per u32 word).
@@ -202,11 +197,13 @@ pub mod gpu_impl {
 
             // Input buffer (STORAGE | COPY_DST)
             let input_bytes: &[u8] = bytemuck::cast_slice(&padded_words);
-            let input_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("entropy-input"),
-                contents: input_bytes,
-                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            });
+            let input_buf = self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("entropy-input"),
+                    contents: input_bytes,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                });
 
             // Output buffer — one f32 per chunk (STORAGE | COPY_SRC)
             let output_size = (num_chunks * std::mem::size_of::<f32>()) as u64;
@@ -260,7 +257,7 @@ pub mod gpu_impl {
                 let mut dispatch_x = num_chunks as u32;
                 let mut dispatch_y = 1u32;
                 if dispatch_x > max_dim {
-                    dispatch_y = (dispatch_x + max_dim - 1) / max_dim;
+                    dispatch_y = dispatch_x.div_ceil(max_dim);
                     dispatch_x = max_dim;
                 }
                 pass.dispatch_workgroups(dispatch_x, dispatch_y, 1);
@@ -283,7 +280,7 @@ pub mod gpu_impl {
             }
 
             let data = slice.get_mapped_range();
-            let entropy_values: &[f32] = bytemuck::cast_slice(&*data);
+            let entropy_values: &[f32] = bytemuck::cast_slice(&data);
 
             // ── 5. Filter by threshold and build candidates ───────────────
             let candidates: Vec<EntropyCandidate> = entropy_values
@@ -353,10 +350,7 @@ pub mod gpu_impl {
 
         /// Decompose each `ProximityMatch` into identifier, literal, and
         /// structure streams and score them.
-        pub fn execute_tristream(
-            &self,
-            matches: &[ProximityMatch],
-        ) -> Vec<TriStreamResult> {
+        pub fn execute_tristream(&self, matches: &[ProximityMatch]) -> Vec<TriStreamResult> {
             // GPU tri-stream kernel placeholder — scalar fallback for now.
             // TODO: implement dedicated WGSL tri-stream kernel.
             matches
@@ -426,9 +420,7 @@ pub mod gpu_impl {
             let b = data[i];
             if b.is_ascii_alphabetic() || b == b'_' {
                 let start = i;
-                while i < data.len()
-                    && (data[i].is_ascii_alphanumeric() || data[i] == b'_')
-                {
+                while i < data.len() && (data[i].is_ascii_alphanumeric() || data[i] == b'_') {
                     i += 1;
                 }
                 if let Ok(s) = std::str::from_utf8(&data[start..i]) {
@@ -468,8 +460,7 @@ pub mod gpu_impl {
             .count();
         let structure_score = (delimiters as f32 / data.len().max(1) as f32).min(1.0);
 
-        let combined_score =
-            (m.proximity_score + structure_score) / 2.0;
+        let combined_score = (m.proximity_score + structure_score) / 2.0;
 
         TriStreamResult {
             source: m,
@@ -502,7 +493,7 @@ mod tests {
     async fn test_entropy_shader_matches_cpu() {
         use super::GpuEngine;
         use bytes::Bytes;
-        
+
         // Only run if we actually have a GPU
         let Some(gpu) = GpuEngine::new().await else {
             return;
@@ -510,7 +501,7 @@ mod tests {
 
         // Create a 64-byte payload
         let mut data = vec![0u8; 64];
-        
+
         // 1. All zeros should have 0.0 entropy
         let candidates_zero = gpu.execute_entropy(&Bytes::from(data.clone()), 0.0);
         assert_eq!(candidates_zero.len(), 1);

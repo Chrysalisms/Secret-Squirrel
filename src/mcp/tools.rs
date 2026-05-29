@@ -188,7 +188,10 @@ pub fn validate_path(path: &str) -> Result<std::path::PathBuf> {
         if matches!(component, std::path::Component::ParentDir) {
             return Err(SquirrelError::PathTraversal { path: path.into() });
         }
-        if matches!(component, std::path::Component::RootDir | std::path::Component::Prefix(_)) {
+        if matches!(
+            component,
+            std::path::Component::RootDir | std::path::Component::Prefix(_)
+        ) {
             return Err(SquirrelError::PathTraversal { path: path.into() });
         }
     }
@@ -238,7 +241,7 @@ pub fn handle_scan_text(args: Value) -> Value {
     let raw_text = args["text"].as_str().unwrap_or("");
     let context = args["context"].as_str().unwrap_or("<mcp:scan_text>");
 
-    const MAX_BYTES: usize = 1 * 1024 * 1024; // 1 MiB
+    const MAX_BYTES: usize = 1024 * 1024; // 1 MiB
     let (text, truncated) = if raw_text.len() > MAX_BYTES {
         (&raw_text[..MAX_BYTES], true)
     } else {
@@ -388,7 +391,10 @@ pub fn handle_validate_finding(args: Value) -> Value {
                       Sending raw secrets here creates a credential oracle vulnerability."
         });
     }
-    if finding_id.chars().any(|c| !c.is_ascii_hexdigit() && c != '-') {
+    if finding_id
+        .chars()
+        .any(|c| !c.is_ascii_hexdigit() && c != '-')
+    {
         return json!({
             "error": "finding_id contains invalid characters. \
                       Provide an opaque hex finding ID from a scan result, \
@@ -544,7 +550,10 @@ mod tests {
         assert!(names.contains(&"scan_file"), "Missing scan_file");
         assert!(names.contains(&"scan_diff"), "Missing scan_diff");
         assert!(names.contains(&"get_rules"), "Missing get_rules");
-        assert!(names.contains(&"validate_finding"), "Missing validate_finding");
+        assert!(
+            names.contains(&"validate_finding"),
+            "Missing validate_finding"
+        );
         assert!(names.contains(&"scan_repo"), "Missing scan_repo");
     }
 
@@ -552,7 +561,10 @@ mod tests {
     fn test_tool_definitions_have_required_fields() {
         for tool in tool_definitions() {
             assert!(!tool.name.is_empty(), "Tool name must not be empty");
-            assert!(!tool.description.is_empty(), "Tool description must not be empty");
+            assert!(
+                !tool.description.is_empty(),
+                "Tool description must not be empty"
+            );
             assert!(
                 tool.input_schema.get("type").is_some(),
                 "Tool '{}' input_schema must have a 'type' field",
@@ -646,8 +658,11 @@ mod tests {
     fn test_validate_finding_accepts_valid_id() {
         let valid_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"; // UUID-like hex+hyphen
         let result = handle_validate_finding(json!({"finding_id": valid_id}));
-        assert!(result["error"].is_null() || result.get("error").is_none(),
-            "Valid hex ID should not be rejected, got: {:?}", result["error"]);
+        assert!(
+            result["error"].is_null() || result.get("error").is_none(),
+            "Valid hex ID should not be rejected, got: {:?}",
+            result["error"]
+        );
         assert_eq!(result["finding_id"], valid_id);
     }
 
@@ -701,7 +716,9 @@ mod tests {
         let result = handle_scan_repo(json!({"path": "."}));
         // `.` should pass the sandbox (it's a valid relative path)
         // It exists (it's the working directory), so no error expected
-        assert!(result["error"].is_null() || result.get("error").is_none(),
-            "Current directory '.' should not be rejected");
+        assert!(
+            result["error"].is_null() || result.get("error").is_none(),
+            "Current directory '.' should not be rejected"
+        );
     }
 }

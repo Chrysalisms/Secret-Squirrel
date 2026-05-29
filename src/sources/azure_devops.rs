@@ -50,6 +50,7 @@ struct AdoList<T> {
 
 /// A project returned by `GET /{org}/_apis/projects`.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct AdoProject {
     id: String,
     name: String,
@@ -83,14 +84,7 @@ struct AdoContentMetadata {
     content_type: Option<String>,
 }
 
-/// A blob object from `GET …/blobs/{blobId}`.
-// The blob endpoint returns raw bytes directly, not JSON, so this is only
-// used for the metadata endpoint.
-#[derive(Debug, Deserialize)]
-struct AdoBlob {
-    #[serde(rename = "objectId")]
-    object_id: String,
-}
+
 
 /// A variable group returned by `GET /{org}/{project}/_apis/distributedtask/variablegroups`.
 #[derive(Debug, Deserialize)]
@@ -278,13 +272,18 @@ impl AzureDevOpsSource {
 
     /// List all projects in the organization.
     async fn list_projects(&self) -> Result<Vec<AdoProject>> {
-        let url = self.versioned(&format!("{}/{}/_apis/projects", self.host, self.organization));
-        let resp = self.authed_get(&url).send().await.map_err(|e| {
-            SquirrelError::Source {
+        let url = self.versioned(&format!(
+            "{}/{}/_apis/projects",
+            self.host, self.organization
+        ));
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(|e| SquirrelError::Source {
                 src_name: "azure_devops".into(),
                 reason: e.to_string(),
-            }
-        })?;
+            })?;
 
         if !resp.status().is_success() {
             return Err(self.status_error(resp.status(), &url));
@@ -308,12 +307,14 @@ impl AzureDevOpsSource {
             "{}/{}/{}/_apis/git/repositories",
             self.host, self.organization, project
         ));
-        let resp = self.authed_get(&url).send().await.map_err(|e| {
-            SquirrelError::Source {
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(|e| SquirrelError::Source {
                 src_name: "azure_devops".into(),
                 reason: e.to_string(),
-            }
-        })?;
+            })?;
 
         if !resp.status().is_success() {
             return Err(self.status_error(resp.status(), &url));
@@ -338,12 +339,14 @@ impl AzureDevOpsSource {
             self.host, self.organization, project, repo_id, branch
         ));
 
-        let resp = self.authed_get(&url).send().await.map_err(|e| {
-            SquirrelError::Source {
+        let resp = self
+            .authed_get(&url)
+            .send()
+            .await
+            .map_err(|e| SquirrelError::Source {
                 src_name: "azure_devops".into(),
                 reason: e.to_string(),
-            }
-        })?;
+            })?;
 
         if !resp.status().is_success() {
             return Err(self.status_error(resp.status(), &url));
@@ -757,11 +760,7 @@ impl AzureDevOpsSource {
     // -----------------------------------------------------------------------
 
     /// Scan all files in a single repository.
-    async fn scan_repo(
-        &self,
-        project: &str,
-        repo: &AdoRepo,
-    ) -> Vec<Fragment> {
+    async fn scan_repo(&self, project: &str, repo: &AdoRepo) -> Vec<Fragment> {
         let branch = repo
             .default_branch
             .as_deref()
@@ -817,7 +816,10 @@ impl AzureDevOpsSource {
                 None => continue,
             };
 
-            let content = match self.fetch_blob(project, &repo.id, &blob_id, &item.path).await {
+            let content = match self
+                .fetch_blob(project, &repo.id, &blob_id, &item.path)
+                .await
+            {
                 Some(c) => c,
                 None => continue,
             };
@@ -845,7 +847,10 @@ impl AzureDevOpsSource {
                 metadata: FragmentMetadata {
                     path: format!(
                         "azuredevops://{}/{}/{}/{}",
-                        self.organization, project, repo.name, item.path.trim_start_matches('/')
+                        self.organization,
+                        project,
+                        repo.name,
+                        item.path.trim_start_matches('/')
                     ),
                     source_type: SourceType::AzureDevOps,
                     size,
@@ -992,7 +997,10 @@ mod tests {
     fn test_auth_header_format() {
         let source = AzureDevOpsSource::new("org", "mypattoken");
         let header = source.auth_header();
-        assert!(header.starts_with("Basic "), "Should be Basic auth: {header}");
+        assert!(
+            header.starts_with("Basic "),
+            "Should be Basic auth: {header}"
+        );
         // Decode and verify format ":PAT"
         let encoded = header.trim_start_matches("Basic ");
         let decoded = String::from_utf8(BASE64.decode(encoded).unwrap()).unwrap();
@@ -1065,7 +1073,10 @@ mod tests {
         assert!(!source.scan_variable_groups);
         assert!(!source.scan_wikis);
         assert_eq!(source.max_depth, 0);
-        assert_eq!(source.max_file_size, AzureDevOpsSource::DEFAULT_MAX_FILE_SIZE);
+        assert_eq!(
+            source.max_file_size,
+            AzureDevOpsSource::DEFAULT_MAX_FILE_SIZE
+        );
     }
 
     #[test]

@@ -7,12 +7,12 @@
 //! the same invariants as the libFuzzer fuzz targets.
 
 use proptest::prelude::*;
+use secret_squirrel::error::Result as SquirrelResult;
 use secret_squirrel::rules::parser::{
     detect_format, parse_gitleaks_config, parse_squirrel_config, RuleFormat,
 };
 use secret_squirrel::scoring::MarkovScorer;
 use secret_squirrel::sources::SyncSource;
-use secret_squirrel::error::Result as SquirrelResult;
 use secret_squirrel::types::Fragment;
 
 // ── Rule parser properties ────────────────────────────────────────────────────

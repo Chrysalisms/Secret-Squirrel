@@ -115,17 +115,15 @@ impl Validator for AwsValidator {
                 permissions: vec!["unknown — unsigned probe".to_string()],
                 resources: vec!["arn:aws:*:*:*:*".to_string()],
                 risk_level: RiskLevel::Critical,
-                description:
-                    "AWS Access Key ID confirmed active (AuthFailure — key exists). \
+                description: "AWS Access Key ID confirmed active (AuthFailure — key exists). \
                      Full permission scope requires authenticated STS call."
-                        .to_string(),
+                    .to_string(),
             };
             ValidationResult {
                 status: ValidationStatus::Active,
-                reason:
-                    "AWS key ID confirmed active: STS returned AuthFailure (key exists, \
+                reason: "AWS key ID confirmed active: STS returned AuthFailure (key exists, \
                      signature invalid — expected for unsigned probe)."
-                        .to_string(),
+                    .to_string(),
                 blast_radius: Some(blast_radius),
                 validated_at: chrono::Utc::now(),
                 provider: self.provider_name().to_string(),
@@ -149,17 +147,15 @@ impl Validator for AwsValidator {
                 permissions: vec!["unknown — unsigned probe".to_string()],
                 resources: vec!["arn:aws:*:*:*:*".to_string()],
                 risk_level: RiskLevel::Critical,
-                description:
-                    "AWS Access Key ID may be active (InvalidSignatureException — \
+                description: "AWS Access Key ID may be active (InvalidSignatureException — \
                      key may exist but signing parameters were wrong)."
-                        .to_string(),
+                    .to_string(),
             };
             ValidationResult {
                 status: ValidationStatus::Active,
-                reason:
-                    "AWS key may be active: STS returned InvalidSignatureException \
+                reason: "AWS key may be active: STS returned InvalidSignatureException \
                      (key likely exists, signature params were wrong)."
-                        .to_string(),
+                    .to_string(),
                 blast_radius: Some(blast_radius),
                 validated_at: chrono::Utc::now(),
                 provider: self.provider_name().to_string(),
@@ -216,7 +212,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 

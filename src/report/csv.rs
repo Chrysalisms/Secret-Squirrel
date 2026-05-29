@@ -84,8 +84,7 @@ impl Reporter for CsvReporter {
 impl Formatter for CsvReporter {
     fn format(&self, findings: &[Finding], show_secrets: bool) -> String {
         let mut buf = Vec::new();
-        write_csv(findings, &mut buf, show_secrets)
-            .expect("write to Vec<u8> cannot fail");
+        write_csv(findings, &mut buf, show_secrets).expect("write to Vec<u8> cannot fail");
         String::from_utf8(buf).expect("CSV output is always valid UTF-8")
     }
 }
@@ -130,7 +129,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: Some("Revoke this key in the Stripe dashboard.".to_string()),
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -149,7 +149,10 @@ mod tests {
         assert!(s.contains("confidence"), "header must contain 'confidence'");
         assert!(s.contains("path"), "header must contain 'path'");
         assert!(s.contains("match"), "header must contain 'match'");
-        assert!(s.contains("remediation"), "header must contain 'remediation'");
+        assert!(
+            s.contains("remediation"),
+            "header must contain 'remediation'"
+        );
     }
 
     #[test]
@@ -163,13 +166,19 @@ mod tests {
         // Lines: header + 1 data row
         assert_eq!(lines.len(), 2, "expected header + 1 data row");
         let data = lines[1];
-        assert!(data.contains("stripe-api-key"), "data row must contain rule_id");
+        assert!(
+            data.contains("stripe-api-key"),
+            "data row must contain rule_id"
+        );
         // Severity::Display outputs uppercase (CRITICAL, HIGH, etc.)
         assert!(
             data.to_uppercase().contains("CRITICAL"),
             "data row must contain severity, got: {data}"
         );
-        assert!(data.contains("payments/config.py"), "data row must contain path");
+        assert!(
+            data.contains("payments/config.py"),
+            "data row must contain path"
+        );
     }
 
     #[test]

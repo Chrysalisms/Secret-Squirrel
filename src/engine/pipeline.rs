@@ -163,13 +163,10 @@ impl Pipeline {
                 // rules layer.
                 PatternMatch {
                     match_start: tsr.source.candidate.offset as usize,
-                    match_end: (tsr.source.candidate.offset
-                        + tsr.source.candidate.length as u64)
+                    match_end: (tsr.source.candidate.offset + tsr.source.candidate.length as u64)
                         as usize,
-                    matched_text: String::from_utf8_lossy(
-                        tsr.source.candidate.raw.as_ref(),
-                    )
-                    .into_owned(),
+                    matched_text: String::from_utf8_lossy(tsr.source.candidate.raw.as_ref())
+                        .into_owned(),
                     pattern_score: tsr.combined_score,
                     rule_id: String::new(), // filled in by rules layer
                     source: tsr,
@@ -237,12 +234,10 @@ impl Pipeline {
             input.as_ref()
         };
 
-        let direct_hits = self.router.cpu.execute_pattern(
-            scan_slice,
-            ac,
-            rules,
-            keyword_to_rule,
-        );
+        let direct_hits = self
+            .router
+            .cpu
+            .execute_pattern(scan_slice, ac, rules, keyword_to_rule);
 
         debug!(
             path = %path,
@@ -269,8 +264,7 @@ impl Pipeline {
                 if proximity_matches.is_empty() {
                     vec![]
                 } else {
-                    let tristream_results =
-                        self.router.execute_tristream(&proximity_matches)?;
+                    let tristream_results = self.router.execute_tristream(&proximity_matches)?;
 
                     let mut out = Vec::new();
                     for tsr in tristream_results {
@@ -376,7 +370,6 @@ impl Pipeline {
         Ok(all_matches)
     }
 
-
     /// Return a reference to the inner router (for stats gathering).
     pub fn router(&self) -> &Router {
         &self.router
@@ -443,8 +436,8 @@ mod tests {
         };
         let router = Router::new(&gpu_config).await;
         let config = PipelineConfig {
-            entropy_threshold: 2.0,      // very low — accept almost anything
-            proximity_threshold: 0.01,   // very low — accept almost anything
+            entropy_threshold: 2.0,    // very low — accept almost anything
+            proximity_threshold: 0.01, // very low — accept almost anything
             entropy_chunk_size: 64,
             ..PipelineConfig::default()
         };

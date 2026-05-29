@@ -16,11 +16,7 @@ use governor::{
     state::{InMemoryState, NotKeyed},
     Quota, RateLimiter,
 };
-use std::{
-    collections::HashMap,
-    num::NonZeroU32,
-    sync::Mutex,
-};
+use std::{collections::HashMap, num::NonZeroU32, sync::Mutex};
 
 /// Type alias for the concrete limiter type used internally.
 type Limiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock>;
@@ -92,9 +88,7 @@ impl ProviderRateLimiter {
 
 /// Build a `RateLimiter` allowing `rps` requests per second.
 fn build_limiter(rps: u32) -> Limiter {
-    let quota = Quota::per_second(
-        NonZeroU32::new(rps).expect("rps must be nonzero"),
-    );
+    let quota = Quota::per_second(NonZeroU32::new(rps).expect("rps must be nonzero"));
     RateLimiter::direct(quota)
 }
 
@@ -109,7 +103,10 @@ mod tests {
     #[test]
     fn test_first_request_always_allowed() {
         let limiter = ProviderRateLimiter::new(10);
-        assert!(limiter.check("github"), "First request should always be allowed");
+        assert!(
+            limiter.check("github"),
+            "First request should always be allowed"
+        );
     }
 
     #[test]

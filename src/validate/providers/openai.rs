@@ -104,9 +104,7 @@ impl Validator for OpenAiValidator {
 
                 ValidationResult {
                     status: ValidationStatus::Active,
-                    reason: format!(
-                        "OpenAI key is active. Access to {model_count} model(s)."
-                    ),
+                    reason: format!("OpenAI key is active. Access to {model_count} model(s)."),
                     blast_radius: Some(blast_radius),
                     validated_at: chrono::Utc::now(),
                     provider: self.provider_name().to_string(),
@@ -173,7 +171,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 

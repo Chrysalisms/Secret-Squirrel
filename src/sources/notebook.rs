@@ -106,11 +106,9 @@ impl NotebookSource {
         let mut sources = Vec::new();
 
         for entry in WalkDir::new(&dir).follow_links(false) {
-            let entry = entry.map_err(|e| {
-                SquirrelError::Source {
-                    src_name: "notebook".into(),
-                    reason: e.to_string(),
-                }
+            let entry = entry.map_err(|e| SquirrelError::Source {
+                src_name: "notebook".into(),
+                reason: e.to_string(),
             })?;
 
             if !entry.file_type().is_file() {
@@ -350,7 +348,10 @@ mod tests {
 
         assert_eq!(fragments.len(), 1);
         let content = String::from_utf8(fragments[0].content.to_vec()).unwrap();
-        assert!(content.contains("AKIA1234567890ABCDEF"), "Should contain output text");
+        assert!(
+            content.contains("AKIA1234567890ABCDEF"),
+            "Should contain output text"
+        );
     }
 
     // ── Markdown cells are ignored ────────────────────────────────────────────

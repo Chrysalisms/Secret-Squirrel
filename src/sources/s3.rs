@@ -114,14 +114,11 @@ impl S3Source {
             .access_key_id
             .clone()
             .or_else(|| std::env::var("AWS_ACCESS_KEY_ID").ok())?;
-        let secret = self
-            .secret_access_key
-            .clone()
-            .or_else(|| {
-                std::env::var("AWS_SECRET_ACCESS_KEY")
-                    .ok()
-                    .or_else(|| std::env::var("AWS_SECRET_KEY").ok())
-            })?;
+        let secret = self.secret_access_key.clone().or_else(|| {
+            std::env::var("AWS_SECRET_ACCESS_KEY")
+                .ok()
+                .or_else(|| std::env::var("AWS_SECRET_KEY").ok())
+        })?;
         Some((key_id, secret))
     }
 
@@ -136,10 +133,7 @@ impl S3Source {
                 format!("{ep}/{}", self.bucket)
             }
             None => {
-                format!(
-                    "https://{}.s3.{}.amazonaws.com",
-                    self.bucket, self.region
-                )
+                format!("https://{}.s3.{}.amazonaws.com", self.bucket, self.region)
             }
         }
     }
@@ -153,8 +147,7 @@ impl S3Source {
 
     /// Compute HMAC-SHA256 and return the raw bytes.
     fn hmac_sha256(key: &[u8], data: &[u8]) -> Vec<u8> {
-        let mut mac = Hmac::<Sha256>::new_from_slice(key)
-            .expect("HMAC accepts any key length");
+        let mut mac = Hmac::<Sha256>::new_from_slice(key).expect("HMAC accepts any key length");
         mac.update(data);
         mac.finalize().into_bytes().to_vec()
     }
@@ -202,7 +195,11 @@ impl S3Source {
         // Canonical URI — percent-encode path but keep '/'
         let canonical_uri = {
             let path = url.path();
-            if path.is_empty() { "/".to_string() } else { path.to_string() }
+            if path.is_empty() {
+                "/".to_string()
+            } else {
+                path.to_string()
+            }
         };
 
         // Canonical query string — sort lexicographically by name then value
@@ -214,13 +211,7 @@ impl S3Source {
             pairs.sort();
             pairs
                 .iter()
-                .map(|(k, v)| {
-                    format!(
-                        "{}={}",
-                        urlencoding::encode(k),
-                        urlencoding::encode(v)
-                    )
-                })
+                .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
                 .collect::<Vec<_>>()
                 .join("&")
         };
@@ -282,10 +273,7 @@ impl S3Source {
 
         if let Some((key_id, secret)) = creds {
             let payload_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // SHA256("")
-            let headers = [
-                ("host", host.as_str()),
-                ("x-amz-date", amz_date.as_str()),
-            ];
+            let headers = [("host", host.as_str()), ("x-amz-date", amz_date.as_str())];
             let auth = Self::sigv4_auth_header(
                 "GET",
                 &url,
@@ -366,15 +354,11 @@ impl S3Source {
     /// Download a single S3 object and return its bytes.
     ///
     /// Returns `Ok(None)` if the object was not found (deleted between list and get).
-    async fn get_object(
-        &self,
-        key: &str,
-        creds: Option<(&str, &str)>,
-    ) -> Result<Option<Bytes>> {
+    async fn get_object(&self, key: &str, creds: Option<(&str, &str)>) -> Result<Option<Bytes>> {
         let base = self.base_url();
         let encoded_key = key
             .split('/')
-            .map(|seg| urlencoding::encode(seg))
+            .map(urlencoding::encode)
             .collect::<Vec<_>>()
             .join("/");
         let url = format!("{base}/{encoded_key}");
@@ -667,9 +651,9 @@ impl S3SourceBuilder {
     ///
     /// Returns [`SquirrelError::Config`] if `bucket` was not set.
     pub fn build(self) -> Result<S3Source> {
-        let bucket = self.bucket.ok_or_else(|| {
-            SquirrelError::Config("S3SourceBuilder: 'bucket' is required".into())
-        })?;
+        let bucket = self
+            .bucket
+            .ok_or_else(|| SquirrelError::Config("S3SourceBuilder: 'bucket' is required".into()))?;
 
         let client = Client::builder()
             .user_agent("secret-squirrel/0.1.0")
@@ -703,13 +687,9 @@ mod urlencoding {
         let mut out = String::with_capacity(input.len() * 2);
         for byte in input.bytes() {
             match byte {
-                b'A'..=b'Z'
-                | b'a'..=b'z'
-                | b'0'..=b'9'
-                | b'-'
-                | b'_'
-                | b'.'
-                | b'~' => out.push(byte as char),
+                b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                    out.push(byte as char)
+                }
                 b => out.push_str(&format!("%{b:02X}")),
             }
         }
@@ -809,7 +789,10 @@ mod tests {
             .endpoint_url("http://localhost:9000")
             .build()
             .expect("build should succeed");
-        assert_eq!(source.endpoint_url.as_deref(), Some("http://localhost:9000"));
+        assert_eq!(
+            source.endpoint_url.as_deref(),
+            Some("http://localhost:9000")
+        );
     }
 
     // -----------------------------------------------------------------------

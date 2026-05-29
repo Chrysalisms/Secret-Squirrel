@@ -169,10 +169,7 @@ mod tests {
         // A 32-char base64 string should have entropy > 4.5
         let data = b"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE";
         let h = shannon_entropy(data);
-        assert!(
-            h > 4.5,
-            "Base64 string should have entropy > 4.5, got {h}"
-        );
+        assert!(h > 4.5, "Base64 string should have entropy > 4.5, got {h}");
     }
 
     #[test]
@@ -186,7 +183,8 @@ mod tests {
     fn test_filter_high_entropy_detected() {
         let gate = gate();
         // 64 bytes of base64-like content → high entropy
-        let content = Bytes::from(b"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE+Zq9vK8sX23pLY5tNmR1uW4Q=".to_vec());
+        let content =
+            Bytes::from(b"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE+Zq9vK8sX23pLY5tNmR1uW4Q=".to_vec());
         let candidates = gate.filter(&content);
         assert!(
             !candidates.is_empty(),

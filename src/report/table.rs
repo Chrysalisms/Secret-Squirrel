@@ -88,7 +88,13 @@ fn confidence_bar(confidence: f64) -> String {
     } else {
         DIM
     };
-    format!("{}[{}{}]{}", color, "█".repeat(filled), "░".repeat(empty), RESET)
+    format!(
+        "{}[{}{}]{}",
+        color,
+        "█".repeat(filled),
+        "░".repeat(empty),
+        RESET
+    )
 }
 
 // ============================================================================
@@ -273,8 +279,7 @@ impl Reporter for TableReporter {
 impl Formatter for TableReporter {
     fn format(&self, findings: &[Finding], show_secrets: bool) -> String {
         let mut buf = Vec::new();
-        write_table(findings, &mut buf, show_secrets)
-            .expect("write to Vec<u8> cannot fail");
+        write_table(findings, &mut buf, show_secrets).expect("write to Vec<u8> cannot fail");
         String::from_utf8(buf).expect("ANSI output is always valid UTF-8")
     }
 }
@@ -319,7 +324,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: Some("Rotate this credential immediately.".to_string()),
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -394,7 +400,10 @@ mod tests {
         let mut buf = Vec::new();
         reporter.write(&findings, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
-        assert!(s.contains("Total: 4 findings"), "footer must show total count");
+        assert!(
+            s.contains("Total: 4 findings"),
+            "footer must show total count"
+        );
         assert!(s.contains("1 critical"), "footer must show critical count");
         assert!(s.contains("1 high"), "footer must show high count");
     }
@@ -411,12 +420,18 @@ mod tests {
     #[test]
     fn test_confidence_bar_full() {
         let bar = confidence_bar(1.0);
-        assert!(bar.contains("██████████"), "full bar should have 10 filled blocks");
+        assert!(
+            bar.contains("██████████"),
+            "full bar should have 10 filled blocks"
+        );
     }
 
     #[test]
     fn test_confidence_bar_empty() {
         let bar = confidence_bar(0.0);
-        assert!(bar.contains("░░░░░░░░░░"), "empty bar should have 10 open blocks");
+        assert!(
+            bar.contains("░░░░░░░░░░"),
+            "empty bar should have 10 open blocks"
+        );
     }
 }

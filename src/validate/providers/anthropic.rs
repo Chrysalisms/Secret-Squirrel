@@ -84,10 +84,7 @@ impl Validator for AnthropicValidator {
 
                 let blast_radius = BlastRadius {
                     provider: "anthropic".to_string(),
-                    permissions: vec![
-                        "models:read".to_string(),
-                        "messages:write".to_string(),
-                    ],
+                    permissions: vec!["models:read".to_string(), "messages:write".to_string()],
                     resources: vec!["api.anthropic.com/*".to_string()],
                     risk_level: RiskLevel::Critical,
                     description: format!(
@@ -164,7 +161,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 

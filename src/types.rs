@@ -73,9 +73,10 @@ impl RedactedString {
         };
 
         let hidden = len - prefix_chars - suffix_chars;
-        format!("{}{}{}",
+        format!(
+            "{}{}{}",
             prefix,
-            "*".repeat(hidden.min(8)),  // cap displayed stars at 8 for readability
+            "*".repeat(hidden.min(8)), // cap displayed stars at 8 for readability
             suffix,
         )
     }
@@ -330,7 +331,10 @@ pub struct Finding {
     pub encoding_chain: Option<Vec<String>>,
 }
 
-fn serialize_redacted<S>(value: &RedactedString, serializer: S) -> std::result::Result<S::Ok, S::Error>
+fn serialize_redacted<S>(
+    value: &RedactedString,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
@@ -424,16 +428,16 @@ pub struct ProximityMatch {
 /// The type of assignment pattern that triggered proximity detection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProximityPattern {
-    Assignment,       // VAR_NAME = "..."
-    Export,           // export KEY=value
-    JsonKey,          // "apiKey": "..."
-    YamlKey,          // api_key: value
-    EnvVar,           // ENV VAR_NAME=value (Docker/shell)
-    FunctionArg,      // func(key="...")
-    HeaderValue,      // Authorization: Bearer ...
-    DockerEnv,        // ENV or ARG in Dockerfile
-    K8sSecret,        // data: key: base64
-    TerraformVar,     // variable "..." { default = "..." }
+    Assignment,   // VAR_NAME = "..."
+    Export,       // export KEY=value
+    JsonKey,      // "apiKey": "..."
+    YamlKey,      // api_key: value
+    EnvVar,       // ENV VAR_NAME=value (Docker/shell)
+    FunctionArg,  // func(key="...")
+    HeaderValue,  // Authorization: Bearer ...
+    DockerEnv,    // ENV or ARG in Dockerfile
+    K8sSecret,    // data: key: base64
+    TerraformVar, // variable "..." { default = "..." }
     Unknown,
 }
 
@@ -481,8 +485,7 @@ type HmacSha256 = Hmac<Sha256>;
 /// This produces a stable, non-reversible hash for deduplication and correlation
 /// without persisting the raw secret value.
 pub fn hash_secret(secret: &RedactedString, nonce: &[u8]) -> String {
-    let mut mac = HmacSha256::new_from_slice(nonce)
-        .expect("HMAC can take key of any size");
+    let mut mac = HmacSha256::new_from_slice(nonce).expect("HMAC can take key of any size");
     mac.update(secret.expose().as_bytes());
     let result = mac.finalize();
     hex::encode(result.into_bytes())
@@ -518,13 +521,17 @@ mod tests {
         let s = RedactedString::new("AKIAIOSFODNN7EXAMPLE".to_string());
         let r = s.redacted();
         assert!(r.contains('*'));
-        assert!(!r.contains("AKIAIOSFODNN7EXAMPLE"), "Full key must not be visible");
+        assert!(
+            !r.contains("AKIAIOSFODNN7EXAMPLE"),
+            "Full key must not be visible"
+        );
         // Verify max 40% exposure
         let visible: usize = r.chars().filter(|c| *c != '*').count();
         assert!(
             visible as f64 / s.char_len() as f64 <= 0.41,
             "Exposed {}/{} = {:.1}% > 40%",
-            visible, s.char_len(),
+            visible,
+            s.char_len(),
             visible as f64 / s.char_len() as f64 * 100.0
         );
     }

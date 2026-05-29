@@ -71,7 +71,7 @@ impl SemanticAnalyzer {
     /// Classify a tree-sitter node based on its kind.
     fn classify_node(node: Node) -> SemanticContext {
         let kind = node.kind();
-        
+
         // This is a simplistic classification. A production-grade one would use tree-sitter queries.
         if kind.contains("string") || kind.contains("template") || kind.contains("char") {
             return SemanticContext::StringLiteral;
@@ -89,12 +89,23 @@ impl SemanticAnalyzer {
 pub struct SemanticAnalyzer {}
 
 #[cfg(not(feature = "semantic"))]
+impl Default for SemanticAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SemanticAnalyzer {
     pub fn new() -> Self {
         Self {}
     }
 
-    pub fn analyze_offset(&self, _content: &[u8], _file_ext: &str, _offset: usize) -> SemanticContext {
+    pub fn analyze_offset(
+        &self,
+        _content: &[u8],
+        _file_ext: &str,
+        _offset: usize,
+    ) -> SemanticContext {
         SemanticContext::Unknown
     }
 }
@@ -109,7 +120,7 @@ mod tests {
     fn test_analyze_json_string() {
         let analyzer = SemanticAnalyzer::new();
         let content = b"{\"key\": \"secret_value_here\"}";
-        
+
         // Offset 10 is inside "secret_value_here"
         let ctx = analyzer.analyze_offset(content, "json", 10);
         assert_eq!(ctx, SemanticContext::StringLiteral);

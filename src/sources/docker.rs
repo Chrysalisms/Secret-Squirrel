@@ -72,12 +72,10 @@ impl DockerSource {
 
 fn default_skip_extensions() -> Vec<String> {
     [
-        "jpg", "jpeg", "png", "gif", "bmp", "webp", "ico", "svg",
-        "mp4", "avi", "mkv", "mov", "mp3", "ogg", "wav",
-        "zip", "gz", "bz2", "xz", "tar", "whl", "egg",
-        "pyc", "class", "so", "dll", "exe", "bin",
-        "pdf", "doc", "docx", "xls", "xlsx",
-        "ttf", "otf", "woff", "woff2", "eot",
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "ico", "svg", "mp4", "avi", "mkv", "mov",
+        "mp3", "ogg", "wav", "zip", "gz", "bz2", "xz", "tar", "whl", "egg", "pyc", "class", "so",
+        "dll", "exe", "bin", "pdf", "doc", "docx", "xls", "xlsx", "ttf", "otf", "woff", "woff2",
+        "eot",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -135,8 +133,8 @@ impl DockerSource {
             });
         }
 
-        let inspect: serde_json::Value = serde_json::from_slice(&output.stdout)
-            .map_err(|e| SquirrelError::Source {
+        let inspect: serde_json::Value =
+            serde_json::from_slice(&output.stdout).map_err(|e| SquirrelError::Source {
                 src_name: "docker".to_string(),
                 reason: format!("could not parse docker inspect output: {e}"),
             })?;
@@ -211,10 +209,7 @@ impl DockerSource {
             }
 
             // ── Build history (CMD, ENTRYPOINT, ARG instructions) ────────────
-            if let Some(history) = image
-                .get("History")
-                .and_then(|h| h.as_array())
-            {
+            if let Some(history) = image.get("History").and_then(|h| h.as_array()) {
                 let history_content: String = history
                     .iter()
                     .filter_map(|h| h.get("CreatedBy").and_then(|c| c.as_str()))

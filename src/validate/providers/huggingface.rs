@@ -36,8 +36,7 @@ impl Validator for HuggingFaceValidator {
     }
 
     fn can_validate(&self, finding: &Finding) -> bool {
-        finding.rule_id.starts_with("huggingface-")
-            || finding.rule_id.starts_with("hugging-face-")
+        finding.rule_id.starts_with("huggingface-") || finding.rule_id.starts_with("hugging-face-")
     }
 
     async fn validate(&self, finding: &Finding) -> ValidationResult {
@@ -96,9 +95,7 @@ impl Validator for HuggingFaceValidator {
 
                 ValidationResult {
                     status: ValidationStatus::Active,
-                    reason: format!(
-                        "HuggingFace token is active (user: {username})"
-                    ),
+                    reason: format!("HuggingFace token is active (user: {username})"),
                     blast_radius: Some(blast_radius),
                     validated_at: chrono::Utc::now(),
                     provider: self.provider_name().to_string(),
@@ -157,7 +154,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 

@@ -66,7 +66,10 @@ impl Deduplicator {
                 // Sort by (descending confidence, ascending range, ascending offset).
                 group.sort_by(|a, b| {
                     // Primary: higher confidence wins.
-                    let conf_cmp = b.score.confidence.partial_cmp(&a.score.confidence)
+                    let conf_cmp = b
+                        .score
+                        .confidence
+                        .partial_cmp(&a.score.confidence)
                         .unwrap_or(std::cmp::Ordering::Equal);
                     if conf_cmp != std::cmp::Ordering::Equal {
                         return conf_cmp;
@@ -91,7 +94,9 @@ impl Deduplicator {
 
         // Sort the output by descending confidence for presentation.
         result.sort_by(|a, b| {
-            b.score.confidence.partial_cmp(&a.score.confidence)
+            b.score
+                .confidence
+                .partial_cmp(&a.score.confidence)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
 
@@ -143,7 +148,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 
@@ -164,7 +170,7 @@ mod tests {
     #[test]
     fn test_dedup_different_paths_kept() {
         // Same rule and hash but different paths → both kept.
-        let f1 = make_finding("aws-key", "abc123", "src/config.py",   0.8, 100, 10, 10);
+        let f1 = make_finding("aws-key", "abc123", "src/config.py", 0.8, 100, 10, 10);
         let f2 = make_finding("aws-key", "abc123", "tests/config.py", 0.8, 200, 20, 20);
 
         let result = Deduplicator::deduplicate(vec![f1, f2]);
@@ -174,12 +180,19 @@ mod tests {
     #[test]
     fn test_dedup_different_rules_same_secret() {
         // Different rule IDs with same hash and path → deduplicated to one.
-        let f1 = make_finding("aws-key",    "abc123", "src/main.rs", 0.8, 100, 10, 10);
-        let f2 = make_finding("generic-key","abc123", "src/main.rs", 0.7, 100, 10, 10);
+        let f1 = make_finding("aws-key", "abc123", "src/main.rs", 0.8, 100, 10, 10);
+        let f2 = make_finding("generic-key", "abc123", "src/main.rs", 0.7, 100, 10, 10);
 
         let result = Deduplicator::deduplicate(vec![f1, f2]);
-        assert_eq!(result.len(), 1, "Different rules but same secret → deduplicate to one");
-        assert_eq!(result[0].rule_id, "aws-key", "Should keep highest confidence finding");
+        assert_eq!(
+            result.len(),
+            1,
+            "Different rules but same secret → deduplicate to one"
+        );
+        assert_eq!(
+            result[0].rule_id, "aws-key",
+            "Should keep highest confidence finding"
+        );
     }
 
     #[test]
@@ -191,7 +204,10 @@ mod tests {
         let result = Deduplicator::deduplicate(vec![f2, f1]); // note reversed order
         assert_eq!(result.len(), 1);
         // f1 has smaller range → should win.
-        assert_eq!(result[0].location.byte_offset, 100, "Smaller-range finding should win tie-break");
+        assert_eq!(
+            result[0].location.byte_offset, 100,
+            "Smaller-range finding should win tie-break"
+        );
     }
 
     #[test]

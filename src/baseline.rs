@@ -92,10 +92,9 @@ impl ScanState {
 
         let content = std::fs::read_to_string(path).map_err(SquirrelError::Io)?;
 
-        let state: ScanState =
-            serde_json::from_str(&content).map_err(|e| SquirrelError::Serialization(format!(
-                "failed to parse state file {:?}: {e}", path
-            )))?;
+        let state: ScanState = serde_json::from_str(&content).map_err(|e| {
+            SquirrelError::Serialization(format!("failed to parse state file {:?}: {e}", path))
+        })?;
 
         if state.version != 1 {
             warn!(
@@ -120,9 +119,8 @@ impl ScanState {
     pub fn save(&mut self, path: &Path) -> Result<()> {
         self.updated_at = chrono::Utc::now();
 
-        let json = serde_json::to_string_pretty(self).map_err(|e| SquirrelError::Serialization(
-            format!("failed to serialize state: {e}")
-        ))?;
+        let json = serde_json::to_string_pretty(self)
+            .map_err(|e| SquirrelError::Serialization(format!("failed to serialize state: {e}")))?;
 
         // Write to a temporary file then rename (atomic on POSIX, best-effort on Windows)
         let tmp = path.with_extension("tmp");
@@ -139,7 +137,7 @@ impl ScanState {
     /// the last scan.
     pub fn needs_rescan(&self, path: &str, current_hash: &str) -> bool {
         match self.file_hashes.get(path) {
-            None => true,                              // New file
+            None => true,                                 // New file
             Some(prev_hash) => prev_hash != current_hash, // Changed file
         }
     }
@@ -175,8 +173,7 @@ impl ScanState {
     /// Call this after a scan to keep the state file from growing unbounded.
     pub fn prune_missing_files(&mut self) {
         let before = self.file_hashes.len();
-        self.file_hashes
-            .retain(|path, _| Path::new(path).exists());
+        self.file_hashes.retain(|path, _| Path::new(path).exists());
         let after = self.file_hashes.len();
         if before != after {
             debug!(
@@ -218,7 +215,7 @@ impl Default for ScanState {
 
 /// Compute the SHA-256 hash of a file's content, returned as a hex string.
 pub fn hash_file(path: &Path) -> Result<String> {
-    let content = std::fs::read(path).map_err(|e| SquirrelError::Io(e))?;
+    let content = std::fs::read(path).map_err(SquirrelError::Io)?;
     Ok(hash_bytes(&content))
 }
 
@@ -274,7 +271,10 @@ impl StateManager {
     pub fn open(path: impl Into<PathBuf>) -> Result<Self> {
         let path = path.into();
         let state = ScanState::load(&path)?;
-        Ok(Self { state, state_path: path })
+        Ok(Self {
+            state,
+            state_path: path,
+        })
     }
 
     /// Check if a file needs to be rescanned and record its current hash.
@@ -462,10 +462,7 @@ mod tests {
         std::fs::write(&existing, "x = 1").unwrap();
 
         let mut state = ScanState::new();
-        state.record_file(
-            existing.to_string_lossy().as_ref(),
-            "hash1",
-        );
+        state.record_file(existing.to_string_lossy().as_ref(), "hash1");
         state.record_file("/nonexistent/ghost.py", "hash2");
 
         state.prune_missing_files();

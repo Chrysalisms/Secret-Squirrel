@@ -60,10 +60,9 @@ impl ArchiveSource {
     /// * `path` — Path to the archive.
     /// * `max_file_size` — Skip entries larger than this many bytes (uncompressed).
     pub fn new(path: PathBuf, max_file_size: u64) -> Result<Self> {
-        let format = detect_format(&path).ok_or_else(|| SquirrelError::Archive(format!(
-            "unsupported archive format: {}",
-            path.display()
-        )))?;
+        let format = detect_format(&path).ok_or_else(|| {
+            SquirrelError::Archive(format!("unsupported archive format: {}", path.display()))
+        })?;
         Ok(Self {
             path,
             max_file_size,
@@ -151,7 +150,10 @@ impl ArchiveSource {
             }
 
             let mut attrs = HashMap::new();
-            attrs.insert("archive_path".to_string(), self.path.to_string_lossy().into_owned());
+            attrs.insert(
+                "archive_path".to_string(),
+                self.path.to_string_lossy().into_owned(),
+            );
 
             fragments.push(Ok(Fragment {
                 content: Bytes::from(buf),
@@ -183,15 +185,9 @@ impl ArchiveSource {
 
         // Wrap in the appropriate decompressor.
         let reader: Box<dyn Read> = match self.format {
-            ArchiveFormat::TarGz => {
-                Box::new(flate2::read::GzDecoder::new(file))
-            }
-            ArchiveFormat::TarBz2 => {
-                Box::new(bzip2::read::BzDecoder::new(file))
-            }
-            ArchiveFormat::TarXz => {
-                Box::new(xz2::read::XzDecoder::new(file))
-            }
+            ArchiveFormat::TarGz => Box::new(flate2::read::GzDecoder::new(file)),
+            ArchiveFormat::TarBz2 => Box::new(bzip2::read::BzDecoder::new(file)),
+            ArchiveFormat::TarXz => Box::new(xz2::read::XzDecoder::new(file)),
             ArchiveFormat::Zip => unreachable!("read_tar called for zip format"),
         };
 
@@ -304,9 +300,7 @@ impl SyncSource for ArchiveSource {
     fn fragments(&self) -> Box<dyn Iterator<Item = Result<Fragment>> + '_> {
         let frags = match self.format {
             ArchiveFormat::Zip => self.read_zip(),
-            ArchiveFormat::TarGz | ArchiveFormat::TarBz2 | ArchiveFormat::TarXz => {
-                self.read_tar()
-            }
+            ArchiveFormat::TarGz | ArchiveFormat::TarBz2 | ArchiveFormat::TarXz => self.read_tar(),
         };
         Box::new(frags.into_iter())
     }

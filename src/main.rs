@@ -342,8 +342,8 @@ async fn main() -> Result<()> {
         1 => "info",
         _ => "debug",
     };
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(log_level));
+    let env_filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(log_level));
 
     match cli.log_format {
         LogFormatArg::Json => {
@@ -435,23 +435,43 @@ async fn main() -> Result<()> {
             println!("Features:");
             println!(
                 "  GPU (wgpu):      {}",
-                if cfg!(feature = "gpu") { "enabled" } else { "disabled" }
+                if cfg!(feature = "gpu") {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
             );
             println!(
                 "  CNN (ONNX):      {}",
-                if cfg!(feature = "cnn") { "enabled" } else { "disabled" }
+                if cfg!(feature = "cnn") {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
             );
             println!(
                 "  MCP server:      {}",
-                if cfg!(feature = "mcp-server") { "enabled" } else { "disabled" }
+                if cfg!(feature = "mcp-server") {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
             );
             println!(
                 "  Semantic (AST):  {}",
-                if cfg!(feature = "semantic") { "enabled" } else { "disabled" }
+                if cfg!(feature = "semantic") {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
             );
             println!(
                 "  CPU SIMD:        {}",
-                if cfg!(feature = "cpu-simd") { "enabled" } else { "disabled" }
+                if cfg!(feature = "cpu-simd") {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
             );
             0
         }
@@ -476,24 +496,24 @@ async fn run_detect(
     fail_on: Severity,
     extra_rules: Option<PathBuf>,
 ) -> Result<i32> {
+    use chrono::Utc;
+    use secret_squirrel::engine::pipeline::Pipeline;
+    use secret_squirrel::engine::router::Router;
     use secret_squirrel::engine::session::ScanSession;
     use secret_squirrel::report::get_reporter;
-    use std::io::BufWriter;
-    use secret_squirrel::engine::router::Router;
-    use secret_squirrel::engine::pipeline::Pipeline;
     use secret_squirrel::rules::registry::RuleRegistry;
-    use secret_squirrel::scoring::fusion::FusionEngine;
-    use secret_squirrel::scoring::markov::MarkovScorer;
-    use secret_squirrel::scoring::hard_negatives::HardNegativeMatcher;
+    #[cfg(feature = "cnn")]
+    use secret_squirrel::scoring::cnn::{classifier::CnnClassifier, ModelTier};
     use secret_squirrel::scoring::correlation::CorrelationEngine;
-    use secret_squirrel::sources::{SyncSource, dir::DirSource};
-    use secret_squirrel::types::{Finding, Location, RedactedString, hash_secret};
+    use secret_squirrel::scoring::fusion::FusionEngine;
+    use secret_squirrel::scoring::hard_negatives::HardNegativeMatcher;
+    use secret_squirrel::scoring::markov::MarkovScorer;
     #[cfg(feature = "semantic")]
     use secret_squirrel::semantic::SemanticAnalyzer;
+    use secret_squirrel::sources::{dir::DirSource, SyncSource};
+    use secret_squirrel::types::{hash_secret, Finding, Location, RedactedString};
+    use std::io::BufWriter;
     use uuid::Uuid;
-    use chrono::Utc;
-    #[cfg(feature = "cnn")]
-    use secret_squirrel::scoring::cnn::{ModelTier, classifier::CnnClassifier};
 
     tracing::info!(
         source = ?source,
@@ -511,7 +531,6 @@ async fn run_detect(
     // hosts and the router falls back to CPU transparently.
     let router = Router::new(&config.gpu).await;
     let pipeline = Pipeline::new(router, config.pipeline.clone());
-
 
     let fusion_engine = FusionEngine::new(&config.scoring);
     let markov = MarkovScorer::new();
@@ -536,10 +555,10 @@ async fn run_detect(
         use secret_squirrel::config::ModelTier as CfgTier;
         let cnn_tier = match &config.scan.model_tier {
             CfgTier::Default => ModelTier::None,
-            CfgTier::Tiny     => ModelTier::Tiny,
-            CfgTier::Large    => ModelTier::Large,
+            CfgTier::Tiny => ModelTier::Tiny,
+            CfgTier::Large => ModelTier::Large,
             CfgTier::Enhanced => ModelTier::Enhanced,
-            CfgTier::Maximum  => ModelTier::Maximum,
+            CfgTier::Maximum => ModelTier::Maximum,
         };
         if cnn_tier != ModelTier::None {
             // Look for model in: ./models/, ~/.squirrel/models/
@@ -564,7 +583,10 @@ async fn run_detect(
                 }
             }
             if loaded.is_none() {
-                tracing::warn!("CNN model not found — run `squirrel model pull {:?}` to enable", cnn_tier);
+                tracing::warn!(
+                    "CNN model not found — run `squirrel model pull {:?}` to enable",
+                    cnn_tier
+                );
             }
             loaded
         } else {
@@ -573,25 +595,21 @@ async fn run_detect(
     };
     #[cfg(not(feature = "cnn"))]
     let _cnn_classifier: Option<()> = None; // cnn feature disabled — CNN inference skipped
-    
+
     let mut session = ScanSession::new(config.clone());
 
     // ── 2. Scanning ─────────────────────────────────────────────────────────
     // For Phase 1, we treat the source as a directory or file using DirSource.
-    let dir_source = DirSource::new(
-        source.clone(),
-        config.scan.max_file_size,
-        &config.sources,
-    );
+    let dir_source = DirSource::new(source.clone(), config.scan.max_file_size, &config.sources);
 
     use rayon::prelude::*;
-    use std::sync::Mutex;
+    
 
     #[cfg(feature = "cnn")]
     let cnn_classifier_mutex = cnn_classifier.map(Mutex::new);
 
     let nonce = session.nonce.clone();
-    
+
     let all_findings: Vec<Finding> = std::thread::scope(|s| {
         let (tx, rx) = crossbeam_channel::bounded(1024);
 
@@ -622,136 +640,138 @@ async fn run_detect(
                 ) {
                     Ok(m) => m,
                     Err(e) => {
-                        tracing::error!("Pipeline failed on fragment {}: {}", fragment.metadata.path, e);
+                        tracing::error!(
+                            "Pipeline failed on fragment {}: {}",
+                            fragment.metadata.path,
+                            e
+                        );
                         return None;
                     }
                 };
 
-            let mut local_findings = Vec::new();
+                let mut local_findings = Vec::new();
 
-            for pm in matches {
-                let rule = if let Some(r) = registry.by_id(&pm.rule_id) {
-                    r
-                } else {
-                    continue;
-                };
+                for pm in matches {
+                    let rule = if let Some(r) = registry.by_id(&pm.rule_id) {
+                        r
+                    } else {
+                        continue;
+                    };
 
-                let secret_str = &pm.matched_text;
-                let markov_score = markov.score(secret_str);
+                    let secret_str = &pm.matched_text;
+                    let markov_score = markov.score(secret_str);
 
-                #[cfg(feature = "cnn")]
-                let cnn_score: Option<f32> = if let Some(ref clf_mutex) = cnn_classifier_mutex {
-                    if let Ok(mut clf) = clf_mutex.lock() {
-                        match clf.classify(secret_str) {
-                            Ok(p) => Some(p as f32),
-                            Err(e) => {
-                                tracing::debug!("CNN inference failed: {}", e);
-                                None
+                    #[cfg(feature = "cnn")]
+                    let cnn_score: Option<f32> = if let Some(ref clf_mutex) = cnn_classifier_mutex {
+                        if let Ok(mut clf) = clf_mutex.lock() {
+                            match clf.classify(secret_str) {
+                                Ok(p) => Some(p as f32),
+                                Err(e) => {
+                                    tracing::debug!("CNN inference failed: {}", e);
+                                    None
+                                }
                             }
+                        } else {
+                            None
                         }
                     } else {
                         None
+                    };
+                    #[cfg(not(feature = "cnn"))]
+                    let cnn_score: Option<f32> = None;
+
+                    #[cfg(feature = "semantic")]
+                    let ast_adjustment: Option<f32> = if semantic_enabled {
+                        let file_ext = std::path::Path::new(&fragment.metadata.path)
+                            .extension()
+                            .and_then(|e| e.to_str())
+                            .unwrap_or("");
+                        let ctx =
+                            semantic_analyzer.analyze(&fragment.content, pm.match_start, file_ext);
+                        Some(ctx.confidence_adjustment())
+                    } else {
+                        None
+                    };
+                    #[cfg(not(feature = "semantic"))]
+                    let ast_adjustment: Option<f32> = None;
+
+                    let mut fused_score = fusion_engine.compute(
+                        &pm,
+                        markov_score,
+                        cnn_score,
+                        ast_adjustment,
+                        &fragment.metadata,
+                    );
+
+                    use secret_squirrel::scoring::hard_negatives::HARD_NEGATIVE_PENALTY;
+                    let hn_on_value = hard_neg.penalty(secret_str);
+                    let context_bytes: &[u8] = &pm.source.source.context[..];
+                    let context_str = std::str::from_utf8(context_bytes).unwrap_or("");
+                    let hn_on_context = hard_neg.penalty(context_str);
+                    let hn_penalty = hn_on_value.min(hn_on_context);
+
+                    if (hn_penalty - HARD_NEGATIVE_PENALTY).abs() < 1e-6 {
+                        tracing::debug!(
+                            matched = %secret_str,
+                            rule    = %pm.rule_id,
+                            "hard-negative exact match suppressed"
+                        );
+                        continue;
+                    } else if hn_penalty < 0.0 {
+                        tracing::debug!(
+                            matched = %secret_str,
+                            penalty = hn_penalty,
+                            "hard-negative heuristic penalty applied"
+                        );
+                        fused_score.confidence = (fused_score.confidence + hn_penalty).max(0.0);
                     }
-                } else {
-                    None
-                };
-                #[cfg(not(feature = "cnn"))]
-                let cnn_score: Option<f32> = None;
 
-                #[cfg(feature = "semantic")]
-                let ast_adjustment: Option<f32> = if semantic_enabled {
-                    let file_ext = std::path::Path::new(&fragment.metadata.path)
-                        .extension()
-                        .and_then(|e| e.to_str())
-                        .unwrap_or("");
-                    let ctx = semantic_analyzer.analyze(
-                        &fragment.content,
-                        pm.match_start,
-                        file_ext,
-                    );
-                    Some(ctx.confidence_adjustment())
-                } else {
-                    None
-                };
-                #[cfg(not(feature = "semantic"))]
-                let ast_adjustment: Option<f32> = None;
-
-                let mut fused_score = fusion_engine.compute(
-                    &pm,
-                    markov_score,
-                    cnn_score,
-                    ast_adjustment,
-                    &fragment.metadata,
-                );
-
-                use secret_squirrel::scoring::hard_negatives::HARD_NEGATIVE_PENALTY;
-                let hn_on_value = hard_neg.penalty(secret_str);
-                let context_bytes: &[u8] = &pm.source.source.context[..];
-                let context_str = std::str::from_utf8(context_bytes).unwrap_or("");
-                let hn_on_context = hard_neg.penalty(context_str);
-                let hn_penalty = hn_on_value.min(hn_on_context);
-
-                if (hn_penalty - HARD_NEGATIVE_PENALTY).abs() < 1e-6 {
-                    tracing::debug!(
-                        matched = %secret_str,
-                        rule    = %pm.rule_id,
-                        "hard-negative exact match suppressed"
-                    );
-                    continue;
-                } else if hn_penalty < 0.0 {
-                    tracing::debug!(
-                        matched = %secret_str,
-                        penalty = hn_penalty,
-                        "hard-negative heuristic penalty applied"
-                    );
-                    fused_score.confidence = (fused_score.confidence + hn_penalty).max(0.0);
-                }
-
-                if fused_score.confidence < config.scan.confidence_threshold {
-                    continue;
-                }
-
-                let mut line = 1;
-                for b in &fragment.content[..pm.match_start.min(fragment.content.len())] {
-                    if *b == b'\n' {
-                        line += 1;
+                    if fused_score.confidence < config.scan.confidence_threshold {
+                        continue;
                     }
+
+                    let mut line = 1;
+                    for b in &fragment.content[..pm.match_start.min(fragment.content.len())] {
+                        if *b == b'\n' {
+                            line += 1;
+                        }
+                    }
+
+                    let secret = RedactedString::new(secret_str.clone());
+                    let secret_hash = hash_secret(&secret, &nonce);
+
+                    let context = String::from_utf8_lossy(&pm.source.source.context).into_owned();
+
+                    let finding = Finding {
+                        id: Uuid::new_v4().to_string(),
+                        rule_id: rule.id.clone(),
+                        description: rule.description.clone(),
+                        secret,
+                        secret_hash,
+                        match_context: context,
+                        location: Location {
+                            path: fragment.metadata.path.clone(),
+                            start_line: line,
+                            end_line: line,
+                            start_col: 0,
+                            end_col: secret_str.len() as u32,
+                            byte_offset: pm.match_start as u64,
+                        },
+                        score: fused_score,
+                        severity: rule.severity,
+                        chain: None,
+                        validation: None,
+                        remediation: rule.remediation.clone(),
+                        detected_at: Utc::now(),
+                        encoding_chain: None,
+                    };
+
+                    local_findings.push(finding);
                 }
-
-                let secret = RedactedString::new(secret_str.clone());
-                let secret_hash = hash_secret(&secret, &nonce);
-
-                let context = String::from_utf8_lossy(&pm.source.source.context).into_owned();
-
-                let finding = Finding {
-                    id: Uuid::new_v4().to_string(),
-                    rule_id: rule.id.clone(),
-                    description: rule.description.clone(),
-                    secret,
-                    secret_hash,
-                    match_context: context,
-                    location: Location {
-                        path: fragment.metadata.path.clone(),
-                        start_line: line,
-                        end_line: line,
-                        start_col: 0,
-                        end_col: secret_str.len() as u32,
-                        byte_offset: pm.match_start as u64,
-                    },
-                    score: fused_score,
-                    severity: rule.severity,
-                    chain: None,
-                    validation: None,
-                    remediation: rule.remediation.clone(),
-                    detected_at: Utc::now(), encoding_chain: None,
-                };
-
-                local_findings.push(finding);
-            }
-            Some(local_findings)
-        })
-        .flatten()
-        .collect()
+                Some(local_findings)
+            })
+            .flatten()
+            .collect()
     });
 
     for finding in all_findings {
@@ -789,8 +809,8 @@ async fn run_detect(
 
     // ── 2c. Live validation ──────────────────────────────────────────────────
     if config.scan.validate {
+        use secret_squirrel::types::ValidationRef;
         use secret_squirrel::validate::engine::ValidationEngine;
-        use secret_squirrel::types::{ValidationRef};
         tracing::info!("Running live secret validation");
         let val_engine = ValidationEngine::new();
         for finding in session.findings_mut() {
@@ -848,31 +868,26 @@ async fn run_validate(finding_id: String) -> Result<i32> {
 /// Start the MCP server in either HTTP or stdio mode.
 #[allow(unused_variables)]
 async fn run_serve(port: u16, stdio: bool) -> Result<i32> {
-    if stdio {
-        #[cfg(feature = "mcp-server")]
-        {
+    #[cfg(feature = "mcp-server")]
+    {
+        if stdio {
             secret_squirrel::mcp::server::run_stdio().await?;
-        }
-        #[cfg(not(feature = "mcp-server"))]
-        {
-            eprintln!("MCP server not compiled in. Rebuild with --features mcp-server");
-            return Ok(2);
-        }
-    } else {
-        #[cfg(feature = "mcp-server")]
-        {
-            eprintln!("🐿️  Secret Squirrel MCP server listening on http://0.0.0.0:{}", port);
+        } else {
+            eprintln!(
+                "🐿️  Secret Squirrel MCP server listening on http://0.0.0.0:{}",
+                port
+            );
             eprintln!("   POST http://0.0.0.0:{}/mcp/v1  — JSON-RPC 2.0", port);
             eprintln!("   GET  http://0.0.0.0:{}/health  — Health check", port);
             secret_squirrel::mcp::server::run_http(port).await?;
         }
-        #[cfg(not(feature = "mcp-server"))]
-        {
-            eprintln!("MCP server not compiled in. Rebuild with --features mcp-server");
-            return Ok(2);
-        }
+        Ok(0)
     }
-    Ok(0)
+    #[cfg(not(feature = "mcp-server"))]
+    {
+        eprintln!("MCP server not compiled in. Rebuild with --features mcp-server");
+        Ok(2)
+    }
 }
 
 /// Extract the variable name (identifier) from a match context string.
@@ -999,7 +1014,10 @@ fn run_protect(action: ProtectCommands) -> Result<i32> {
                 std::fs::set_permissions(&hook_path, perms)?;
             }
 
-            println!("[squirrel] Pre-commit hook installed: {}", hook_path.display());
+            println!(
+                "[squirrel] Pre-commit hook installed: {}",
+                hook_path.display()
+            );
             println!("[squirrel] Secrets will be scanned before each commit.");
             println!("[squirrel] Use `git commit --no-verify` to bypass (not recommended).");
             tracing::info!(path = %hook_path.display(), "pre-commit hook installed");
@@ -1126,26 +1144,29 @@ async fn run_model(action: ModelCommands) -> Result<i32> {
             // Only tiny and large are available right now.
             let asset = match model_asset(&tier) {
                 Some(a) => a,
-                None => {
-                    match &tier {
-                        ModelTier::Default => {
-                            println!("[squirrel] Tier 'none' uses the built-in Markov scorer — no download needed.");
-                            return Ok(0);
-                        }
-                        _ => {
-                            eprintln!("[squirrel] ERROR: Model tier '{:?}' is not yet available.", tier);
-                            eprintln!("[squirrel] Check back at https://github.com/Chrysalisms/Secret-Squirrel/releases");
-                            return Ok(2);
-                        }
+                None => match &tier {
+                    ModelTier::Default => {
+                        println!("[squirrel] Tier 'none' uses the built-in Markov scorer — no download needed.");
+                        return Ok(0);
                     }
-                }
+                    _ => {
+                        eprintln!(
+                            "[squirrel] ERROR: Model tier '{:?}' is not yet available.",
+                            tier
+                        );
+                        eprintln!("[squirrel] Check back at https://github.com/Chrysalisms/Secret-Squirrel/releases");
+                        return Ok(2);
+                    }
+                },
             };
 
             // Resolve ~/.squirrel/models/
             let model_dir = dirs::home_dir()
-                .ok_or_else(|| secret_squirrel::error::SquirrelError::Config(
-                    "Cannot determine home directory.".to_string(),
-                ))?
+                .ok_or_else(|| {
+                    secret_squirrel::error::SquirrelError::Config(
+                        "Cannot determine home directory.".to_string(),
+                    )
+                })?
                 .join(".squirrel")
                 .join("models");
 
@@ -1157,7 +1178,10 @@ async fn run_model(action: ModelCommands) -> Result<i32> {
                 let existing = std::fs::read(&dest)?;
                 let existing_hash = sha256_hex(&existing);
                 if existing_hash == asset.sha256 {
-                    println!("[squirrel] Model already downloaded and verified: {}", dest.display());
+                    println!(
+                        "[squirrel] Model already downloaded and verified: {}",
+                        dest.display()
+                    );
                     return Ok(0);
                 } else {
                     println!("[squirrel] Existing file has wrong hash — re-downloading.");
@@ -1171,39 +1195,43 @@ async fn run_model(action: ModelCommands) -> Result<i32> {
             // we don't block the async executor.
             let url = asset.url.to_string();
             let (bytes, bytes_total) = tokio::task::spawn_blocking(move || {
-                    use std::io::Read;
-                    let mut response = reqwest::blocking::get(&url)
-                        .map_err(|e| format!("HTTP request failed: {e}"))?;
-                    if !response.status().is_success() {
-                        return Err::<(Vec<u8>, usize), String>(
-                            format!("HTTP {}: {}", response.status(), url)
+                use std::io::Read;
+                let mut response = reqwest::blocking::get(&url)
+                    .map_err(|e| format!("HTTP request failed: {e}"))?;
+                if !response.status().is_success() {
+                    return Err::<(Vec<u8>, usize), String>(format!(
+                        "HTTP {}: {}",
+                        response.status(),
+                        url
+                    ));
+                }
+                let content_length = response.content_length().unwrap_or(0);
+                let mut buf: Vec<u8> = Vec::with_capacity(content_length as usize);
+                let mut tmp = [0u8; 65536];
+                let mut downloaded: u64 = 0;
+                loop {
+                    let n = response
+                        .read(&mut tmp)
+                        .map_err(|e| format!("Read error: {e}"))?;
+                    if n == 0 {
+                        break;
+                    }
+                    buf.extend_from_slice(&tmp[..n]);
+                    downloaded += n as u64;
+                    if content_length > 0 {
+                        let pct = downloaded * 100 / content_length;
+                        eprint!(
+                            "\r[squirrel] Progress: {}/{} bytes ({}%)",
+                            downloaded, content_length, pct
                         );
+                    } else {
+                        eprint!("\r[squirrel] Downloaded: {} bytes", downloaded);
                     }
-                    let content_length = response.content_length().unwrap_or(0);
-                    let mut buf: Vec<u8> = Vec::with_capacity(content_length as usize);
-                    let mut tmp = [0u8; 65536];
-                    let mut downloaded: u64 = 0;
-                    loop {
-                        let n = response.read(&mut tmp)
-                            .map_err(|e| format!("Read error: {e}"))?;
-                        if n == 0 { break; }
-                        buf.extend_from_slice(&tmp[..n]);
-                        downloaded += n as u64;
-                        if content_length > 0 {
-                            let pct = downloaded * 100 / content_length;
-                            eprint!(
-                                "\r[squirrel] Progress: {}/{} bytes ({}%)",
-                                downloaded, content_length, pct
-                            );
-                        } else {
-                            eprint!("\r[squirrel] Downloaded: {} bytes", downloaded);
-                        }
-                    }
-                    eprintln!(); // newline after progress
-                    let total = buf.len();
-                    Ok((buf, total))
-                },
-            )
+                }
+                eprintln!(); // newline after progress
+                let total = buf.len();
+                Ok((buf, total))
+            })
             .await
             .map_err(|e| {
                 secret_squirrel::error::SquirrelError::Config(format!(
@@ -1231,29 +1259,29 @@ async fn run_model(action: ModelCommands) -> Result<i32> {
             println!("Available model tiers:");
             println!();
             println!(
-                "  {:10}  {:25}  {:12}  {}",
-                "TIER", "MODEL", "SIZE", "DESCRIPTION"
+                "  {:10}  {:25}  {:12}  DESCRIPTION",
+                "TIER", "MODEL", "SIZE"
             );
             println!("  {}", "─".repeat(70));
             println!(
-                "  {:10}  {:25}  {:12}  {}",
-                "none", "Markov chain (embedded)", "~0 MB", "Default — no download required"
+                "  {:10}  {:25}  {:12}  Default — no download required",
+                "none", "Markov chain (embedded)", "~0 MB"
             );
             println!(
-                "  {:10}  {:25}  {:12}  {}",
-                "tiny", "Char-CNN 500K params", "~2 MB", "GitHub Actions tier"
+                "  {:10}  {:25}  {:12}  GitHub Actions tier",
+                "tiny", "Char-CNN 500K params", "~2 MB"
             );
             println!(
-                "  {:10}  {:25}  {:12}  {}",
-                "large", "Char-CNN 1M params", "~4 MB", "Self-hosted CPU tier"
+                "  {:10}  {:25}  {:12}  Self-hosted CPU tier",
+                "large", "Char-CNN 1M params", "~4 MB"
             );
             println!(
-                "  {:10}  {:25}  {:12}  {}",
-                "enhanced", "TinyBERT 14M params", "~55 MB", "Self-hosted GPU tier"
+                "  {:10}  {:25}  {:12}  Self-hosted GPU tier",
+                "enhanced", "TinyBERT 14M params", "~55 MB"
             );
             println!(
-                "  {:10}  {:25}  {:12}  {}",
-                "maximum", "DistilBERT 66M params", "~130 MB", "Maximum accuracy"
+                "  {:10}  {:25}  {:12}  Maximum accuracy",
+                "maximum", "DistilBERT 66M params", "~130 MB"
             );
 
             // List locally available models

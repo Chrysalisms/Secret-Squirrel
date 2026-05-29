@@ -1,5 +1,5 @@
-use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STD;
+use base64::Engine;
 use bytes::Bytes;
 use std::collections::VecDeque;
 
@@ -80,9 +80,9 @@ fn is_base64_candidate(input: &[u8]) -> bool {
     if input.is_empty() || input.len() % 4 != 0 {
         return false;
     }
-    input.iter().all(|&b| {
-        b.is_ascii_alphanumeric() || b == b'+' || b == b'/' || b == b'='
-    })
+    input
+        .iter()
+        .all(|&b| b.is_ascii_alphanumeric() || b == b'+' || b == b'/' || b == b'=')
 }
 
 fn is_hex_candidate(input: &[u8]) -> bool {
@@ -123,28 +123,28 @@ mod tests {
     #[test]
     fn test_deep_decode_shai_hulud() {
         let raw_secret = b"AKIAIOSFODNN7EXAMPLE";
-        
+
         // 1. Base64
         let b64 = BASE64_STD.encode(raw_secret); // "QUtJQUlPU0ZPRE5ON0VYQU1QTEU="
-        
+
         // 2. URL Encode the Base64 (replace '=' with '%3D')
-        let url_encoded = b64.replace("=", "%3D"); 
-        
+        let url_encoded = b64.replace("=", "%3D");
+
         // 3. Hex Encode the URL encoded string
         let hex_encoded = hex::encode(url_encoded);
-        
+
         // 4. Base64 encode the hex
         let b64_2 = BASE64_STD.encode(hex_encoded);
-        
+
         // 5. URL Encode again
         let final_payload = b64_2.replace("=", "%3D");
-        
+
         let variants = deep_decode(final_payload.as_bytes(), 5);
-        
+
         // Verify we found the original secret
         let found = variants.iter().find(|v| v.data.as_ref() == raw_secret);
         assert!(found.is_some(), "Should find original secret");
-        
+
         let found_variant = found.unwrap();
         assert_eq!(
             found_variant.encoding_chain,

@@ -102,16 +102,12 @@ impl Validator for SlackValidator {
                 "slack",
                 scopes.clone(),
                 vec![format!("slack.com/workspace/{team}")],
-                format!(
-                    "Active Slack token for user '{user}' in workspace '{team}'"
-                ),
+                format!("Active Slack token for user '{user}' in workspace '{team}'"),
             );
 
             ValidationResult {
                 status: ValidationStatus::Active,
-                reason: format!(
-                    "Slack token is active (user: {user}, workspace: {team})"
-                ),
+                reason: format!("Slack token is active (user: {user}, workspace: {team})"),
                 blast_radius: Some(blast_radius),
                 validated_at: chrono::Utc::now(),
                 provider: self.provider_name().to_string(),
@@ -167,7 +163,8 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(), encoding_chain: None,
+            detected_at: Utc::now(),
+            encoding_chain: None,
         }
     }
 

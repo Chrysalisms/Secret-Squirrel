@@ -54,11 +54,7 @@ pub fn default_model_dir() -> PathBuf {
 /// * [`SquirrelError::Io`] if a filesystem operation fails.
 /// * [`SquirrelError::Source`] if the HTTP request fails or returns a non-2xx status.
 /// * [`SquirrelError::Cnn`] if the SHA-256 digest does not match `expected_sha256`.
-pub async fn download_model(
-    url: &str,
-    dest: &Path,
-    expected_sha256: Option<&str>,
-) -> Result<u64> {
+pub async fn download_model(url: &str, dest: &Path, expected_sha256: Option<&str>) -> Result<u64> {
     use reqwest::Client;
 
     // Ensure the parent directory exists.
@@ -95,13 +91,10 @@ pub async fn download_model(
     // Buffer the full response body in memory.
     // For multi-GB models this would need a streaming approach; the current
     // model sizes (≤260 MB) fit comfortably in RAM on target platforms.
-    let bytes = resp
-        .bytes()
-        .await
-        .map_err(|e| SquirrelError::Source {
-            src_name: "model".into(),
-            reason: e.to_string(),
-        })?;
+    let bytes = resp.bytes().await.map_err(|e| SquirrelError::Source {
+        src_name: "model".into(),
+        reason: e.to_string(),
+    })?;
 
     // Verify SHA-256 checksum before touching disk.
     if let Some(expected) = expected_sha256 {
@@ -137,12 +130,7 @@ pub fn list_models(model_dir: &Path) -> Vec<(String, u64)> {
 
     entries
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.path()
-                .extension()
-                .map(|x| x == "onnx")
-                .unwrap_or(false)
-        })
+        .filter(|e| e.path().extension().map(|x| x == "onnx").unwrap_or(false))
         .map(|e| {
             let path = e.path();
             let name = path
@@ -169,7 +157,10 @@ mod tests {
             s.contains(".squirrel"),
             "Expected '.squirrel' in path, got: {s}"
         );
-        assert!(s.ends_with("models"), "Expected path to end with 'models', got: {s}");
+        assert!(
+            s.ends_with("models"),
+            "Expected path to end with 'models', got: {s}"
+        );
     }
 
     #[test]
@@ -212,6 +203,9 @@ mod tests {
     fn test_list_models_nonexistent_dir() {
         let path = Path::new("/nonexistent/path/that/does/not/exist/models");
         let models = list_models(path);
-        assert!(models.is_empty(), "Non-existent dir should return empty list");
+        assert!(
+            models.is_empty(),
+            "Non-existent dir should return empty list"
+        );
     }
 }
