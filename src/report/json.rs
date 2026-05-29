@@ -91,7 +91,7 @@ mod tests {
             remediation: Some(
                 "Rotate this key immediately in the AWS IAM console.".to_string(),
             ),
-            detected_at: Utc::now(),
+            detected_at: Utc::now(), encoding_chain: None,
         }
     }
 

@@ -75,10 +75,13 @@ impl PatternVerifier {
             keyword_map.push(KeywordEntry { rule_idx: usize::MAX });
         }
 
-        let ac = AhoCorasick::new(&patterns).map_err(|e| SquirrelError::Pipeline {
-            stage: "PatternVerifier".to_string(),
-            reason: e.to_string(),
-        })?;
+        let ac = aho_corasick::AhoCorasickBuilder::new()
+            .ascii_case_insensitive(true)
+            .build(&patterns)
+            .map_err(|e| SquirrelError::Pipeline {
+                stage: "PatternVerifier".to_string(),
+                reason: e.to_string(),
+            })?;
 
         Ok(Self {
             ac,
@@ -104,56 +107,80 @@ impl PatternVerifier {
             // Lossy conversion replaces invalid sequences with U+FFFD.
             let context_str = String::from_utf8_lossy(result.source.context.as_ref());
 
-            // Track which rule indices we have already triggered for this
-            // candidate so each rule fires at most once per candidate.
-            let mut fired: Vec<bool> = vec![false; self.rules.len()];
+            // Evaluate the raw context first
+            self.evaluate_payload(&result, &context_str, None, &mut matches);
 
-            // Phase 1: Aho-Corasick scan.
-            for ac_match in self.ac.find_iter(context_str.as_bytes()) {
-                let entry = &self.keyword_map[ac_match.pattern().as_usize()];
-                if entry.rule_idx == usize::MAX {
-                    continue; // sentinel
-                }
-                let rule_idx = entry.rule_idx;
-                if fired[rule_idx] {
-                    continue; // Already processed this rule for this candidate
-                }
-                fired[rule_idx] = true;
-
-                // Phase 2: Regex verification.
-                let rule = &self.rules[rule_idx];
-                if let Some(m) = rule.regex.find(&context_str) {
-                    matches.push(PatternMatch {
-                        source: result.clone(),
-                        rule_id: rule.id.clone(),
-                        matched_text: m.as_str().to_owned(),
-                        match_start: m.start(),
-                        match_end: m.end(),
-                        pattern_score: rule.confidence_weight as f32,
-                    });
-                    // One match per rule per candidate is sufficient.
-                }
-            }
-
-            // Fallback: rules with no keywords are run against every candidate.
-            for (rule_idx, rule) in self.rules.iter().enumerate() {
-                if !rule.keywords.is_empty() || fired[rule_idx] {
-                    continue;
-                }
-                if let Some(m) = rule.regex.find(&context_str) {
-                    matches.push(PatternMatch {
-                        source: result.clone(),
-                        rule_id: rule.id.clone(),
-                        matched_text: m.as_str().to_owned(),
-                        match_start: m.start(),
-                        match_end: m.end(),
-                        pattern_score: rule.confidence_weight as f32,
-                    });
+            // Deep Decode literals and evaluate those
+            for literal in &result.literals {
+                let variants = crate::stages::decoder::deep_decode(literal, 5);
+                for variant in variants {
+                    if !variant.encoding_chain.is_empty() {
+                        let decoded_str = String::from_utf8_lossy(&variant.data);
+                        self.evaluate_payload(&result, &decoded_str, Some(variant.encoding_chain), &mut matches);
+                    }
                 }
             }
         }
 
         matches
+    }
+
+    fn evaluate_payload(
+        &self,
+        result: &TriStreamResult,
+        payload_str: &str,
+        encoding_chain: Option<Vec<String>>,
+        matches: &mut Vec<PatternMatch>,
+    ) {
+        // Track which rule indices we have already triggered for this
+        // payload so each rule fires at most once per payload variant.
+        let mut fired: Vec<bool> = vec![false; self.rules.len()];
+
+        // Phase 1: Aho-Corasick scan.
+        for ac_match in self.ac.find_iter(payload_str.as_bytes()) {
+            let entry = &self.keyword_map[ac_match.pattern().as_usize()];
+            if entry.rule_idx == usize::MAX {
+                continue; // sentinel
+            }
+            let rule_idx = entry.rule_idx;
+            if fired[rule_idx] {
+                continue; // Already processed this rule for this candidate
+            }
+            fired[rule_idx] = true;
+
+            // Phase 2: Regex verification.
+            let rule = &self.rules[rule_idx];
+            if let Some(m) = rule.regex.find(payload_str) {
+                matches.push(PatternMatch {
+                    source: result.clone(),
+                    rule_id: rule.id.clone(),
+                    matched_text: m.as_str().to_owned(),
+                    match_start: m.start(),
+                    match_end: m.end(),
+                    pattern_score: rule.confidence_weight as f32,
+                    encoding_chain: encoding_chain.clone(),
+                });
+                // One match per rule per candidate is sufficient.
+            }
+        }
+
+        // Fallback: rules with no keywords are run against every candidate.
+        for (rule_idx, rule) in self.rules.iter().enumerate() {
+            if !rule.keywords.is_empty() || fired[rule_idx] {
+                continue;
+            }
+            if let Some(m) = rule.regex.find(payload_str) {
+                matches.push(PatternMatch {
+                    source: result.clone(),
+                    rule_id: rule.id.clone(),
+                    matched_text: m.as_str().to_owned(),
+                    match_start: m.start(),
+                    match_end: m.end(),
+                    pattern_score: rule.confidence_weight as f32,
+                    encoding_chain: encoding_chain.clone(),
+                });
+            }
+        }
     }
 }
 

@@ -130,7 +130,7 @@ mod tests {
             chain: None,
             validation: None,
             remediation: Some("Revoke this key in the Stripe dashboard.".to_string()),
-            detected_at: Utc::now(),
+            detected_at: Utc::now(), encoding_chain: None,
         }
     }
 

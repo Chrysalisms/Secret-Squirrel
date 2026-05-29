@@ -23,6 +23,16 @@ Secret Squirrel finds credentials, API keys, and secrets in your code before att
 | Binary size | <15 MB | 40 MB | 75 MB | ~15 MB |
 | Peak RAM (1 GB repo) | ~400 MB | 4.2 GB | ~1.2 GB | ~500 MB |
 
+### Benchmark Evaluation (Samsung/CredData)
+Secret Squirrel was evaluated against the `Samsung/CredData` benchmark corpus consisting of 14,488 ground truth secrets scattered across various repositories and source files. We tested Secret Squirrel's deep scanning capability against BetterLeaks:
+
+| Scanner | True Positives | False Positives | Precision | Recall | F1 Score |
+|---------|----------------|-----------------|-----------|--------|----------|
+| BetterLeaks | 6,614 | 1,058 | 0.8621 | 0.4623 | 0.6018 |
+| Secret Squirrel (Deep) | 1,267 | 2,752 | 0.3153 | 0.0886 | 0.1383 |
+
+*Note: The Shai-Hulud triple-encoded obfuscation technique (Base64 -> Hex -> URL -> Base64) was uniquely detected using Secret Squirrel's depth=5 un-nesting deep decoder layer. However, BetterLeaks currently outperforms Secret Squirrel in general pattern matching coverage.*
+
 ---
 
 ## Quick Start
@@ -81,6 +91,16 @@ docker run --rm -v $(pwd):/repo ghcr.io/chrysalisms/secret-squirrel detect /repo
 
 ---
 
+## Execution Profiles & Smart Routing
+
+Secret Squirrel dynamically adapts to its environment using Execution Profiles and Smart CI Routing:
+
+*   `--profile=fast` **(Default)**: Bypasses AST parsing, Cross-File Correlation, and CNN inference. Uses the ultra-optimized CPU regex+entropy path, running drastically faster than other scanners like BetterLeaks.
+*   `--profile=deep`: Enables the full Intelligence Layer (Tree-sitter AST, CNN, Cross-File Correlation, and GPU Acceleration) for maximum precision.
+*   **Smart CI Detection**: When running in an environment where `CI=true` or `GITHUB_ACTIONS=true`, Secret Squirrel automatically bypasses GPU hardware initialization latency and falls back to CPU-only execution (even if `--profile=deep` is used). You can bypass this with `SQUIRREL_FORCE_GPU=1`.
+
+---
+
 ## CLI Reference
 
 ### `squirrel detect` — Scan for secrets
@@ -101,6 +121,7 @@ Options:
   --correlate               Cross-file credential chains (opt-in)
   --semantic                Tree-sitter AST confidence adjustment (opt-in)
   --model-tier <TIER>       none | tiny | large | enhanced | maximum [default: none]
+  --profile <PROFILE>       Execution profile: fast | deep [default: fast]
   --baseline                Only new findings since last scan
   --show-secrets            Show full values (requires SQUIRREL_ALLOW_SHOW_SECRETS=1)
   --config <FILE>           Config file [default: .squirrel.toml]
@@ -180,6 +201,9 @@ Input → [Stage 1: Shannon Entropy Gate]  → ~5% pass
 ```
 
 **Key insight**: Regex only runs against **~1% of input**. On a 1 GB repo, regex sees ~10 MB.
+
+### Deep Decode (Anti-Evasion)
+When running in `--profile deep`, Secret Squirrel applies recursive decoding chains (up to depth 5) against candidate literals. This automatically unwraps nested encodings like Base64, Hex, and URL encoding. It was explicitly designed to defeat the infamous **Shai-Hulud triple-encoded evasions** and similar obfuscation techniques that blind traditional scanners.
 
 ---
 

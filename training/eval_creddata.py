@@ -172,6 +172,10 @@ def load_betterleaks(json_file: Path) -> list[Finding]:
     findings: list[Finding] = []
     for item in raw:
         file_path = item.get("File") or item.get("file") or ""
+        if file_path.startswith("benchmark/CredData/data/"):
+            file_path = file_path[len("benchmark/CredData/data/"):]
+        elif file_path.startswith("data/"):
+            file_path = file_path[5:]
         line = int(item.get("StartLine") or item.get("line") or 0)
         kind = (
             item.get("RuleID")

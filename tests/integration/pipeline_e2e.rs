@@ -328,7 +328,7 @@ mod formatter_integration {
                 chain: None,
                 validation: None,
                 remediation: Some("Rotate this AWS key immediately via IAM console.".to_string()),
-                detected_at: Utc::now(),
+                detected_at: Utc::now(), encoding_chain: None,
             },
             Finding {
                 id: "test-002".to_string(),
@@ -359,7 +359,7 @@ mod formatter_integration {
                 chain: None,
                 validation: None,
                 remediation: Some("Revoke this token at https://github.com/settings/tokens".to_string()),
-                detected_at: Utc::now(),
+                detected_at: Utc::now(), encoding_chain: None,
             },
         ]
     }

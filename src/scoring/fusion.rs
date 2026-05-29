@@ -196,6 +196,7 @@ mod tests {
             match_start: offset,
             match_end: offset + secret_bytes.len(),
             pattern_score,
+            encoding_chain: None,
         }
     }
 

@@ -316,7 +316,7 @@ mod tests {
             chain: None,
             validation: None,
             remediation: Some("Revoke this PAT in GitHub Settings → Developer settings.".to_string()),
-            detected_at: Utc::now(),
+            detected_at: Utc::now(), encoding_chain: None,
         }
     }
 

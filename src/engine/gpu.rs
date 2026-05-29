@@ -51,69 +51,8 @@ pub mod gpu_impl {
     use tracing::{debug, warn};
 
     // ── WGSL shader source ────────────────────────────────────────────────
-
-    /// Fused histogram + Shannon entropy WGSL kernel.
-    ///
-    /// Each workgroup processes one 64-byte chunk.  The 256 threads in the
-    /// workgroup cooperate to build a shared byte-frequency histogram, then
-    /// thread 0 reduces it to a single Shannon entropy value stored in the
-    /// output buffer.
-    ///
-    /// Input layout:
-    /// - `input`  — raw bytes packed as `u32` (4 bytes per element)
-    /// - `output` — one `f32` per 64-byte chunk
-    const ENTROPY_SHADER: &str = r#"
-// Fused histogram + Shannon entropy kernel
-// Each workgroup processes one 64-byte chunk.
-// 256 threads per workgroup × 64 bytes per chunk → 16 384 bytes per dispatch.
-@group(0) @binding(0) var<storage, read>       input  : array<u32>;
-@group(0) @binding(1) var<storage, read_write> output : array<f32>;
-
-// Workgroup-local byte-frequency histogram (256 possible byte values).
-var<workgroup> histogram : array<atomic<u32>, 256>;
-
-@compute @workgroup_size(256)
-fn compute_entropy(
-    @builtin(global_invocation_id) gid : vec3<u32>,
-    @builtin(local_invocation_id)  lid : vec3<u32>,
-    @builtin(workgroup_id)         wid : vec3<u32>,
-) {
-    // ── Phase 1: clear histogram slot owned by this thread ──────────────
-    atomicStore(&histogram[lid.x], 0u);
-    workgroupBarrier();
-
-    // ── Phase 2: accumulate byte frequencies ────────────────────────────
-    // Each 64-byte chunk occupies 16 u32 words.
-    // Thread `lid.x` is responsible for byte index `lid.x % 64` within the
-    // chunk, packed as a single byte inside the relevant u32 word.
-    let chunk_word_base : u32 = wid.x * 16u;          // first word of this chunk
-    let byte_in_chunk   : u32 = lid.x % 64u;          // which byte within chunk
-    let word_offset     : u32 = byte_in_chunk / 4u;   // which u32 word holds it
-    let byte_lane       : u32 = byte_in_chunk % 4u;   // which byte within u32
-
-    let word_idx : u32 = chunk_word_base + word_offset;
-    // Guard against reading past the end of the buffer.
-    if word_idx < arrayLength(&input) {
-        let packed  : u32 = input[word_idx];
-        let byte_val: u32 = (packed >> (byte_lane * 8u)) & 0xFFu;
-        atomicAdd(&histogram[byte_val], 1u);
-    }
-    workgroupBarrier();
-
-    // ── Phase 3: compute entropy (thread 0 only) ─────────────────────────
-    if lid.x == 0u {
-        var entropy : f32 = 0.0;
-        for (var b : u32 = 0u; b < 256u; b = b + 1u) {
-            let count : f32 = f32(atomicLoad(&histogram[b]));
-            if count > 0.0 {
-                let p : f32 = count / 64.0;
-                entropy -= p * log2(p);
-            }
-        }
-        output[wid.x] = entropy;
-    }
-}
-"#;
+    
+    const ENTROPY_SHADER: &str = include_str!("shaders/entropy.wgsl");
 
     // ── GpuEngine ────────────────────────────────────────────────────────
 
@@ -316,7 +255,15 @@ fn compute_entropy(
                 pass.set_pipeline(&self.entropy_pipeline);
                 pass.set_bind_group(0, &bind_group, &[]);
                 // One workgroup per chunk; each workgroup is 256 threads.
-                pass.dispatch_workgroups(num_chunks as u32, 1, 1);
+                // Workaround wgpu 65535 limit per dimension.
+                let max_dim = 65535u32;
+                let mut dispatch_x = num_chunks as u32;
+                let mut dispatch_y = 1u32;
+                if dispatch_x > max_dim {
+                    dispatch_y = (dispatch_x + max_dim - 1) / max_dim;
+                    dispatch_x = max_dim;
+                }
+                pass.dispatch_workgroups(dispatch_x, dispatch_y, 1);
             }
 
             // Copy output → readback buffer.
@@ -548,5 +495,33 @@ mod tests {
     fn test_gpu_stub_not_available() {
         use super::GpuEngine;
         assert!(!GpuEngine::is_available());
+    }
+
+    #[cfg(feature = "gpu")]
+    #[tokio::test]
+    async fn test_entropy_shader_matches_cpu() {
+        use super::GpuEngine;
+        use bytes::Bytes;
+        
+        // Only run if we actually have a GPU
+        let Some(gpu) = GpuEngine::new().await else {
+            return;
+        };
+
+        // Create a 64-byte payload
+        let mut data = vec![0u8; 64];
+        
+        // 1. All zeros should have 0.0 entropy
+        let candidates_zero = gpu.execute_entropy(&Bytes::from(data.clone()), 0.0);
+        assert_eq!(candidates_zero.len(), 1);
+        assert!(candidates_zero[0].entropy < 0.1);
+
+        // 2. High entropy data (0 to 63)
+        for i in 0..64 {
+            data[i] = i as u8;
+        }
+        let candidates_high = gpu.execute_entropy(&Bytes::from(data.clone()), 5.0);
+        assert_eq!(candidates_high.len(), 1);
+        assert!(candidates_high[0].entropy > 5.5);
     }
 }

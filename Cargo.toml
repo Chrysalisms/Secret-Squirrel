@@ -39,9 +39,17 @@ semantic = [
     "tree-sitter-c",
     "tree-sitter-cpp",
     "tree-sitter-c-sharp",
+    "tree-sitter-json",
 ]
 validate = []
 cnn = ["ort"]
+tree-sitter = ["dep:tree-sitter"]
+tree-sitter-rust = ["dep:tree-sitter-rust"]
+tree-sitter-javascript = ["dep:tree-sitter-javascript"]
+tree-sitter-python = ["dep:tree-sitter-python"]
+tree-sitter-typescript = ["dep:tree-sitter-typescript"]
+tree-sitter-go = ["dep:tree-sitter-go"]
+tree-sitter-json = ["dep:tree-sitter-json"]
 
 # ===== Core Dependencies =====
 [dependencies]
@@ -83,9 +91,6 @@ secrecy = "0.10"
 rand = "0.8"
 hex = "0.4"
 base64 = "0.22"
-
-# File system
-memmap2 = "0.9"
 ignore = "0.4"
 walkdir = "2"
 tempfile = "3"
@@ -163,6 +168,7 @@ async-trait = "0.1"
 # Storage (disk-backed correlation)
 redb = "2"
 uuid = { version = "1.20.0", features = ["v4"] }
+tree-sitter-json = { version = "0.24", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }
@@ -174,6 +180,7 @@ hex-literal = "0.4"
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1"
 zip = { version = "2", features = ["deflate"] }
+wiremock = "0.6.5"
 
 [[bench]]
 name = "pipeline"

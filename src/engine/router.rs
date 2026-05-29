@@ -80,7 +80,12 @@ impl Router {
         // The `config.enabled` flag is respected as an escape hatch so that
         // operators can force CPU-only mode via config/CLI even when a GPU is
         // physically present (e.g., to avoid GPU contention in shared envs).
-        let gpu = if config.enabled {
+        // Smart CI detection to avoid hardware probe latency in CPU-only runners
+        let is_ci = std::env::var("CI").unwrap_or_default() == "true"
+            || std::env::var("GITHUB_ACTIONS").unwrap_or_default() == "true";
+        let force_gpu = std::env::var("SQUIRREL_FORCE_GPU").unwrap_or_default() == "1";
+
+        let gpu = if config.enabled && (!is_ci || force_gpu) {
             #[cfg(feature = "gpu")]
             {
                 let engine = GpuEngine::new().await;
@@ -96,6 +101,9 @@ impl Router {
                 debug!("GPU feature disabled at compile time — CPU-only mode");
                 None
             }
+        } else if is_ci && config.enabled {
+            debug!("GPU probe bypassed via CI auto-detect — CPU-only mode");
+            None
         } else {
             debug!("GPU disabled via config — CPU-only mode");
             None

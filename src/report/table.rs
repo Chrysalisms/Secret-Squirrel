@@ -319,7 +319,7 @@ mod tests {
             chain: None,
             validation: None,
             remediation: Some("Rotate this credential immediately.".to_string()),
-            detected_at: Utc::now(),
+            detected_at: Utc::now(), encoding_chain: None,
         }
     }
 

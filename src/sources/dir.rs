@@ -1,7 +1,6 @@
 //! Directory/filesystem source — `.gitignore`-aware file walker.
 //!
-//! Uses the [`ignore`] crate for gitignore-aware directory traversal and
-//! [`memmap2`] for zero-copy memory-mapped file reading. Binary files are
+//! Uses the [`ignore`] crate for gitignore-aware directory traversal. Binary files are
 //! detected by scanning the first 512 bytes for null bytes and skipped
 //! automatically.
 
@@ -11,7 +10,6 @@ use crate::sources::traits::SyncSource;
 use crate::types::{Fragment, FragmentMetadata, SourceType};
 use bytes::Bytes;
 use ignore::WalkBuilder;
-use memmap2::MmapOptions;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
@@ -76,98 +74,102 @@ impl SyncSource for DirSource {
             builder.add_ignore(pattern);
         }
 
-        let walk = builder.build();
+        let walk = builder.build_parallel();
         let max_file_size = self.max_file_size;
 
-        Box::new(walk.filter_map(move |entry| {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    warn!("walk error: {e}");
-                    return None;
-                }
-            };
+        let (tx, rx) = crossbeam_channel::bounded(1024);
 
-            // Skip directories — we only want files.
-            if !entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
-                return None;
-            }
+        std::thread::spawn(move || {
+            walk.run(|| {
+                let tx = tx.clone();
+                Box::new(move |result| {
+                    let entry = match result {
+                        Ok(e) => e,
+                        Err(e) => {
+                            warn!("walk error: {e}");
+                            return ignore::WalkState::Continue;
+                        }
+                    };
 
-            let path = entry.path().to_path_buf();
+                    // Skip directories — we only want files.
+                    if !entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+                        return ignore::WalkState::Continue;
+                    }
 
-            // ── Size guard ──────────────────────────────────────────────────
-            let metadata = match entry.metadata() {
-                Ok(m) => m,
-                Err(e) => {
-                    warn!("cannot read metadata for {}: {e}", path.display());
-                    return None;
-                }
-            };
-            let file_size = metadata.len();
-            if file_size > max_file_size {
-                debug!(
-                    "skipping {} — size {} > limit {}",
-                    path.display(),
-                    file_size,
-                    max_file_size
-                );
-                return None;
-            }
+                    let path = entry.path().to_path_buf();
 
-            // ── Memory-mapped read ───────────────────────────────────────────
-            let file = match File::open(&path) {
-                Ok(f) => f,
-                Err(e) => {
-                    return Some(Err(SquirrelError::Io(e)));
-                }
-            };
+                    // ── Size guard ──────────────────────────────────────────────────
+                    let metadata = match entry.metadata() {
+                        Ok(m) => m,
+                        Err(e) => {
+                            warn!("cannot read metadata for {}: {e}", path.display());
+                            return ignore::WalkState::Continue;
+                        }
+                    };
+                    let file_size = metadata.len();
+                    if file_size > max_file_size {
+                        debug!(
+                            "skipping {} — size {} > limit {}",
+                            path.display(),
+                            file_size,
+                            max_file_size
+                        );
+                        return ignore::WalkState::Continue;
+                    }
 
-            // Empty files produce an empty fragment (valid — they may match
-            // path-based rules in future pipeline stages).
-            if file_size == 0 {
-                let path_str = path.to_string_lossy().into_owned();
-                return Some(Ok(Fragment {
-                    content: Bytes::new(),
-                    metadata: FragmentMetadata {
-                        path: path_str,
-                        source_type: SourceType::Directory,
-                        size: 0,
-                        attributes: HashMap::new(),
-                    },
-                }));
-            }
+                    // Empty files produce an empty fragment (valid — they may match
+                    // path-based rules in future pipeline stages).
+                    if file_size == 0 {
+                        let path_str = path.to_string_lossy().into_owned();
+                        let _ = tx.send(Ok(Fragment {
+                            content: Bytes::new(),
+                            metadata: FragmentMetadata {
+                                path: path_str,
+                                source_type: SourceType::Directory,
+                                size: 0,
+                                attributes: HashMap::new(),
+                            },
+                        }));
+                        return ignore::WalkState::Continue;
+                    }
 
-            // SAFETY: memmap2 is `unsafe` — we accept the OS-level invariant
-            // that the file is not concurrently truncated during mapping.
-            let mmap = match unsafe { MmapOptions::new().map(&file) } {
-                Ok(m) => m,
-                Err(e) => {
-                    return Some(Err(SquirrelError::Io(e)));
-                }
-            };
+                    // ── Read file directly ───────────────────────────────────────────
+                    let file_content = match std::fs::read(&path) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            let _ = tx.send(Err(SquirrelError::Io(e)));
+                            return ignore::WalkState::Continue;
+                        }
+                    };
 
-            // ── Binary detection ─────────────────────────────────────────────
-            if Self::is_binary(&mmap) {
-                debug!("skipping binary file: {}", path.display());
-                return None;
-            }
+                    // ── Binary detection ─────────────────────────────────────────────
+                    if Self::is_binary(&file_content) {
+                        debug!("skipping binary file: {}", path.display());
+                        return ignore::WalkState::Continue;
+                    }
 
-            let content = Bytes::copy_from_slice(&mmap);
-            let path_str = path.to_string_lossy().into_owned();
+                    let content = Bytes::from(file_content);
+                    let path_str = path.to_string_lossy().into_owned();
 
-            let mut attrs = HashMap::new();
-            attrs.insert("file_size".to_string(), file_size.to_string());
+                    let mut attrs = HashMap::new();
+                    attrs.insert("file_size".to_string(), file_size.to_string());
 
-            Some(Ok(Fragment {
-                content,
-                metadata: FragmentMetadata {
-                    path: path_str,
-                    source_type: SourceType::Directory,
-                    size: file_size,
-                    attributes: attrs,
-                },
-            }))
-        }))
+                    let _ = tx.send(Ok(Fragment {
+                        content,
+                        metadata: FragmentMetadata {
+                            path: path_str,
+                            source_type: SourceType::Directory,
+                            size: file_size,
+                            attributes: attrs,
+                        },
+                    }));
+
+                    ignore::WalkState::Continue
+                })
+            });
+        });
+
+        Box::new(rx.into_iter())
     }
 }
 

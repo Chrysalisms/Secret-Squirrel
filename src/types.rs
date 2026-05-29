@@ -199,6 +199,7 @@ pub enum SourceType {
     Ansible,
     CiLogs,
     Slack,
+    Discord,
     Jira,
     Confluence,
     Postman,
@@ -324,6 +325,9 @@ pub struct Finding {
     pub remediation: Option<String>,
     /// Timestamp of detection
     pub detected_at: DateTime<Utc>,
+    /// Deep decoding chain (if secret was obfuscated)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encoding_chain: Option<Vec<String>>,
 }
 
 fn serialize_redacted<S>(value: &RedactedString, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -464,6 +468,7 @@ pub struct PatternMatch {
     pub match_start: usize,
     pub match_end: usize,
     pub pattern_score: f32,
+    pub encoding_chain: Option<Vec<String>>,
 }
 
 // ============================

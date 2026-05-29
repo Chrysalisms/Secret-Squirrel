@@ -173,6 +173,7 @@ impl Pipeline {
                     pattern_score: tsr.combined_score,
                     rule_id: String::new(), // filled in by rules layer
                     source: tsr,
+                    encoding_chain: None,
                 }
             })
             .collect();
@@ -299,6 +300,7 @@ impl Pipeline {
                                 match_start: hit.match_start,
                                 match_end: hit.match_end,
                                 pattern_score: hit.pattern_score,
+                                encoding_chain: hit.encoding_chain,
                             };
                             out.push(rebuilt);
                         }
@@ -352,6 +354,7 @@ impl Pipeline {
                     match_start: hit.match_start,
                     match_end: hit.match_end,
                     pattern_score: hit.pattern_score,
+                    encoding_chain: hit.encoding_chain,
                 });
             }
         }

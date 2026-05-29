@@ -189,7 +189,7 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(),
+            detected_at: Utc::now(), encoding_chain: None,
         }
     }
 

@@ -27,7 +27,6 @@ use crate::types::Finding;
 /// Deduplication key: the triple that identifies a unique (credential, rule, file).
 #[derive(Hash, PartialEq, Eq)]
 struct DedupKey {
-    rule_id: String,
     secret_hash: String,
     path: String,
 }
@@ -49,12 +48,11 @@ impl Deduplicator {
     ///
     /// A deduplicated, sorted `Vec<Finding>`.
     pub fn deduplicate(findings: Vec<Finding>) -> Vec<Finding> {
-        // Group findings by (rule_id, secret_hash, path).
+        // Group findings by (secret_hash, path).
         let mut groups: HashMap<DedupKey, Vec<Finding>> = HashMap::new();
 
         for finding in findings {
             let key = DedupKey {
-                rule_id: finding.rule_id.clone(),
                 secret_hash: finding.secret_hash.clone(),
                 path: finding.location.path.clone(),
             };
@@ -145,7 +143,7 @@ mod tests {
             chain: None,
             validation: None,
             remediation: None,
-            detected_at: Utc::now(),
+            detected_at: Utc::now(), encoding_chain: None,
         }
     }
 
@@ -174,13 +172,14 @@ mod tests {
     }
 
     #[test]
-    fn test_dedup_different_rules_kept() {
-        // Different rule IDs with same hash and path → both kept.
+    fn test_dedup_different_rules_same_secret() {
+        // Different rule IDs with same hash and path → deduplicated to one.
         let f1 = make_finding("aws-key",    "abc123", "src/main.rs", 0.8, 100, 10, 10);
         let f2 = make_finding("generic-key","abc123", "src/main.rs", 0.7, 100, 10, 10);
 
         let result = Deduplicator::deduplicate(vec![f1, f2]);
-        assert_eq!(result.len(), 2, "Different rules → both findings kept");
+        assert_eq!(result.len(), 1, "Different rules but same secret → deduplicate to one");
+        assert_eq!(result[0].rule_id, "aws-key", "Should keep highest confidence finding");
     }
 
     #[test]

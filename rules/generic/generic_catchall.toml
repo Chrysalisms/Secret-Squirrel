@@ -1,0 +1,32 @@
+[[rules]]
+id = "generic-catchall-key"
+description = "Generic key assignment"
+regex = '''(?i)(?:key|secret|token|password|auth|nonce|salt)\s*[=:]\s*['"]?([a-zA-Z0-9_\-!@#$%^&*+=/]{12,120})['"]?'''
+keywords = ["key", "secret", "token", "password", "auth", "nonce", "salt"]
+severity = "medium"
+category = "generic"
+entropy_threshold = 3.5
+allowlist = [
+    'key="YOUR_KEY"',
+    'secret="changeme"',
+    'password="password"',
+    'token="<token>"',
+    '\$\{',
+    '<[A-Za-z]',
+    'YOUR_',
+    'EXAMPLE',
+    'changeme',
+    'replace'
+]
+tags = ["generic", "catchall"]
+
+[[rules]]
+id = "generic-catchall-pem"
+description = "Generic PEM private key"
+regex = '''(?s)-----BEGIN [A-Z ]{0,20}PRIVATE KEY-----\s*[A-Za-z0-9+/=\s]{50,}-----END [A-Z ]{0,20}PRIVATE KEY-----'''
+keywords = ["BEGIN RSA PRIVATE KEY", "BEGIN PRIVATE KEY", "BEGIN EC PRIVATE KEY", "BEGIN DSA PRIVATE KEY"]
+severity = "high"
+category = "crypto"
+entropy_threshold = 4.0
+allowlist = []
+tags = ["pem", "private-key", "generic"]

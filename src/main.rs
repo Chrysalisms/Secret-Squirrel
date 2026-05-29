@@ -132,6 +132,10 @@ enum Commands {
         /// Exit with code 1 if any finding meets or exceeds this severity
         #[arg(long, default_value = "high", value_name = "LEVEL")]
         fail_on: SeverityArg,
+
+        /// Execution profile: `fast` (regex+entropy only, CPU) or `deep` (AST, correlation, CNN, GPU)
+        #[arg(long, default_value = "fast", value_name = "PROFILE")]
+        profile: ExecutionProfileArg,
     },
 
     /// Validate a specific finding by ID against its provider
@@ -288,6 +292,12 @@ impl From<LogFormatArg> for LogFormat {
     }
 }
 
+#[derive(Clone, ValueEnum, PartialEq)]
+enum ExecutionProfileArg {
+    Fast,
+    Deep,
+}
+
 /// Model tier selector for the CLI.
 ///
 /// `None` maps to [`ModelTier::Default`] (Markov chain, embedded, no download).
@@ -373,6 +383,7 @@ async fn main() -> Result<()> {
             gpu_threshold,
             rules,
             fail_on,
+            profile,
         } => {
             // Apply detect-specific overrides
             config.scan.severity_threshold = severity.into();
@@ -384,6 +395,14 @@ async fn main() -> Result<()> {
             config.scan.git_depth = depth;
             config.scan.model_tier = model_tier.into();
             config.gpu.threshold_bytes = gpu_threshold;
+
+            // Apply execution profile overrides
+            if profile == ExecutionProfileArg::Fast {
+                config.scan.semantic = false;
+                config.scan.correlate = false;
+                config.scan.model_tier = ModelTier::Default;
+                config.gpu.enabled = false;
+            }
 
             // Security gate: --show-secrets also requires env var
             if show_secrets {
@@ -724,7 +743,7 @@ async fn run_detect(
                     chain: None,
                     validation: None,
                     remediation: rule.remediation.clone(),
-                    detected_at: Utc::now(),
+                    detected_at: Utc::now(), encoding_chain: None,
                 };
 
                 local_findings.push(finding);

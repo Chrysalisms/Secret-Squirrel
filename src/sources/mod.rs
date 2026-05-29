@@ -37,6 +37,7 @@ pub mod ci_logs;
 pub mod notebook;
 pub mod postman;
 pub mod slack;
+pub mod discord;
 
 // Phase 4 sources
 pub mod database;

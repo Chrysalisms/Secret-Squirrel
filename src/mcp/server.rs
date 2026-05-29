@@ -436,6 +436,7 @@ mod mcp_impl {
         let app = Router::new()
             .route("/health", get(health_handler))
             .route("/mcp/v1", post(mcp_handler))
+            .route("/webhook/github", post(github_webhook_handler))
             .with_state(server);
 
         let addr = format!("0.0.0.0:{port}");
@@ -500,6 +501,43 @@ mod mcp_impl {
         };
 
         Json(response)
+    }
+
+    async fn github_webhook_handler(
+        State(server): State<std::sync::Arc<SquirrelMcpServer>>,
+        headers: axum::http::HeaderMap,
+        body: Bytes,
+    ) -> Json<serde_json::Value> {
+        let payload: serde_json::Value = match serde_json::from_slice(&body) {
+            Ok(p) => p,
+            Err(_) => return Json(serde_json::json!({"status": "error", "message": "invalid json"})),
+        };
+
+        // Check if it's a pull_request event
+        let event = headers.get("x-github-event").and_then(|h| h.to_str().ok()).unwrap_or("");
+        if event != "pull_request" {
+            return Json(serde_json::json!({"status": "ignored", "reason": "not a pull_request event"}));
+        }
+
+        let action = payload.get("action").and_then(|a| a.as_str()).unwrap_or("");
+        if action != "opened" && action != "synchronize" {
+            return Json(serde_json::json!({"status": "ignored", "reason": "action not opened or synchronize"}));
+        }
+
+        let pr = match payload.get("pull_request") {
+            Some(pr) => pr,
+            None => return Json(serde_json::json!({"status": "error", "message": "missing pull_request object"})),
+        };
+
+        let diff_url = pr.get("diff_url").and_then(|u| u.as_str()).unwrap_or("");
+        
+        info!("Received GitHub PR Webhook for diff: {}", diff_url);
+        
+        // Return 200 OK immediately to acknowledge the webhook.
+        // In a real implementation, we would spawn a background task to fetch the diff 
+        // and scan it, or post the result back to the GitHub PR via the Checks API.
+        
+        Json(serde_json::json!({"status": "accepted", "diff_url": diff_url}))
     }
 } // end mcp_impl
 

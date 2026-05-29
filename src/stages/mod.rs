@@ -10,12 +10,15 @@
 //! | 3     | [`TriStreamDecomposer`] | ~50% of survivors |
 //! | 4     | [`PatternVerifier`]  | Final precision match |
 
+pub mod decoder;
 pub mod entropy;
 pub mod pattern;
 pub mod proximity;
+pub mod semantic;
 pub mod tristream;
 
 pub use entropy::EntropyGate;
 pub use pattern::PatternVerifier;
 pub use proximity::ProximityDetector;
+pub use semantic::{SemanticAnalyzer, SemanticContext};
 pub use tristream::TriStreamDecomposer;

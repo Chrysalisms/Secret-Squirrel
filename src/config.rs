@@ -185,7 +185,7 @@ impl Default for PipelineConfig {
             entropy_threshold: 3.5,
             min_candidate_length: 8,
             entropy_chunk_size: 64,
-            proximity_threshold: 0.2,
+            proximity_threshold: 0.15,
             channel_capacity: 256,
         }
     }

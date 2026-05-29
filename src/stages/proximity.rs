@@ -12,14 +12,16 @@
 //! Candidates that accumulate a proximity score above the configured threshold
 //! are promoted to [`ProximityMatch`]es for the tri-stream stage.
 
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
 use bytes::Bytes;
 use memchr::memmem;
+use std::sync::OnceLock;
 
 use crate::config::PipelineConfig;
 use crate::types::{EntropyCandidate, ProximityMatch, ProximityPattern};
 
 /// How many bytes of context to examine on either side of a candidate.
-const CONTEXT_WINDOW: usize = 128;
+const CONTEXT_WINDOW: usize = 256;
 
 /// A proximity signal: a byte pattern to search for and the score / pattern
 /// type it implies when found.
@@ -36,34 +38,40 @@ static PROXIMITY_RULES: &[ProximityRule] = &[
     ProximityRule { needle: b"= '",     score: 0.30, pattern: ProximityPattern::Assignment   },
     ProximityRule { needle: b": \"",    score: 0.25, pattern: ProximityPattern::JsonKey      },
     ProximityRule { needle: b": '",     score: 0.25, pattern: ProximityPattern::YamlKey      },
-    ProximityRule { needle: b"export",  score: 0.25, pattern: ProximityPattern::Export       },
+    ProximityRule { needle: b"export ", score: 0.25, pattern: ProximityPattern::Export       },
     ProximityRule { needle: b"ENV ",    score: 0.20, pattern: ProximityPattern::DockerEnv    },
-    ProximityRule { needle: b"Bearer",  score: 0.30, pattern: ProximityPattern::HeaderValue  },
+    ProximityRule { needle: b"Bearer ", score: 0.30, pattern: ProximityPattern::HeaderValue  },
     ProximityRule { needle: b"ARG ",    score: 0.15, pattern: ProximityPattern::DockerEnv    },
+    // Add generic unquoted variants for higher recall
+    ProximityRule { needle: b"= ",      score: 0.20, pattern: ProximityPattern::Assignment   },
+    ProximityRule { needle: b": ",      score: 0.20, pattern: ProximityPattern::JsonKey      },
 ];
 
 /// Keyword identifiers that, if found in context, each contribute +0.20 to
 /// the proximity score.
 static KEYWORD_PROXIMITY: &[&[u8]] = &[
     b"password",
-    b"PASSWORD",
     b"secret",
-    b"SECRET",
     b"token",
-    b"TOKEN",
     b"key",
-    b"KEY",
     b"api",
-    b"API",
     b"auth",
-    b"AUTH",
     b"credential",
-    b"CREDENTIAL",
     b"access",
-    b"ACCESS",
     b"private",
-    b"PRIVATE",
 ];
+
+static KEYWORD_AC: OnceLock<AhoCorasick> = OnceLock::new();
+
+fn keyword_ac() -> &'static AhoCorasick {
+    KEYWORD_AC.get_or_init(|| {
+        AhoCorasickBuilder::new()
+            .ascii_case_insensitive(true)
+            .match_kind(MatchKind::Standard)
+            .build(KEYWORD_PROXIMITY)
+            .expect("failed to build proximity keyword automaton")
+    })
+}
 
 /// Stage 2: Semantic proximity filter.
 ///
@@ -136,9 +144,16 @@ fn score_context(context: &[u8]) -> (f32, ProximityPattern) {
     let mut dominant = ProximityPattern::Unknown;
     let mut best_rule_score = 0.0f32;
 
-    // Check proximity rules (structural patterns).
+    // Check proximity rules (structural patterns) — case-insensitive for text keywords
+    let context_lower = context.to_ascii_lowercase();
     for rule in PROXIMITY_RULES {
-        if memmem::find(context, rule.needle).is_some() {
+        let matched = if rule.needle.iter().all(|c| c.is_ascii_alphabetic() || *c == b' ') {
+            memmem::find(&context_lower, &rule.needle.to_ascii_lowercase()).is_some()
+        } else {
+            memmem::find(context, rule.needle).is_some()
+        };
+        
+        if matched {
             total_score += rule.score;
             if rule.score > best_rule_score {
                 best_rule_score = rule.score;
@@ -148,10 +163,9 @@ fn score_context(context: &[u8]) -> (f32, ProximityPattern) {
     }
 
     // Check keyword proximity (each hit adds +0.20).
-    for keyword in KEYWORD_PROXIMITY {
-        if memmem::find(context, keyword).is_some() {
-            total_score += 0.20;
-        }
+    // Using case-insensitive Aho-Corasick.
+    for _ in keyword_ac().find_iter(context) {
+        total_score += 0.20;
     }
 
     (total_score, dominant)

@@ -330,6 +330,7 @@ impl CpuEngine {
             match_start: start,
             match_end: end,
             pattern_score: 1.0,
+            encoding_chain: None,
         }
     }
 }
