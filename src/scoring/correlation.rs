@@ -223,7 +223,7 @@ impl CorrelationEngine {
             }
 
             let mut sorted = refs.clone();
-            sorted.sort_by(|a, b| a.location.byte_offset.cmp(&b.location.byte_offset));
+            sorted.sort_by_key(|a| a.location.byte_offset);
 
             let origin = &sorted[0];
             let usage_ids: Vec<String> = sorted
