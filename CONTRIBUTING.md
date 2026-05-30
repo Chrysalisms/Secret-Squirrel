@@ -173,4 +173,4 @@ impl SyncSource for MySource {
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a deep dive into the four-stage pipeline, GPU/CPU routing, scoring engine, and correlation system.
+See the [Pipeline Architecture](README.md#pipeline-architecture) and [Execution Profiles & Smart Routing](README.md#execution-profiles--smart-routing) sections in the README for the four-stage pipeline, GPU/CPU routing, scoring engine, and correlation system.
