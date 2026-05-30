@@ -1,4 +1,4 @@
-# Secret Squirrel 🐿️
+# 🐿️ Secret Squirrel 🐿️
 
 > **GPU-accelerated, CNN-powered credential scanner** — the open-source Betterleaks killer.
 
