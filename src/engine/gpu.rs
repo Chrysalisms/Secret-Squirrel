@@ -494,6 +494,17 @@ mod tests {
         use super::GpuEngine;
         use bytes::Bytes;
 
+        // GitHub-hosted Windows runners may expose a software/virtual adapter
+        // that passes initialisation but crashes the process during teardown.
+        // The production router already bypasses GPU probing in CI, so skip
+        // this direct backend test there unless explicitly forced.
+        let is_ci = std::env::var("CI").unwrap_or_default() == "true"
+            || std::env::var("GITHUB_ACTIONS").unwrap_or_default() == "true";
+        let force_gpu_test = std::env::var("SQUIRREL_FORCE_GPU_TEST").unwrap_or_default() == "1";
+        if is_ci && !force_gpu_test {
+            return;
+        }
+
         // Only run if we actually have a GPU
         let Some(gpu) = GpuEngine::new().await else {
             return;
