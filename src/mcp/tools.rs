@@ -647,7 +647,7 @@ mod tests {
     #[test]
     fn test_validate_finding_rejects_non_hex() {
         // Strings with spaces, symbols etc. look like raw secrets
-        let result = handle_validate_finding(json!({"finding_id": "AKIA1234SECRETKEY"}));
+        let _result = handle_validate_finding(json!({"finding_id": "AKIA1234SECRETKEY"}));
         // 'K' is valid hex but this may pass — the key guard is length + charset
         // A string with clearly non-hex chars should fail
         let result2 = handle_validate_finding(json!({"finding_id": "secret!@#$"}));

@@ -454,7 +454,7 @@ mod tests {
     #[test]
     fn test_extract_from_tar_empty() {
         // Create a minimal valid tar (just end-of-archive marker)
-        let mut tar_data = vec![0u8; 1024]; // two 512-byte zero blocks = end of archive
+        let tar_data = vec![0u8; 1024]; // two 512-byte zero blocks = end of archive
         let source = DockerSource::new("test:latest");
         let result = source.extract_from_tar(&tar_data);
         // Should not error, should return empty fragments

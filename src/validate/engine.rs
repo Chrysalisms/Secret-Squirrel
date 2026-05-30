@@ -195,9 +195,7 @@ impl Default for ValidationEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{
-        Finding, FusedScore, Location, RedactedString, Severity, SourceType, ValidationStatus,
-    };
+    use crate::types::{Finding, FusedScore, Location, RedactedString, Severity, ValidationStatus};
     use chrono::Utc;
 
     /// Build a minimal `Finding` for testing. The `rule_id` is parameterisable.

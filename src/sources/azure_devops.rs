@@ -84,8 +84,6 @@ struct AdoContentMetadata {
     content_type: Option<String>,
 }
 
-
-
 /// A variable group returned by `GET /{org}/{project}/_apis/distributedtask/variablegroups`.
 #[derive(Debug, Deserialize)]
 struct AdoVariableGroup {

@@ -129,8 +129,7 @@ impl FusionEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{PipelineConfig, ScoringConfig};
-    use crate::stages::entropy::shannon_entropy;
+    use crate::config::ScoringConfig;
     use crate::types::{
         EntropyCandidate, FragmentMetadata, ProximityMatch, ProximityPattern, SourceType,
         TriStreamResult,

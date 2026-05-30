@@ -603,7 +603,6 @@ async fn run_detect(
     let dir_source = DirSource::new(source.clone(), config.scan.max_file_size, &config.sources);
 
     use rayon::prelude::*;
-    
 
     #[cfg(feature = "cnn")]
     let cnn_classifier_mutex = cnn_classifier.map(Mutex::new);

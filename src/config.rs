@@ -30,7 +30,6 @@ pub struct SquirrelConfig {
     pub scoring: ScoringConfig,
 }
 
-
 impl SquirrelConfig {
     /// Load configuration from a TOML file.
     pub fn from_file(path: &Path) -> Result<Self> {
