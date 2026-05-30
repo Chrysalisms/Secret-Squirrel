@@ -1,0 +1,15 @@
+Initialized empty Git repository in C:/Users/vbode/OneDrive/Desktop/Cursor/Secret-Squirrel/benchmark/CredData/tmp/00a487dd088c6ca2528d025f3273c0a796efe21016d83de0d0aed64e139a5270/.git/
+commit 00a487dd088c6ca2528d025f3273c0a796efe210
+Author: Nicholas Brochu <info@nicholasbrochu.com>
+Date:   Fri May 22 18:34:09 2020 -0400
+
+    Create FUNDING.yml
+Initialized empty Git repository in C:/Users/vbode/OneDrive/Desktop/Cursor/Secret-Squirrel/benchmark/CredData/tmp/03b4a4f7a346ee383edea231dba53f005ca63a9cdaa8deb8236a9023d99157ec/.git/
+commit 03b4a4f7a346ee383edea231dba53f005ca63a9c
+Author: Dominic Evans <dominic.evans@uk.ibm.com>
+Date:   Wed Jun 9 14:24:45 2021 +0100
+
+    Merge pull request #1956 from joewreschnig/messagechecker
+    
+    Allow checking the entire `ProducerMessage` in the mock producers
+Initialized empty Git repository in C:/Users/vbode/OneDrive/Desktop/Cursor/Secret-Squirrel/benchmark/CredData/tmp/04790a2ed2ec7a3a6eadb55004b5aa499bc8a75d501a8d27984cf024f2c8b231/.git/

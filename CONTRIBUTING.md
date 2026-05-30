@@ -70,6 +70,9 @@ cargo bench --bench entropy
 cargo bench --bench pipeline
 ```
 
+For cross-tool accuracy and repo-tree comparisons against `Betterleaks`, use
+the benchmark workflow documented in `docs/benchmarking.md`.
+
 ---
 
 ## Authoring Rules

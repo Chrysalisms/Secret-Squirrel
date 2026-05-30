@@ -1,0 +1,43 @@
+[corpus]
+name = "repo-tree-baseline"
+description = "Pinned public repository trees for apples-to-apples filesystem benchmarks between Secret-Squirrel and Betterleaks."
+
+[[repos]]
+id = "cli_cli"
+name = "cli/cli"
+repo_url = "https://github.com/cli/cli"
+ref = "9a2f33078d324e4ec175a035051436987acff810"
+scan_path = "."
+notes = "Large mixed Go codebase with CI configs, shell snippets, and docs."
+
+[[repos]]
+id = "pallets_flask"
+name = "pallets/flask"
+repo_url = "https://github.com/pallets/flask"
+ref = "954f5684e4841aad84a8eec7ace7b81a0d3f6831"
+scan_path = "."
+notes = "Python application/library repo with fixtures, docs, and environment-like config examples."
+
+[[repos]]
+id = "grafana_helm_charts"
+name = "grafana/helm-charts"
+repo_url = "https://github.com/grafana/helm-charts"
+ref = "0cb44b98b41df1bc345376ac40897453fa88df93"
+scan_path = "."
+notes = "YAML-heavy infrastructure repo useful for config and values-file scanning behavior."
+
+[[repos]]
+id = "hashicorp_vault_action"
+name = "hashicorp/vault-action"
+repo_url = "https://github.com/hashicorp/vault-action"
+ref = "892a26828f195e65540a40b4768ae4571f51ebfc"
+scan_path = "."
+notes = "Secret-centric GitHub Action codebase with workflows, docs, and credential-related naming."
+
+[[repos]]
+id = "ansible_ansible_lint"
+name = "ansible/ansible-lint"
+repo_url = "https://github.com/ansible/ansible-lint"
+ref = "fa50a34935b1ffa1519fd247b93d8bf320620f51"
+scan_path = "."
+notes = "Python repo with YAML fixtures and CI artifacts that helps expose false-positive suppression differences."

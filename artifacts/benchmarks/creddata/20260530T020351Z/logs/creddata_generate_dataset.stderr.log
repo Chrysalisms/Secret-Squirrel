@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "C:\Users\vbode\OneDrive\Desktop\Cursor\Secret-Squirrel\benchmark\CredData\download_data.py", line 16, in <module>
+    from obfuscate_creds import obfuscate_creds
+  File "C:\Users\vbode\OneDrive\Desktop\Cursor\Secret-Squirrel\benchmark\CredData\obfuscate_creds.py", line 11, in <module>
+    import base62
+ModuleNotFoundError: No module named 'base62'
