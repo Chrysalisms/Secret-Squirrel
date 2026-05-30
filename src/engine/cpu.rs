@@ -225,6 +225,8 @@ impl CpuEngine {
         ac: &aho_corasick::AhoCorasick,
         rules: &[crate::rules::CompiledRule],
         keyword_to_rule: &[usize],
+        path_hint: Option<&str>,
+        enable_typed_extractor: bool,
     ) -> Vec<PatternMatch> {
         // Context window: how many bytes before/after the keyword hit to scan.
         // 512 bytes is enough to capture the full assignment expression and
@@ -289,24 +291,26 @@ impl CpuEngine {
         // This is the first step toward a discovery-first architecture:
         // instead of relying solely on keyword hits, parse assignment-shaped
         // snippets and run only semantically relevant rules on those snippets.
-        let typed_rule_indexes = build_typed_rule_indexes(rules);
-        for candidate in extract_typed_assignments(data) {
-            for &rule_idx in candidate_rule_indexes(&candidate, &typed_rule_indexes) {
-                let rule = &rules[rule_idx];
+        if enable_typed_extractor && path_hint.is_some_and(is_config_like_path) {
+            let typed_rule_indexes = build_typed_rule_indexes(rules);
+            for candidate in extract_typed_assignments(data) {
+                for &rule_idx in candidate_rule_indexes(&candidate, &typed_rule_indexes) {
+                    let rule = &rules[rule_idx];
 
-                let regex_matches = Self::run_regex(rule, &candidate.snippet);
-                for (rel_start, rel_end, text) in regex_matches {
-                    let abs_start = candidate.base_offset + rel_start;
-                    let abs_end = candidate.base_offset + rel_end;
-                    let key = (rule_idx, abs_start);
-                    if seen.insert(key) {
-                        matches.push(Self::make_typed_match(
-                            rule,
-                            abs_start,
-                            abs_end,
-                            text,
-                            &candidate,
-                        ));
+                    let regex_matches = Self::run_regex(rule, &candidate.snippet);
+                    for (rel_start, rel_end, text) in regex_matches {
+                        let abs_start = candidate.base_offset + rel_start;
+                        let abs_end = candidate.base_offset + rel_end;
+                        let key = (rule_idx, abs_start);
+                        if seen.insert(key) {
+                            matches.push(Self::make_typed_match(
+                                rule,
+                                abs_start,
+                                abs_end,
+                                text,
+                                &candidate,
+                            ));
+                        }
                     }
                 }
             }
@@ -735,8 +739,12 @@ fn url_credentials_regex() -> &'static regex::Regex {
 fn extract_typed_assignments(data: &[u8]) -> Vec<TypedAssignmentCandidate> {
     let mut candidates = Vec::new();
     let mut line_offset = 0usize;
+    const MAX_TYPED_CANDIDATES: usize = 64;
 
     for line in data.split_inclusive(|&b| b == b'\n') {
+        if candidates.len() >= MAX_TYPED_CANDIDATES {
+            break;
+        }
         let line_len = line.len();
         let line_body = if line.last() == Some(&b'\n') {
             &line[..line_len.saturating_sub(1)]
@@ -746,6 +754,10 @@ fn extract_typed_assignments(data: &[u8]) -> Vec<TypedAssignmentCandidate> {
         let line_str = String::from_utf8_lossy(line_body);
         let trimmed = line_str.trim();
         if trimmed.is_empty() {
+            line_offset += line_len;
+            continue;
+        }
+        if !looks_like_typed_assignment_line(trimmed) {
             line_offset += line_len;
             continue;
         }
@@ -951,6 +963,59 @@ fn is_plausible_assignment_value(value: &str) -> bool {
         return false;
     }
     true
+}
+
+fn looks_like_typed_assignment_line(line: &str) -> bool {
+    if line.len() > 512 {
+        return false;
+    }
+    let lower = line.to_lowercase();
+    let has_assignment_shape = line.contains('=') || line.contains(':') || line.contains("://");
+    let has_secretish_words = [
+        "password",
+        "passwd",
+        "pwd",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "access_key",
+        "client_secret",
+        "session_secret",
+        "private_key",
+        "database_url",
+        "webhook",
+        "hmac",
+        "jwt",
+        "bearer",
+        "nonce",
+    ]
+    .iter()
+    .any(|needle| lower.contains(needle));
+    has_assignment_shape && has_secretish_words
+}
+
+fn is_config_like_path(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    lower.ends_with(".env")
+        || lower.ends_with(".env.example")
+        || lower.ends_with(".env.sample")
+        || lower.ends_with(".env.local")
+        || lower.ends_with(".json")
+        || lower.ends_with(".yaml")
+        || lower.ends_with(".yml")
+        || lower.ends_with(".toml")
+        || lower.ends_with(".ini")
+        || lower.ends_with(".conf")
+        || lower.ends_with(".config")
+        || lower.ends_with(".properties")
+        || lower.ends_with(".tfvars")
+        || lower.ends_with(".example")
+        || lower.contains("/config")
+        || lower.contains("\\config")
+        || lower.contains("/conf/")
+        || lower.contains("\\conf\\")
+        || lower.contains("settings")
 }
 
 #[derive(Default)]
@@ -1360,6 +1425,26 @@ mod tests {
             candidates.is_empty(),
             "placeholder assignments should not become typed candidates"
         );
+    }
+
+    #[test]
+    fn test_typed_assignment_line_prefilter_skips_low_signal_lines() {
+        assert!(
+            !looks_like_typed_assignment_line("let value = compute_checksum(input);"),
+            "ordinary assignment lines without secret identifiers should be skipped early"
+        );
+        assert!(
+            looks_like_typed_assignment_line(r#"client_secret = "sk_live_1234567890abcdefghijklmnopqrstuvwxyz""#),
+            "high-signal secret assignments should pass the line prefilter"
+        );
+    }
+
+    #[test]
+    fn test_config_like_path_gating_is_narrow() {
+        assert!(is_config_like_path(".env"));
+        assert!(is_config_like_path("config/settings.yaml"));
+        assert!(!is_config_like_path("src/lib.rs"));
+        assert!(!is_config_like_path("docs/readme.md"));
     }
 
     // ── helper tests ──────────────────────────────────────────────────────

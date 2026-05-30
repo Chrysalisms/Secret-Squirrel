@@ -253,7 +253,7 @@ impl Pipeline {
         let direct_hits = self
             .router
             .cpu
-            .execute_pattern(scan_slice, ac, rules, keyword_to_rule);
+            .execute_pattern(scan_slice, ac, rules, keyword_to_rule, Some(path), true);
 
         debug!(
             path = %path,
@@ -292,6 +292,8 @@ impl Pipeline {
                             ac,
                             rules,
                             keyword_to_rule,
+                            Some(path),
+                            false,
                         );
 
                         for mut hit in hits {
