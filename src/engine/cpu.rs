@@ -623,7 +623,6 @@ const KEYWORD_PATTERNS: &[&[u8]] = &[
 ///
 /// Returns `(score, pattern)` where `score` is in `[0.0, 1.0]`.
 fn proximity_score_and_pattern(data: &[u8]) -> (f32, ProximityPattern) {
-    let total_patterns = ASSIGNMENT_PATTERNS.len() + KEYWORD_PATTERNS.len();
     let mut score = 0.0f32;
     let mut best_pattern = ProximityPattern::Unknown;
     let mut best_pattern_score = 0.0f32;
@@ -657,7 +656,7 @@ fn proximity_score_and_pattern(data: &[u8]) -> (f32, ProximityPattern) {
         }
     }
 
-    ((score / total_patterns as f32).min(1.0), best_pattern)
+    (score.min(1.0), best_pattern)
 }
 
 // ============================================================================

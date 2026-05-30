@@ -377,7 +377,7 @@ mod formatter_integration {
     }
 
     #[test]
-    fn json_reporter_produces_valid_array() {
+    fn json_reporter_produces_valid_object() {
         let reporter = JsonReporter;
         let findings = make_test_findings();
         let mut buf = Vec::new();
@@ -385,8 +385,9 @@ mod formatter_integration {
         let s = String::from_utf8(buf).unwrap();
         let parsed: serde_json::Value =
             serde_json::from_str(&s).expect("JSON reporter must produce valid JSON");
-        assert!(parsed.is_array());
-        assert_eq!(parsed.as_array().unwrap().len(), 2);
+        assert!(parsed.is_object());
+        assert_eq!(parsed["count"].as_u64(), Some(2));
+        assert_eq!(parsed["findings"].as_array().unwrap().len(), 2);
     }
 
     #[test]
@@ -397,14 +398,15 @@ mod formatter_integration {
         reporter.write(&findings, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
+        let findings = parsed["findings"].as_array().unwrap();
 
         // Check secret fields are redacted in both findings
-        let secret0 = parsed[0]["secret"].as_str().unwrap();
+        let secret0 = findings[0]["secret"].as_str().unwrap();
         assert!(
             !secret0.contains("AKIAIOSFODNN7EXAMPLE"),
             "AWS key must be redacted in secret field, got: {secret0}"
         );
-        let secret1 = parsed[1]["secret"].as_str().unwrap();
+        let secret1 = findings[1]["secret"].as_str().unwrap();
         assert!(
             !secret1.contains("ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ123456789012"),
             "GitHub token must be redacted in secret field, got: {secret1}"
@@ -525,12 +527,12 @@ mod formatter_integration {
 
         let formatter_str = json.format(&findings, false);
 
-        // Both should produce the same valid JSON array
+        // Both should produce the same valid wrapped JSON report
         let r: serde_json::Value = serde_json::from_str(&reporter_str).unwrap();
         let f: serde_json::Value = serde_json::from_str(&formatter_str).unwrap();
         assert_eq!(
-            r.as_array().unwrap().len(),
-            f.as_array().unwrap().len(),
+            r["findings"].as_array().unwrap().len(),
+            f["findings"].as_array().unwrap().len(),
             "Reporter and Formatter must produce same number of findings"
         );
     }

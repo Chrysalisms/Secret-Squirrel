@@ -182,16 +182,38 @@ impl Pipeline {
         let pattern_matches: Vec<PatternMatch> = tristream_results
             .into_iter()
             .map(|tsr| {
+                let literal = tsr
+                    .literals
+                    .iter()
+                    .max_by_key(|literal| literal.len())
+                    .cloned();
+                let context_bytes = tsr.source.context.as_ref();
+                let candidate_start = tsr.source.candidate.offset as usize;
+                let (matched_text, match_start, match_end) = if let Some(literal) = literal {
+                    let literal_bytes = literal.as_ref();
+                    let rel_start = memchr::memmem::find(context_bytes, literal_bytes).unwrap_or(0);
+                    let abs_start = candidate_start + rel_start;
+                    let abs_end = abs_start + literal_bytes.len();
+                    (
+                        String::from_utf8_lossy(literal_bytes).into_owned(),
+                        abs_start,
+                        abs_end,
+                    )
+                } else {
+                    let matched_text =
+                        String::from_utf8_lossy(tsr.source.candidate.raw.as_ref()).into_owned();
+                    let match_start = candidate_start;
+                    let match_end = candidate_start + tsr.source.candidate.length as usize;
+                    (matched_text, match_start, match_end)
+                };
                 // For each tri-stream result, emit a single PassThrough
                 // PatternMatch so that the scoring layer can see the fragment.
                 // The actual rule_id and pattern_score are filled in by the
                 // rules layer.
                 PatternMatch {
-                    match_start: tsr.source.candidate.offset as usize,
-                    match_end: (tsr.source.candidate.offset + tsr.source.candidate.length as u64)
-                        as usize,
-                    matched_text: String::from_utf8_lossy(tsr.source.candidate.raw.as_ref())
-                        .into_owned(),
+                    match_start,
+                    match_end,
+                    matched_text,
                     pattern_score: tsr.combined_score,
                     rule_id: String::new(), // filled in by rules layer
                     evidence: crate::types::MatchEvidence {

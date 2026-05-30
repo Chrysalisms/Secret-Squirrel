@@ -609,7 +609,12 @@ async fn run_detect(
 
     let nonce = session.nonce.clone();
 
-    let all_findings: Vec<(Vec<Finding>, secret_squirrel::engine::pipeline::PipelineStageStats)> =
+    let all_findings: Vec<(
+        Vec<Finding>,
+        secret_squirrel::engine::pipeline::PipelineStageStats,
+        u64,
+        bool,
+    )> =
         std::thread::scope(|s| {
         let (tx, rx) = crossbeam_channel::bounded(1024);
 
@@ -631,6 +636,10 @@ async fn run_detect(
                         return None;
                     }
                 };
+                let used_gpu = pipeline
+                    .router()
+                    .should_use_gpu(fragment.content.len() as u64);
+                let bytes_scanned = fragment.metadata.size;
 
                 let pipeline_result = match pipeline.process_fragment_with_rules(
                     &fragment,
@@ -803,17 +812,18 @@ async fn run_detect(
                         validation: None,
                         remediation: rule.remediation.clone(),
                         detected_at: Utc::now(),
-                        encoding_chain: None,
+                        encoding_chain: pm.encoding_chain.clone(),
                     };
 
                     local_findings.push(finding);
                 }
-                Some((local_findings, stats_snapshot))
+                Some((local_findings, stats_snapshot, bytes_scanned, used_gpu))
             })
             .collect()
     });
 
-    for (findings, stats_snapshot) in all_findings {
+    for (findings, stats_snapshot, bytes_scanned, used_gpu) in all_findings {
+        session.stats.record_file(bytes_scanned, used_gpu);
         session.stats.record_pipeline_stats(
             stats_snapshot.path_a_matches,
             stats_snapshot.path_b_matches,
