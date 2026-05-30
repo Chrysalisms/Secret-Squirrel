@@ -169,6 +169,22 @@ impl Pipeline {
                         .into_owned(),
                     pattern_score: tsr.combined_score,
                     rule_id: String::new(), // filled in by rules layer
+                    evidence: crate::types::MatchEvidence {
+                        kind: crate::types::MatchKind::Unknown,
+                        primary_identifier: tsr.identifiers.first().cloned(),
+                        proximity_pattern: tsr.source.pattern,
+                        typed: false,
+                        generic_catchall: false,
+                        private_key_like: false,
+                        multiline: false,
+                        has_assignment: !matches!(
+                            tsr.source.pattern,
+                            crate::types::ProximityPattern::Unknown
+                        ),
+                        has_secret_identifier: false,
+                        has_auth_context: false,
+                        value_entropy: tsr.source.candidate.entropy,
+                    },
                     source: tsr,
                     encoding_chain: None,
                 }
@@ -294,6 +310,7 @@ impl Pipeline {
                                 match_start: hit.match_start,
                                 match_end: hit.match_end,
                                 pattern_score: hit.pattern_score,
+                                evidence: hit.evidence,
                                 encoding_chain: hit.encoding_chain,
                             };
                             out.push(rebuilt);
@@ -348,6 +365,7 @@ impl Pipeline {
                     match_start: hit.match_start,
                     match_end: hit.match_end,
                     pattern_score: hit.pattern_score,
+                    evidence: hit.evidence,
                     encoding_chain: hit.encoding_chain,
                 });
             }

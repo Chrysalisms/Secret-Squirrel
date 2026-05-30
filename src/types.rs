@@ -293,6 +293,90 @@ pub struct FusedScore {
 }
 
 // ============================
+// MatchKind / MatchEvidence
+// ============================
+
+/// High-level semantic class for a detected secret candidate.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchKind {
+    ApiKeyAssignment,
+    PasswordAssignment,
+    TokenAssignment,
+    UrlCredentials,
+    PrivateKey,
+    BearerAuth,
+    Jwt,
+    NonceLike,
+    Catchall,
+    Unknown,
+}
+
+impl MatchKind {
+    /// Rule-precedence rank used when choosing between overlapping findings.
+    pub fn precedence_rank(self) -> u8 {
+        match self {
+            MatchKind::PrivateKey => 6,
+            MatchKind::ApiKeyAssignment | MatchKind::PasswordAssignment => 5,
+            MatchKind::UrlCredentials | MatchKind::TokenAssignment => 4,
+            MatchKind::BearerAuth | MatchKind::Jwt => 3,
+            MatchKind::NonceLike => 2,
+            MatchKind::Catchall => 1,
+            MatchKind::Unknown => 0,
+        }
+    }
+
+    pub fn is_typed(self) -> bool {
+        !matches!(self, MatchKind::Catchall | MatchKind::Unknown)
+    }
+}
+
+/// Structured evidence attached to a pattern match and final finding.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MatchEvidence {
+    pub kind: MatchKind,
+    pub primary_identifier: Option<String>,
+    pub proximity_pattern: ProximityPattern,
+    pub typed: bool,
+    pub generic_catchall: bool,
+    pub private_key_like: bool,
+    pub multiline: bool,
+    pub has_assignment: bool,
+    pub has_secret_identifier: bool,
+    pub has_auth_context: bool,
+    pub value_entropy: f32,
+}
+
+impl MatchEvidence {
+    pub fn precedence_rank(&self) -> u8 {
+        let base = self.kind.precedence_rank();
+        if self.generic_catchall {
+            base.min(1)
+        } else {
+            base
+        }
+    }
+}
+
+impl Default for MatchEvidence {
+    fn default() -> Self {
+        Self {
+            kind: MatchKind::Unknown,
+            primary_identifier: None,
+            proximity_pattern: ProximityPattern::Unknown,
+            typed: false,
+            generic_catchall: false,
+            private_key_like: false,
+            multiline: false,
+            has_assignment: false,
+            has_secret_identifier: false,
+            has_auth_context: false,
+            value_entropy: 0.0,
+        }
+    }
+}
+
+// ============================
 // Finding
 // ============================
 
@@ -316,6 +400,8 @@ pub struct Finding {
     pub location: Location,
     /// Composite confidence and sub-scores
     pub score: FusedScore,
+    /// Structured evidence captured during detection and scoring.
+    pub evidence: MatchEvidence,
     /// Severity level
     pub severity: Severity,
     /// Cross-file credential chain (populated by correlation engine)
@@ -472,6 +558,7 @@ pub struct PatternMatch {
     pub match_start: usize,
     pub match_end: usize,
     pub pattern_score: f32,
+    pub evidence: MatchEvidence,
     pub encoding_chain: Option<Vec<String>>,
 }
 

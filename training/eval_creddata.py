@@ -50,17 +50,25 @@ def _norm_path(path: str) -> str:
 
 
 def _normalise_file_path(file_path: str) -> str:
-    prefixes = [
-        "benchmark/CredData/data/",
-        "CredData/data/",
+    normalized = _norm_path(file_path)
+    normalized_lower = normalized.lower()
+
+    # Scanner outputs may include absolute Windows/WSL paths while CredData
+    # metadata is relative to the dataset root. Trim everything through the
+    # dataset's data/ directory so both sides compare on the same path shape.
+    markers = [
+        "benchmark/creddata/data/",
+        "creddata/data/",
         "./data/",
         "data/",
     ]
-    for prefix in prefixes:
-        if file_path.startswith(prefix):
-            file_path = file_path[len(prefix) :]
-            break
-    return _norm_path(file_path)
+
+    for marker in markers:
+        index = normalized_lower.find(marker)
+        if index != -1:
+            return normalized[index + len(marker) :]
+
+    return normalized
 
 
 def finding_to_dict(finding: Finding) -> dict[str, str | int]:

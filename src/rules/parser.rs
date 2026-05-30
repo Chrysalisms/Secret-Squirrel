@@ -136,6 +136,7 @@ pub struct Rule {
     pub allowlist: Vec<String>,
 
     /// Per-rule entropy threshold override. If `None`, uses the global value.
+    #[serde(alias = "entropy")]
     pub entropy_threshold: Option<f32>,
 
     /// Per-rule confidence weight override (0.0–1.0). If `None`, defaults to 1.0.

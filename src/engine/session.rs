@@ -27,6 +27,7 @@ use std::collections::HashSet;
 use tracing::debug;
 
 use crate::config::SquirrelConfig;
+use crate::scoring::dedup::Deduplicator;
 use crate::types::{Finding, Severity};
 
 // ============================================================================
@@ -177,7 +178,7 @@ impl ScanSession {
     ///
     /// Call once after all fragments have been processed.
     pub fn finalize(&mut self) {
-        self.deduplicate_findings();
+        self.findings = Deduplicator::deduplicate(std::mem::take(&mut self.findings));
 
         // Sort: highest severity first, then highest confidence.
         self.findings.sort_by(|a, b| {
@@ -260,6 +261,7 @@ mod tests {
                 cnn_score: None,
                 ast_adjustment: None,
             },
+            evidence: Default::default(),
             severity,
             chain: None,
             validation: None,

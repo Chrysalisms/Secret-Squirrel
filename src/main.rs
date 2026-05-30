@@ -708,14 +708,26 @@ async fn run_detect(
                     let context_str = std::str::from_utf8(context_bytes).unwrap_or("");
                     let hn_on_context = hard_neg.penalty(context_str);
                     let hn_penalty = hn_on_value.min(hn_on_context);
+                    let example_like_path = {
+                        let lower = fragment.metadata.path.to_lowercase();
+                        lower.ends_with(".example")
+                            || lower.ends_with(".sample")
+                            || lower.ends_with(".template")
+                            || lower.ends_with(".example.env")
+                            || lower.ends_with(".env.example")
+                            || lower.ends_with(".env.sample")
+                    };
 
                     if (hn_penalty - HARD_NEGATIVE_PENALTY).abs() < 1e-6 {
-                        tracing::debug!(
-                            matched = %secret_str,
-                            rule    = %pm.rule_id,
-                            "hard-negative exact match suppressed"
-                        );
-                        continue;
+                        if pm.evidence.generic_catchall || !pm.evidence.typed || example_like_path {
+                            tracing::debug!(
+                                matched = %secret_str,
+                                rule    = %pm.rule_id,
+                                "hard-negative exact match suppressed"
+                            );
+                            continue;
+                        }
+                        fused_score.confidence = (fused_score.confidence + (HARD_NEGATIVE_PENALTY * 0.4)).max(0.0);
                     } else if hn_penalty < 0.0 {
                         tracing::debug!(
                             matched = %secret_str,
@@ -757,6 +769,7 @@ async fn run_detect(
                             byte_offset: pm.match_start as u64,
                         },
                         score: fused_score,
+                        evidence: pm.evidence.clone(),
                         severity: rule.severity,
                         chain: None,
                         validation: None,

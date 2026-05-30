@@ -22,7 +22,7 @@ use aho_corasick::AhoCorasick;
 
 use crate::error::{Result, SquirrelError};
 use crate::rules::CompiledRule;
-use crate::types::{PatternMatch, TriStreamResult};
+use crate::types::{MatchEvidence, MatchKind, PatternMatch, TriStreamResult};
 
 /// A keyword → rule-index mapping entry, built during construction.
 struct KeywordEntry {
@@ -165,6 +165,7 @@ impl PatternVerifier {
                     match_start: m.start(),
                     match_end: m.end(),
                     pattern_score: rule.confidence_weight as f32,
+                    evidence: infer_pattern_evidence(rule, &result, m.as_str()),
                     encoding_chain: encoding_chain.clone(),
                 });
                 // One match per rule per candidate is sufficient.
@@ -184,10 +185,51 @@ impl PatternVerifier {
                     match_start: m.start(),
                     match_end: m.end(),
                     pattern_score: rule.confidence_weight as f32,
+                    evidence: infer_pattern_evidence(rule, &result, m.as_str()),
                     encoding_chain: encoding_chain.clone(),
                 });
             }
         }
+    }
+}
+
+fn infer_pattern_evidence(rule: &CompiledRule, result: &TriStreamResult, matched_text: &str) -> MatchEvidence {
+    let lower_rule = rule.id.to_lowercase();
+    let joined = result.identifiers.join(" ").to_lowercase();
+    let kind = if lower_rule.contains("private-key") {
+        MatchKind::PrivateKey
+    } else if lower_rule.contains("api-key") || joined.contains("api_key") || joined.contains("apikey") {
+        MatchKind::ApiKeyAssignment
+    } else if lower_rule.contains("password") || joined.contains("password") {
+        MatchKind::PasswordAssignment
+    } else if lower_rule.contains("token") || joined.contains("token") {
+        MatchKind::TokenAssignment
+    } else if lower_rule.contains("nonce") || joined.contains("nonce") {
+        MatchKind::NonceLike
+    } else if lower_rule.contains("catchall") {
+        MatchKind::Catchall
+    } else {
+        MatchKind::Unknown
+    };
+
+    MatchEvidence {
+        kind,
+        primary_identifier: result.identifiers.first().cloned(),
+        proximity_pattern: result.source.pattern,
+        typed: kind.is_typed(),
+        generic_catchall: lower_rule.contains("catchall"),
+        private_key_like: lower_rule.contains("private-key"),
+        multiline: matched_text.contains('\n'),
+        has_assignment: !matches!(result.source.pattern, crate::types::ProximityPattern::Unknown),
+        has_secret_identifier: joined.contains("password")
+            || joined.contains("secret")
+            || joined.contains("token")
+            || joined.contains("api_key")
+            || joined.contains("apikey")
+            || joined.contains("private_key")
+            || joined.contains("nonce"),
+        has_auth_context: joined.contains("auth"),
+        value_entropy: crate::engine::cpu::shannon_entropy(matched_text.as_bytes()),
     }
 }
 

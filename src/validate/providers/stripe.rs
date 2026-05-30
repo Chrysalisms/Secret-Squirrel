@@ -181,6 +181,7 @@ mod tests {
                 cnn_score: None,
                 ast_adjustment: None,
             },
+            evidence: Default::default(),
             severity: Severity::Critical,
             chain: None,
             validation: None,

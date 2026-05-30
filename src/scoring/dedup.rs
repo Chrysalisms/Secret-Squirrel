@@ -65,6 +65,11 @@ impl Deduplicator {
             .map(|mut group| {
                 // Sort by (descending confidence, ascending range, ascending offset).
                 group.sort_by(|a, b| {
+                    let precedence_cmp = b.evidence.precedence_rank().cmp(&a.evidence.precedence_rank());
+                    if precedence_cmp != std::cmp::Ordering::Equal {
+                        return precedence_cmp;
+                    }
+
                     // Primary: higher confidence wins.
                     let conf_cmp = b
                         .score
@@ -143,6 +148,23 @@ mod tests {
                 markov: 0.5,
                 cnn_score: None,
                 ast_adjustment: None,
+            },
+            evidence: crate::types::MatchEvidence {
+                kind: if rule_id.contains("generic") {
+                    crate::types::MatchKind::Catchall
+                } else {
+                    crate::types::MatchKind::ApiKeyAssignment
+                },
+                primary_identifier: None,
+                proximity_pattern: crate::types::ProximityPattern::Assignment,
+                typed: !rule_id.contains("generic"),
+                generic_catchall: rule_id.contains("generic"),
+                private_key_like: false,
+                multiline: false,
+                has_assignment: true,
+                has_secret_identifier: true,
+                has_auth_context: false,
+                value_entropy: 4.0,
             },
             severity: Severity::High,
             chain: None,

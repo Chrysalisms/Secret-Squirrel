@@ -320,6 +320,7 @@ mod tests {
                 cnn_score: None,
                 ast_adjustment: None,
             },
+            evidence: Default::default(),
             severity,
             chain: None,
             validation: None,

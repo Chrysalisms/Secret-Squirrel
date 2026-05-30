@@ -103,7 +103,7 @@ impl FusionEngine {
         // Apply provenance-aware confidence adjustment.
         let identifiers: Vec<String> = pm.source.identifiers.clone();
         let adjusted =
-            ConfidenceAdjuster::adjust_with_identifiers(normalized, metadata, &identifiers);
+            ConfidenceAdjuster::adjust_with_context(normalized, metadata, &identifiers, Some(&pm.evidence));
 
         // Apply optional AST adjustment (additive delta, clamped).
         let ast_adjustment_opt = ast.map(|a| a as f64);
@@ -192,6 +192,19 @@ mod tests {
             match_start: offset,
             match_end: offset + secret_bytes.len(),
             pattern_score,
+            evidence: crate::types::MatchEvidence {
+                kind: crate::types::MatchKind::ApiKeyAssignment,
+                primary_identifier: Some("API_SECRET".to_string()),
+                proximity_pattern: ProximityPattern::Assignment,
+                typed: true,
+                generic_catchall: false,
+                private_key_like: false,
+                multiline: false,
+                has_assignment: true,
+                has_secret_identifier: true,
+                has_auth_context: false,
+                value_entropy: entropy,
+            },
             encoding_chain: None,
         }
     }

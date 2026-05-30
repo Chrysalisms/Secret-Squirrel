@@ -25,7 +25,8 @@ use tracing::debug;
 
 use crate::error::{Result, SquirrelError};
 use crate::types::{
-    EntropyCandidate, PatternMatch, ProximityMatch, ProximityPattern, TriStreamResult,
+    EntropyCandidate, MatchEvidence, MatchKind, PatternMatch, ProximityMatch, ProximityPattern,
+    TriStreamResult,
 };
 
 // ── CompiledRule forward declaration ─────────────────────────────────────────
@@ -277,17 +278,55 @@ impl CpuEngine {
     /// Run the compiled regex (fancy or standard) over `haystack` and return
     /// `(start, end, matched_text)` tuples.
     fn run_regex(rule: &crate::rules::CompiledRule, haystack: &str) -> Vec<(usize, usize, String)> {
-        if let Some(ref fr) = rule.fancy_regex {
-            fr.find_iter(haystack)
+        let mut matches = if let Some(ref fr) = rule.fancy_regex {
+            fr.captures_iter(haystack)
                 .filter_map(|r| r.ok())
-                .map(|m| (m.start(), m.end(), m.as_str().to_string()))
-                .collect()
+                .filter_map(|caps| {
+                    let whole = caps.get(0)?;
+                    let extracted = rule
+                        .secret_group_regex
+                        .as_ref()
+                        .and_then(|group_re| group_re.captures(whole.as_str()))
+                        .and_then(|group_caps| group_caps.get(1).map(|m| m.as_str().to_string()))
+                        .unwrap_or_else(|| whole.as_str().to_string());
+                    Some((whole.start(), whole.end(), extracted))
+                })
+                .collect::<Vec<_>>()
         } else {
             rule.regex
-                .find_iter(haystack)
-                .map(|m| (m.start(), m.end(), m.as_str().to_string()))
-                .collect()
-        }
+                .captures_iter(haystack)
+                .filter_map(|caps| {
+                    let whole = caps.get(0)?;
+                    let extracted = if let Some(ref group_re) = rule.secret_group_regex {
+                        group_re
+                            .captures(whole.as_str())
+                            .and_then(|group_caps| group_caps.get(1).map(|m| m.as_str().to_string()))
+                            .unwrap_or_else(|| {
+                                caps.get(1)
+                                    .map(|m| m.as_str().to_string())
+                                    .unwrap_or_else(|| whole.as_str().to_string())
+                            })
+                    } else {
+                        caps.get(1)
+                            .map(|m| m.as_str().to_string())
+                            .unwrap_or_else(|| whole.as_str().to_string())
+                    };
+                    Some((whole.start(), whole.end(), extracted))
+                })
+                .collect::<Vec<_>>()
+        };
+
+        matches.retain(|(_, _, extracted)| {
+            if rule.allowlist_regexes.iter().any(|allow| allow.is_match(extracted)) {
+                return false;
+            }
+            if let Some(entropy_threshold) = rule.entropy_threshold {
+                return shannon_entropy(extracted.as_bytes()) >= entropy_threshold;
+            }
+            true
+        });
+
+        matches
     }
 
     /// Build a [`PatternMatch`] from raw match coordinates.
@@ -322,13 +361,15 @@ impl CpuEngine {
             structure_score: 0.0,
             combined_score: 0.0,
         };
+        let evidence = infer_match_evidence(rule, &text, &dummy_tristream);
         PatternMatch {
             source: dummy_tristream,
             rule_id: rule.id.clone(),
             matched_text: text,
             match_start: start,
             match_end: end,
-            pattern_score: 1.0,
+            pattern_score: rule.confidence_weight as f32,
+            evidence,
             encoding_chain: None,
         }
     }
@@ -581,6 +622,72 @@ fn extract_literals(data: &[u8]) -> Vec<Bytes> {
 #[inline(always)]
 fn is_base64_char(b: u8) -> bool {
     BASE64_CHARS.contains(&b)
+}
+
+fn infer_match_evidence(
+    rule: &crate::rules::CompiledRule,
+    matched_text: &str,
+    source: &TriStreamResult,
+) -> MatchEvidence {
+    let lower_rule = rule.id.to_lowercase();
+    let identifiers = &source.identifiers;
+    let primary_identifier = identifiers.first().cloned();
+    let joined_identifiers = identifiers.join(" ").to_lowercase();
+    let matched_lower = matched_text.to_lowercase();
+    let context = String::from_utf8_lossy(source.source.context.as_ref()).to_lowercase();
+    let value_entropy = shannon_entropy(matched_text.as_bytes());
+    let private_key_like =
+        lower_rule.contains("private-key") || matched_lower.contains("begin") && matched_lower.contains("private key");
+    let generic_catchall = lower_rule.contains("catchall");
+    let has_auth_context = context.contains("authorization")
+        || context.contains("bearer")
+        || context.contains("auth")
+        || joined_identifiers.contains("auth");
+    let has_secret_identifier = joined_identifiers.contains("password")
+        || joined_identifiers.contains("secret")
+        || joined_identifiers.contains("token")
+        || joined_identifiers.contains("api_key")
+        || joined_identifiers.contains("apikey")
+        || joined_identifiers.contains("private_key")
+        || joined_identifiers.contains("nonce");
+    let kind = if private_key_like {
+        MatchKind::PrivateKey
+    } else if lower_rule.contains("url") && lower_rule.contains("credential") {
+        MatchKind::UrlCredentials
+    } else if lower_rule.contains("jwt") {
+        MatchKind::Jwt
+    } else if lower_rule.contains("bearer") || has_auth_context && matched_lower.starts_with("bearer ") {
+        MatchKind::BearerAuth
+    } else if lower_rule.contains("api-key")
+        || joined_identifiers.contains("api_key")
+        || joined_identifiers.contains("apikey")
+    {
+        MatchKind::ApiKeyAssignment
+    } else if lower_rule.contains("password") || joined_identifiers.contains("password") {
+        MatchKind::PasswordAssignment
+    } else if lower_rule.contains("token") || joined_identifiers.contains("token") {
+        MatchKind::TokenAssignment
+    } else if lower_rule.contains("nonce") || joined_identifiers.contains("nonce") {
+        MatchKind::NonceLike
+    } else if generic_catchall {
+        MatchKind::Catchall
+    } else {
+        MatchKind::Unknown
+    };
+
+    MatchEvidence {
+        kind,
+        primary_identifier,
+        proximity_pattern: source.source.pattern,
+        typed: kind.is_typed(),
+        generic_catchall,
+        private_key_like,
+        multiline: matched_text.contains('\n'),
+        has_assignment: !matches!(source.source.pattern, ProximityPattern::Unknown),
+        has_secret_identifier,
+        has_auth_context,
+        value_entropy,
+    }
 }
 
 // ============================================================================
