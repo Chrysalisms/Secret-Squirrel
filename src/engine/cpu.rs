@@ -21,6 +21,7 @@
 
 use bytes::Bytes;
 use rayon::prelude::*;
+use std::sync::OnceLock;
 use tracing::debug;
 
 use crate::error::{Result, SquirrelError};
@@ -55,6 +56,18 @@ use crate::types::{
 pub struct CpuEngine {
     /// Dedicated Rayon thread pool for scan work.
     pub thread_pool: rayon::ThreadPool,
+}
+
+#[derive(Debug, Clone)]
+struct TypedAssignmentCandidate {
+    base_offset: usize,
+    context: Bytes,
+    snippet: String,
+    identifier: Option<String>,
+    value: String,
+    evidence: MatchEvidence,
+    proximity_score: f32,
+    structure_score: f32,
 }
 
 impl std::fmt::Debug for CpuEngine {
@@ -272,6 +285,34 @@ impl CpuEngine {
             }
         }
 
+        // ── Typed assignment extractor path ────────────────────────────────
+        // This is the first step toward a discovery-first architecture:
+        // instead of relying solely on keyword hits, parse assignment-shaped
+        // snippets and run only semantically relevant rules on those snippets.
+        for candidate in extract_typed_assignments(data) {
+            for (rule_idx, rule) in rules.iter().enumerate() {
+                if !typed_candidate_may_match_rule(&candidate, rule) {
+                    continue;
+                }
+
+                let regex_matches = Self::run_regex(rule, &candidate.snippet);
+                for (rel_start, rel_end, text) in regex_matches {
+                    let abs_start = candidate.base_offset + rel_start;
+                    let abs_end = candidate.base_offset + rel_end;
+                    let key = (rule_idx, abs_start);
+                    if seen.insert(key) {
+                        matches.push(Self::make_typed_match(
+                            rule,
+                            abs_start,
+                            abs_end,
+                            text,
+                            &candidate,
+                        ));
+                    }
+                }
+            }
+        }
+
         matches
     }
 
@@ -370,6 +411,44 @@ impl CpuEngine {
             match_end: end,
             pattern_score: rule.confidence_weight as f32,
             evidence,
+            encoding_chain: None,
+        }
+    }
+
+    fn make_typed_match(
+        rule: &crate::rules::CompiledRule,
+        start: usize,
+        end: usize,
+        text: String,
+        candidate: &TypedAssignmentCandidate,
+    ) -> PatternMatch {
+        let value_bytes = Bytes::copy_from_slice(candidate.value.as_bytes());
+        let tristream = TriStreamResult {
+            source: ProximityMatch {
+                candidate: EntropyCandidate {
+                    offset: start as u64,
+                    length: candidate.value.len() as u32,
+                    entropy: shannon_entropy(candidate.value.as_bytes()),
+                    raw: value_bytes.clone(),
+                },
+                pattern: candidate.evidence.proximity_pattern,
+                proximity_score: candidate.proximity_score,
+                context: candidate.context.clone(),
+            },
+            identifiers: candidate.identifier.clone().into_iter().collect(),
+            literals: vec![value_bytes],
+            structure_score: candidate.structure_score,
+            combined_score: ((candidate.proximity_score + candidate.structure_score) / 2.0).min(1.0),
+        };
+
+        PatternMatch {
+            source: tristream,
+            rule_id: rule.id.clone(),
+            matched_text: text,
+            match_start: start,
+            match_end: end,
+            pattern_score: rule.confidence_weight as f32,
+            evidence: candidate.evidence.clone(),
             encoding_chain: None,
         }
     }
@@ -622,6 +701,299 @@ fn extract_literals(data: &[u8]) -> Vec<Bytes> {
 #[inline(always)]
 fn is_base64_char(b: u8) -> bool {
     BASE64_CHARS.contains(&b)
+}
+
+fn eq_assignment_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)\b([A-Za-z_][A-Za-z0-9_.-]{1,80})\b\s*(=|:=)\s*["']?([^\s"'`#;]{6,256})["']?"#,
+        )
+        .expect("valid eq assignment regex")
+    })
+}
+
+fn kv_assignment_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)["']?([A-Za-z_][A-Za-z0-9_.-]{1,80})["']?\s*:\s*["']?([^"'#,}\]\s][^"'#,}\]]{5,256})["']?"#,
+        )
+        .expect("valid key-value assignment regex")
+    })
+}
+
+fn url_credentials_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)((?:postgres(?:ql)?|mysql|mariadb|mssql|mongodb|redis|amqp|rabbitmq|https?)://[A-Za-z0-9_.~-]{1,64}:([^@\s'"`]{4,128})@[A-Za-z0-9._:/-]{1,253})"#,
+        )
+        .expect("valid URL credential regex")
+    })
+}
+
+fn extract_typed_assignments(data: &[u8]) -> Vec<TypedAssignmentCandidate> {
+    let mut candidates = Vec::new();
+    let mut line_offset = 0usize;
+
+    for line in data.split_inclusive(|&b| b == b'\n') {
+        let line_len = line.len();
+        let line_body = if line.last() == Some(&b'\n') {
+            &line[..line_len.saturating_sub(1)]
+        } else {
+            line
+        };
+        let line_str = String::from_utf8_lossy(line_body);
+        let trimmed = line_str.trim();
+        if trimmed.is_empty() {
+            line_offset += line_len;
+            continue;
+        }
+
+        for caps in eq_assignment_regex().captures_iter(&line_str) {
+            let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let value = caps.get(3).map(|m| m.as_str()).unwrap_or_default();
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                identifier,
+                value,
+                ProximityPattern::Assignment,
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
+        for caps in kv_assignment_regex().captures_iter(&line_str) {
+            let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let value = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
+            let pattern = if line_str.trim_start().starts_with('{') || line_str.contains('"') {
+                ProximityPattern::JsonKey
+            } else {
+                ProximityPattern::YamlKey
+            };
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                identifier,
+                value,
+                pattern,
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
+        for caps in url_credentials_regex().captures_iter(&line_str) {
+            let whole = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let password = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                "database_url",
+                password,
+                ProximityPattern::Assignment,
+            ) {
+                let mut candidate = candidate;
+                candidate.snippet = whole.to_string();
+                candidate.evidence.kind = MatchKind::UrlCredentials;
+                candidate.evidence.typed = true;
+                candidates.push(candidate);
+            }
+        }
+
+        line_offset += line_len;
+    }
+
+    candidates
+}
+
+fn build_typed_assignment_candidate(
+    line_offset: usize,
+    line_body: &[u8],
+    line_str: &str,
+    identifier: &str,
+    value: &str,
+    pattern: ProximityPattern,
+) -> Option<TypedAssignmentCandidate> {
+    let value = value.trim_matches(|c| c == '"' || c == '\'' || c == '`').trim();
+    if !is_plausible_assignment_value(value) {
+        return None;
+    }
+
+    let kind = classify_identifier_kind(identifier, value, line_str);
+    if matches!(kind, MatchKind::Unknown | MatchKind::Catchall) {
+        return None;
+    }
+
+    let has_auth_context = line_str.to_lowercase().contains("auth")
+        || line_str.to_lowercase().contains("bearer")
+        || line_str.to_lowercase().contains("authorization");
+    let has_secret_identifier = identifier_looks_secret(identifier);
+    let evidence = MatchEvidence {
+        kind,
+        primary_identifier: Some(identifier.to_string()),
+        proximity_pattern: pattern,
+        typed: true,
+        generic_catchall: false,
+        private_key_like: matches!(kind, MatchKind::PrivateKey),
+        multiline: value.contains('\n'),
+        has_assignment: true,
+        has_secret_identifier,
+        has_auth_context,
+        value_entropy: shannon_entropy(value.as_bytes()),
+    };
+
+    Some(TypedAssignmentCandidate {
+        base_offset: line_offset,
+        context: Bytes::copy_from_slice(line_body),
+        snippet: line_str.to_string(),
+        identifier: Some(identifier.to_string()),
+        value: value.to_string(),
+        evidence,
+        proximity_score: if has_secret_identifier { 0.9 } else { 0.75 },
+        structure_score: if matches!(pattern, ProximityPattern::JsonKey | ProximityPattern::YamlKey) {
+            0.85
+        } else {
+            0.75
+        },
+    })
+}
+
+fn normalize_identifier(identifier: &str) -> String {
+    identifier
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .flat_map(|c| c.to_lowercase())
+        .collect()
+}
+
+fn classify_identifier_kind(identifier: &str, value: &str, line: &str) -> MatchKind {
+    let normalized = normalize_identifier(identifier);
+    let lower_line = line.to_lowercase();
+    let lower_value = value.to_lowercase();
+
+    if normalized.contains("privatekey") || lower_line.contains("begin private key") {
+        MatchKind::PrivateKey
+    } else if normalized.contains("nonce") {
+        MatchKind::NonceLike
+    } else if lower_line.contains("://") && lower_line.contains('@') {
+        MatchKind::UrlCredentials
+    } else if normalized.contains("bearer") || lower_line.contains("authorization: bearer") {
+        MatchKind::BearerAuth
+    } else if normalized.contains("jwt") {
+        MatchKind::Jwt
+    } else if normalized.contains("password")
+        || normalized.contains("passwd")
+        || normalized.ends_with("pwd")
+    {
+        MatchKind::PasswordAssignment
+    } else if normalized.contains("apikey")
+        || normalized.contains("clientsecret")
+        || normalized.contains("secretkey")
+        || normalized.contains("accesskey")
+        || normalized.contains("webhooksecret")
+        || normalized.contains("hmacsecret")
+        || normalized.contains("signingkey")
+    {
+        MatchKind::ApiKeyAssignment
+    } else if normalized.contains("token")
+        || normalized.contains("secret")
+        || normalized.contains("sessionsecret")
+        || normalized.contains("oauth")
+        || normalized.contains("oidc")
+        || lower_value.starts_with("ghp_")
+        || lower_value.starts_with("ghs_")
+        || lower_value.starts_with("xoxb-")
+    {
+        MatchKind::TokenAssignment
+    } else {
+        MatchKind::Unknown
+    }
+}
+
+fn identifier_looks_secret(identifier: &str) -> bool {
+    let normalized = normalize_identifier(identifier);
+    [
+        "password",
+        "passwd",
+        "pwd",
+        "secret",
+        "token",
+        "apikey",
+        "accesskey",
+        "clientsecret",
+        "privatekey",
+        "nonce",
+    ]
+    .iter()
+    .any(|needle| normalized.contains(needle))
+}
+
+fn is_plausible_assignment_value(value: &str) -> bool {
+    let lower = value.to_lowercase();
+    if value.len() < 6 {
+        return false;
+    }
+    if value.starts_with("${")
+        || value.starts_with("$(")
+        || value.starts_with("<")
+        || value.starts_with("{{")
+        || lower == "null"
+        || lower == "undefined"
+        || lower == "changeme"
+        || lower == "password"
+        || lower.starts_with("your_")
+        || lower.starts_with("example")
+    {
+        return false;
+    }
+    true
+}
+
+fn typed_candidate_may_match_rule(
+    candidate: &TypedAssignmentCandidate,
+    rule: &crate::rules::CompiledRule,
+) -> bool {
+    let rule_id = rule.id.to_lowercase();
+    match candidate.evidence.kind {
+        MatchKind::ApiKeyAssignment => {
+            rule_id.contains("api-key")
+                || rule_id.contains("secret-key")
+                || rule_id.contains("access-key")
+                || rule_id.contains("client-secret")
+                || rule_id.contains("oauth")
+                || rule_id.contains("webhook")
+                || rule_id.contains("hmac")
+                || rule_id.contains("signing-key")
+                || rule_id.contains("session-secret")
+                || rule_id.contains("catchall")
+        }
+        MatchKind::PasswordAssignment => {
+            rule_id.contains("password") || rule_id.contains("smtp") || rule_id.contains("database-url")
+        }
+        MatchKind::TokenAssignment | MatchKind::BearerAuth | MatchKind::Jwt => {
+            rule_id.contains("token")
+                || rule_id.contains("secret")
+                || rule_id.contains("oauth")
+                || rule_id.contains("jwt")
+                || rule_id.contains("session-secret")
+                || rule_id.contains("webhook")
+                || rule_id.contains("hmac")
+                || rule_id.contains("catchall")
+        }
+        MatchKind::UrlCredentials => {
+            rule_id.contains("url") || rule_id.contains("database-url") || rule_id.contains("credentials")
+        }
+        MatchKind::PrivateKey => {
+            rule_id.contains("private-key") || rule_id.contains("pem") || rule_id.contains("signing-key")
+        }
+        MatchKind::NonceLike => rule_id.contains("nonce") || rule_id.contains("catchall"),
+        MatchKind::Catchall | MatchKind::Unknown => false,
+    }
 }
 
 fn infer_match_evidence(
@@ -929,6 +1301,40 @@ mod tests {
         assert!(
             r.literals.iter().any(|l| l.len() >= MIN_BASE64_BLOB_LEN),
             "Should detect base64-like blob"
+        );
+    }
+
+    #[test]
+    fn test_typed_assignment_extractor_finds_api_key_assignment() {
+        let data = br#"client_secret = "sk_live_1234567890abcdefghijklmnopqrstuvwxyz""#;
+        let candidates = extract_typed_assignments(data);
+        assert!(
+            candidates
+                .iter()
+                .any(|c| c.evidence.kind == MatchKind::ApiKeyAssignment && c.identifier.as_deref() == Some("client_secret")),
+            "typed extractor should classify client_secret as an API-key style assignment"
+        );
+    }
+
+    #[test]
+    fn test_typed_assignment_extractor_finds_url_credentials() {
+        let data = br#"DATABASE_URL=postgres://user:sup3rsecr3t@example.com/db"#;
+        let candidates = extract_typed_assignments(data);
+        assert!(
+            candidates
+                .iter()
+                .any(|c| c.evidence.kind == MatchKind::UrlCredentials),
+            "typed extractor should classify embedded URL credentials"
+        );
+    }
+
+    #[test]
+    fn test_typed_assignment_extractor_skips_placeholders() {
+        let data = br#"API_KEY=YOUR_API_KEY"#;
+        let candidates = extract_typed_assignments(data);
+        assert!(
+            candidates.is_empty(),
+            "placeholder assignments should not become typed candidates"
         );
     }
 
