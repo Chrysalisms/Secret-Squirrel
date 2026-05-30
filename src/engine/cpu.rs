@@ -289,11 +289,10 @@ impl CpuEngine {
         // This is the first step toward a discovery-first architecture:
         // instead of relying solely on keyword hits, parse assignment-shaped
         // snippets and run only semantically relevant rules on those snippets.
+        let typed_rule_indexes = build_typed_rule_indexes(rules);
         for candidate in extract_typed_assignments(data) {
-            for (rule_idx, rule) in rules.iter().enumerate() {
-                if !typed_candidate_may_match_rule(&candidate, rule) {
-                    continue;
-                }
+            for &rule_idx in candidate_rule_indexes(&candidate, &typed_rule_indexes) {
+                let rule = &rules[rule_idx];
 
                 let regex_matches = Self::run_regex(rule, &candidate.snippet);
                 for (rel_start, rel_end, text) in regex_matches {
@@ -954,45 +953,70 @@ fn is_plausible_assignment_value(value: &str) -> bool {
     true
 }
 
-fn typed_candidate_may_match_rule(
+#[derive(Default)]
+struct TypedRuleIndexes {
+    api_key: Vec<usize>,
+    password: Vec<usize>,
+    token: Vec<usize>,
+    url_credentials: Vec<usize>,
+    private_key: Vec<usize>,
+    nonce_like: Vec<usize>,
+}
+
+fn build_typed_rule_indexes(rules: &[crate::rules::CompiledRule]) -> TypedRuleIndexes {
+    let mut indexes = TypedRuleIndexes::default();
+    for (idx, rule) in rules.iter().enumerate() {
+        let id = rule.id.to_lowercase();
+        if id.contains("api-key")
+            || id.contains("secret-key")
+            || id.contains("access-key")
+            || id.contains("client-secret")
+            || id.contains("oauth")
+            || id.contains("webhook")
+            || id.contains("hmac")
+            || id.contains("signing-key")
+            || id.contains("session-secret")
+        {
+            indexes.api_key.push(idx);
+        }
+        if id.contains("password") || id.contains("smtp") {
+            indexes.password.push(idx);
+        }
+        if id.contains("token")
+            || id.contains("secret")
+            || id.contains("oauth")
+            || id.contains("jwt")
+            || id.contains("session-secret")
+            || id.contains("webhook")
+            || id.contains("hmac")
+        {
+            indexes.token.push(idx);
+        }
+        if id.contains("url") || id.contains("database-url") || id.contains("credentials") {
+            indexes.url_credentials.push(idx);
+        }
+        if id.contains("private-key") || id.contains("pem") || id.contains("signing-key") {
+            indexes.private_key.push(idx);
+        }
+        if id.contains("nonce") {
+            indexes.nonce_like.push(idx);
+        }
+    }
+    indexes
+}
+
+fn candidate_rule_indexes<'a>(
     candidate: &TypedAssignmentCandidate,
-    rule: &crate::rules::CompiledRule,
-) -> bool {
-    let rule_id = rule.id.to_lowercase();
+    indexes: &'a TypedRuleIndexes,
+) -> &'a [usize] {
     match candidate.evidence.kind {
-        MatchKind::ApiKeyAssignment => {
-            rule_id.contains("api-key")
-                || rule_id.contains("secret-key")
-                || rule_id.contains("access-key")
-                || rule_id.contains("client-secret")
-                || rule_id.contains("oauth")
-                || rule_id.contains("webhook")
-                || rule_id.contains("hmac")
-                || rule_id.contains("signing-key")
-                || rule_id.contains("session-secret")
-                || rule_id.contains("catchall")
-        }
-        MatchKind::PasswordAssignment => {
-            rule_id.contains("password") || rule_id.contains("smtp") || rule_id.contains("database-url")
-        }
-        MatchKind::TokenAssignment | MatchKind::BearerAuth | MatchKind::Jwt => {
-            rule_id.contains("token")
-                || rule_id.contains("secret")
-                || rule_id.contains("oauth")
-                || rule_id.contains("jwt")
-                || rule_id.contains("session-secret")
-                || rule_id.contains("webhook")
-                || rule_id.contains("hmac")
-                || rule_id.contains("catchall")
-        }
-        MatchKind::UrlCredentials => {
-            rule_id.contains("url") || rule_id.contains("database-url") || rule_id.contains("credentials")
-        }
-        MatchKind::PrivateKey => {
-            rule_id.contains("private-key") || rule_id.contains("pem") || rule_id.contains("signing-key")
-        }
-        MatchKind::NonceLike => rule_id.contains("nonce") || rule_id.contains("catchall"),
-        MatchKind::Catchall | MatchKind::Unknown => false,
+        MatchKind::ApiKeyAssignment => &indexes.api_key,
+        MatchKind::PasswordAssignment => &indexes.password,
+        MatchKind::TokenAssignment | MatchKind::BearerAuth | MatchKind::Jwt => &indexes.token,
+        MatchKind::UrlCredentials => &indexes.url_credentials,
+        MatchKind::PrivateKey => &indexes.private_key,
+        MatchKind::NonceLike => &indexes.nonce_like,
+        MatchKind::Catchall | MatchKind::Unknown => &[],
     }
 }
 
