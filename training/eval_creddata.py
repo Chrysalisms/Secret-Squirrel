@@ -13,7 +13,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
+import re
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
@@ -94,6 +97,91 @@ def _sample_pairs(pairs: list[MatchPair], limit: int) -> list[dict[str, dict[str
     return [match_pair_to_dict(pair) for pair in pairs[:limit]]
 
 
+def _path_context(file_path: str) -> str:
+    lower = file_path.lower()
+    parts = [part for part in re.split(r"[\\/]+", lower) if part]
+    if any(part in {"test", "tests", "testdata", "__tests__", "fixture", "fixtures"} for part in parts):
+        return "test"
+    if any(part in {"src", "lib", "pkg", "app", "cmd"} for part in parts):
+        return "source"
+    if any(part in {"config", "conf", "settings"} for part in parts):
+        return "config"
+    if any(part in {"docs", "doc"} for part in parts):
+        return "docs"
+    if any(part in {"example", "examples", "sample", "samples"} for part in parts):
+        return "example"
+    if any(part in {"ci", ".github", ".gitlab", ".circleci"} for part in parts):
+        return "ci"
+    return "other"
+
+
+def _extension_bucket(file_path: str) -> str:
+    suffix = Path(file_path).suffix.lower()
+    if not suffix:
+        return "<none>"
+    return suffix
+
+
+def _rule_family(kind: str) -> str:
+    lower = kind.lower()
+    if "private" in lower or "pem" in lower:
+        return "private_key"
+    if "jwt" in lower or "bearer" in lower:
+        return "auth_token"
+    if "url" in lower or "credential" in lower or "dsn" in lower:
+        return "url_credentials"
+    if "password" in lower or "passwd" in lower:
+        return "password"
+    if "api" in lower and "key" in lower:
+        return "api_key"
+    if "token" in lower or "secret" in lower or "oauth" in lower:
+        return "token"
+    if "nonce" in lower:
+        return "nonce"
+    return "other"
+
+
+def _cluster_findings(findings: list[Finding], max_examples: int) -> dict:
+    by_family = Counter()
+    by_extension = Counter()
+    by_context = Counter()
+    combo_counts = Counter()
+    combo_examples: dict[str, list[dict[str, str | int]]] = {}
+
+    for finding in findings:
+        family = _rule_family(finding.kind)
+        extension = _extension_bucket(finding.file)
+        context = _path_context(finding.file)
+        by_family[family] += 1
+        by_extension[extension] += 1
+        by_context[context] += 1
+
+        combo_key = f"{family} | {extension} | {context}"
+        combo_counts[combo_key] += 1
+        if len(combo_examples.setdefault(combo_key, [])) < max_examples:
+            combo_examples[combo_key].append(finding_to_dict(finding))
+
+    top_clusters = []
+    for cluster, count in combo_counts.most_common(10):
+        family, extension, context = cluster.split(" | ")
+        top_clusters.append(
+            {
+                "family": family,
+                "extension": extension,
+                "path_context": context,
+                "count": count,
+                "examples": combo_examples.get(cluster, []),
+            }
+        )
+
+    return {
+        "by_family": dict(by_family.most_common()),
+        "by_extension": dict(by_extension.most_common()),
+        "by_path_context": dict(by_context.most_common()),
+        "top_clusters": top_clusters,
+    }
+
+
 def load_creddata(creddata_dir: Path) -> list[Finding]:
     """Load CredData ground-truth findings."""
     meta_path: Path | None = None
@@ -159,11 +247,23 @@ def load_creddata(creddata_dir: Path) -> list[Finding]:
 def _load_json_findings(json_file: Path) -> list[dict]:
     with json_file.open(encoding="utf-8") as fh:
         raw = json.load(fh)
+    if raw is None:
+        return []
     if isinstance(raw, dict):
         raw = raw.get("findings", [])
     if not isinstance(raw, list):
         raise ValueError(f"Expected a JSON array or object with 'findings' in {json_file}")
     return raw
+
+
+def load_squirrel_stats(json_file: Path) -> dict:
+    with json_file.open(encoding="utf-8") as fh:
+        raw = json.load(fh)
+    if isinstance(raw, dict):
+        stats = raw.get("stats")
+        if isinstance(stats, dict):
+            return stats
+    return {}
 
 
 def load_squirrel(json_file: Path) -> list[Finding]:
@@ -307,6 +407,10 @@ def evaluate_predictions(
             "false_positives": _sample_findings(details.left_only, max_examples),
             "false_negatives": _sample_findings(details.right_only, max_examples),
         },
+        "clusters": {
+            "false_positives": _cluster_findings(details.left_only, max_examples),
+            "false_negatives": _cluster_findings(details.right_only, max_examples),
+        },
     }
     return metrics, details
 
@@ -330,6 +434,43 @@ def compare_tool_outputs(
             "shared_matches": _sample_pairs(details.matched_pairs, max_examples),
             f"only_{left_name}": _sample_findings(details.left_only, max_examples),
             f"only_{right_name}": _sample_findings(details.right_only, max_examples),
+        },
+        "clusters": {
+            f"only_{left_name}": _cluster_findings(details.left_only, max_examples),
+            f"only_{right_name}": _cluster_findings(details.right_only, max_examples),
+        },
+    }
+
+
+def compare_ground_truth_advantage(
+    left_name: str,
+    left_findings: list[Finding],
+    right_name: str,
+    right_findings: list[Finding],
+    ground_truth: list[Finding],
+    line_tolerance: int = 1,
+    max_examples: int = 25,
+) -> dict:
+    left_vs_gt = match_details(left_findings, ground_truth, line_tolerance=line_tolerance)
+    right_vs_gt = match_details(right_findings, ground_truth, line_tolerance=line_tolerance)
+
+    left_tp = [pair.left for pair in left_vs_gt.matched_pairs]
+    right_tp = [pair.left for pair in right_vs_gt.matched_pairs]
+    advantage = match_details(right_tp, left_tp, line_tolerance=line_tolerance)
+
+    return {
+        "reference_ground_truth": True,
+        "left_tool": left_name,
+        "right_tool": right_name,
+        f"{right_name}_tp_not_{left_name}": len(advantage.left_only),
+        f"{left_name}_tp_not_{right_name}": len(advantage.right_only),
+        "examples": {
+            f"{right_name}_tp_not_{left_name}": _sample_findings(advantage.left_only, max_examples),
+            f"{left_name}_tp_not_{right_name}": _sample_findings(advantage.right_only, max_examples),
+        },
+        "clusters": {
+            f"{right_name}_tp_not_{left_name}": _cluster_findings(advantage.left_only, max_examples),
+            f"{left_name}_tp_not_{right_name}": _cluster_findings(advantage.right_only, max_examples),
         },
     }
 
@@ -379,8 +520,50 @@ def build_report(
             line_tolerance=line_tolerance,
             max_examples=max_examples,
         )
+        report["ground_truth_advantage"] = compare_ground_truth_advantage(
+            "squirrel",
+            squirrel_findings,
+            "betterleaks",
+            betterleaks_findings,
+            ground_truth,
+            line_tolerance=line_tolerance,
+            max_examples=max_examples,
+        )
 
     return report
+
+
+def _print_overlap_clusters(overlap: dict | None) -> None:
+    if not overlap:
+        return
+    clusters = overlap.get("clusters", {}).get("only_betterleaks", {}).get("top_clusters", [])
+    if not clusters:
+        return
+    print("Top Betterleaks-only clusters:")
+    for cluster in clusters[:5]:
+        print(
+            f"  - {cluster['family']} | {cluster['extension']} | {cluster['path_context']}: {cluster['count']}"
+        )
+    print()
+
+
+def _print_ground_truth_advantage(report: dict) -> None:
+    advantage = report.get("ground_truth_advantage")
+    if not advantage:
+        return
+    clusters = (
+        advantage.get("clusters", {})
+        .get("betterleaks_tp_not_squirrel", {})
+        .get("top_clusters", [])
+    )
+    if not clusters:
+        return
+    print("Top GT-aligned Betterleaks wins over Secret-Squirrel:")
+    for cluster in clusters[:5]:
+        print(
+            f"  - {cluster['family']} | {cluster['extension']} | {cluster['path_context']}: {cluster['count']}"
+        )
+    print()
 
 
 def print_table(results: dict[str, dict]) -> None:
@@ -489,6 +672,8 @@ def main() -> None:
     )
     results = report["tools"]
     print_table(results)
+    _print_overlap_clusters(report.get("tool_overlap"))
+    _print_ground_truth_advantage(report)
 
     if args.save:
         compact = {

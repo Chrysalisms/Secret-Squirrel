@@ -609,7 +609,8 @@ async fn run_detect(
 
     let nonce = session.nonce.clone();
 
-    let all_findings: Vec<Finding> = std::thread::scope(|s| {
+    let all_findings: Vec<(Vec<Finding>, secret_squirrel::engine::pipeline::PipelineStageStats)> =
+        std::thread::scope(|s| {
         let (tx, rx) = crossbeam_channel::bounded(1024);
 
         s.spawn(move || {
@@ -631,7 +632,7 @@ async fn run_detect(
                     }
                 };
 
-                let matches = match pipeline.process_fragment_with_rules(
+                let pipeline_result = match pipeline.process_fragment_with_rules(
                     &fragment,
                     registry.automaton(),
                     registry.rules(),
@@ -647,6 +648,18 @@ async fn run_detect(
                         return None;
                     }
                 };
+                tracing::debug!(
+                    path = %fragment.metadata.path,
+                    path_a_matches = pipeline_result.stats.path_a_matches,
+                    path_b_matches = pipeline_result.stats.path_b_matches,
+                    typed_candidates = pipeline_result.stats.typed_candidates,
+                    typed_multiline_candidates = pipeline_result.stats.typed_multiline_candidates,
+                    typed_rule_checks = pipeline_result.stats.typed_rule_checks,
+                    regex_matches = pipeline_result.stats.regex_matches,
+                    "pipeline execution stats"
+                );
+                let stats_snapshot = pipeline_result.stats.clone();
+                let matches = pipeline_result.matches;
 
                 let mut local_findings = Vec::new();
 
@@ -719,7 +732,22 @@ async fn run_detect(
                     };
 
                     if (hn_penalty - HARD_NEGATIVE_PENALTY).abs() < 1e-6 {
-                        if pm.evidence.generic_catchall || !pm.evidence.typed || example_like_path {
+                        let retain_typed_candidate = pm.evidence.typed
+                            && (pm.evidence.has_secret_identifier
+                                || pm.evidence.secondary_context.is_some()
+                                || pm.evidence.multiline
+                                || pm.evidence.has_auth_context
+                                || matches!(
+                                    pm.evidence.kind,
+                                    secret_squirrel::types::MatchKind::PrivateKey
+                                        | secret_squirrel::types::MatchKind::Jwt
+                                        | secret_squirrel::types::MatchKind::BearerAuth
+                                        | secret_squirrel::types::MatchKind::UrlCredentials
+                                ));
+                        if pm.evidence.generic_catchall
+                            || (!retain_typed_candidate && example_like_path)
+                            || (!retain_typed_candidate && !pm.evidence.typed)
+                        {
                             tracing::debug!(
                                 matched = %secret_str,
                                 rule    = %pm.rule_id,
@@ -780,14 +808,29 @@ async fn run_detect(
 
                     local_findings.push(finding);
                 }
-                Some(local_findings)
+                Some((local_findings, stats_snapshot))
             })
-            .flatten()
             .collect()
     });
 
-    for finding in all_findings {
-        session.add_finding(finding);
+    for (findings, stats_snapshot) in all_findings {
+        session.stats.record_pipeline_stats(
+            stats_snapshot.path_a_matches,
+            stats_snapshot.path_b_matches,
+            stats_snapshot.typed_candidates,
+            stats_snapshot.typed_multiline_candidates,
+            stats_snapshot.typed_rule_checks,
+            stats_snapshot.regex_matches,
+            stats_snapshot.discovered_candidates,
+            stats_snapshot.routed_candidates,
+            stats_snapshot.dropped_low_signal,
+            stats_snapshot.dropped_no_bucket,
+            stats_snapshot.validator_runs,
+            stats_snapshot.decoded_matches,
+        );
+        for finding in findings {
+            session.add_finding(finding);
+        }
     }
 
     session.finalize();
@@ -858,7 +901,7 @@ async fn run_detect(
     };
 
     let reporter = get_reporter(&config.output.format);
-    reporter.write(&findings, &mut *writer)?;
+    reporter.write_with_stats(&findings, Some(&session.stats), &mut *writer)?;
 
     if findings.is_empty() {
         tracing::info!("No findings detected.");

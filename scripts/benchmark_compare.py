@@ -302,6 +302,54 @@ def write_creddata_summary(
                 f"- Only `Betterleaks`: `{overlap['only_betterleaks']}`",
             ]
         )
+        betterleaks_only_clusters = (
+            overlap.get("clusters", {})
+            .get("only_betterleaks", {})
+            .get("top_clusters", [])
+        )
+        if betterleaks_only_clusters:
+            lines.extend(
+                [
+                    "",
+                    "## Betterleaks-only Clusters",
+                    "",
+                    "| Family | Extension | Path Context | Count |",
+                    "| --- | --- | --- | ---: |",
+                ]
+            )
+            for cluster in betterleaks_only_clusters[:5]:
+                lines.append(
+                    f"| {cluster['family']} | {cluster['extension']} | {cluster['path_context']} | {cluster['count']} |"
+                )
+
+    gt_advantage = report.get("ground_truth_advantage")
+    if gt_advantage:
+        betterleaks_gt_clusters = (
+            gt_advantage.get("clusters", {})
+            .get("betterleaks_tp_not_squirrel", {})
+            .get("top_clusters", [])
+        )
+        lines.extend(
+            [
+                "",
+                "## Ground-truth Betterleaks Advantage",
+                "",
+                f"- Betterleaks true positives missed by `Secret-Squirrel`: `{gt_advantage['betterleaks_tp_not_squirrel']}`",
+                f"- `Secret-Squirrel` true positives missed by Betterleaks: `{gt_advantage['squirrel_tp_not_betterleaks']}`",
+            ]
+        )
+        if betterleaks_gt_clusters:
+            lines.extend(
+                [
+                    "",
+                    "| Family | Extension | Path Context | Count |",
+                    "| --- | --- | --- | ---: |",
+                ]
+            )
+            for cluster in betterleaks_gt_clusters[:5]:
+                lines.append(
+                    f"| {cluster['family']} | {cluster['extension']} | {cluster['path_context']} | {cluster['count']} |"
+                )
 
     lines.extend(
         [
@@ -322,7 +370,7 @@ def run_creddata(args: argparse.Namespace) -> None:
     work_dir = repo_root()
     eval_module = load_eval_module()
 
-    results_dir = ensure_directory(args.results_dir / "creddata" / timestamp())
+    results_dir = ensure_directory((args.results_dir / "creddata" / timestamp()).resolve())
     logs_dir = ensure_directory(results_dir / "logs")
     creddata_dir = ensure_creddata(args.creddata_dir, args.clone_creddata, work_dir, logs_dir)
 
@@ -338,11 +386,11 @@ def run_creddata(args: argparse.Namespace) -> None:
 
     scan_root = ensure_creddata_dataset(creddata_dir, logs_dir)
 
-    squirrel_output = results_dir / "squirrel_creddata.json"
-    betterleaks_output = results_dir / "betterleaks_creddata.json"
-    summary_json = results_dir / "benchmark_summary.json"
-    details_json = results_dir / "benchmark_details.json"
-    summary_md = results_dir / "benchmark_summary.md"
+    squirrel_output = (results_dir / "squirrel_creddata.json").resolve()
+    betterleaks_output = (results_dir / "betterleaks_creddata.json").resolve()
+    summary_json = (results_dir / "benchmark_summary.json").resolve()
+    details_json = (results_dir / "benchmark_details.json").resolve()
+    summary_md = (results_dir / "benchmark_summary.md").resolve()
 
     squirrel_scan = run_command(
         squirrel_scan_command(
@@ -372,6 +420,7 @@ def run_creddata(args: argparse.Namespace) -> None:
 
     ground_truth = eval_module.load_creddata(creddata_dir)
     squirrel_findings = eval_module.load_squirrel(squirrel_output)
+    squirrel_stats = eval_module.load_squirrel_stats(squirrel_output)
     betterleaks_findings = eval_module.load_betterleaks(betterleaks_output)
     report = eval_module.build_report(
         ground_truth,
@@ -414,6 +463,9 @@ def run_creddata(args: argparse.Namespace) -> None:
         "scans": {
             "squirrel": squirrel_scan.__dict__,
             "betterleaks": betterleaks_scan.__dict__,
+        },
+        "pipeline_stats": {
+            "squirrel": squirrel_stats,
         },
         "artifacts": {
             "summary_json": str(summary_json),
@@ -539,7 +591,7 @@ def run_corpus(args: argparse.Namespace) -> None:
     eval_module = load_eval_module()
     manifest = load_corpus_manifest(args.manifest)
 
-    results_dir = ensure_directory(args.results_dir / "corpus" / timestamp())
+    results_dir = ensure_directory((args.results_dir / "corpus" / timestamp()).resolve())
     logs_dir = ensure_directory(results_dir / "logs")
 
     squirrel_binary = args.squirrel_binary
@@ -561,11 +613,11 @@ def run_corpus(args: argparse.Namespace) -> None:
     for repo_entry in manifest.get("repos", []):
         repo_dir = ensure_repo_checkout(repo_entry, args.checkout_root, args.clone_missing, logs_dir)
         scan_path = repo_dir / repo_entry.get("scan_path", ".")
-        repo_results_dir = ensure_directory(results_dir / repo_entry["id"])
+        repo_results_dir = ensure_directory((results_dir / repo_entry["id"]).resolve())
         repo_logs_dir = ensure_directory(repo_results_dir / "logs")
 
-        squirrel_output = repo_results_dir / "squirrel.json"
-        betterleaks_output = repo_results_dir / "betterleaks.json"
+        squirrel_output = (repo_results_dir / "squirrel.json").resolve()
+        betterleaks_output = (repo_results_dir / "betterleaks.json").resolve()
 
         squirrel_scan = run_command(
             squirrel_scan_command(
@@ -589,6 +641,7 @@ def run_corpus(args: argparse.Namespace) -> None:
         )
 
         squirrel_findings = eval_module.load_squirrel(squirrel_output)
+        squirrel_stats = eval_module.load_squirrel_stats(squirrel_output)
         betterleaks_findings = eval_module.load_betterleaks(betterleaks_output)
         overlap = eval_module.compare_tool_outputs(
             "squirrel",
@@ -599,9 +652,9 @@ def run_corpus(args: argparse.Namespace) -> None:
             max_examples=args.max_examples,
         )
 
-        overlap_path = repo_results_dir / "overlap.json"
-        summary_path = repo_results_dir / "summary.md"
-        metadata_path = repo_results_dir / "run_metadata.json"
+        overlap_path = (repo_results_dir / "overlap.json").resolve()
+        summary_path = (repo_results_dir / "summary.md").resolve()
+        metadata_path = (repo_results_dir / "run_metadata.json").resolve()
 
         run_metadata = {
             "repo_id": repo_entry["id"],
@@ -610,6 +663,9 @@ def run_corpus(args: argparse.Namespace) -> None:
             "scans": {
                 "squirrel": squirrel_scan.__dict__,
                 "betterleaks": betterleaks_scan.__dict__,
+            },
+            "pipeline_stats": {
+                "squirrel": squirrel_stats,
             },
         }
         write_json(overlap_path, overlap)
@@ -632,6 +688,9 @@ def run_corpus(args: argparse.Namespace) -> None:
                     "squirrel": squirrel_scan.elapsed_ms,
                     "betterleaks": betterleaks_scan.elapsed_ms,
                 },
+                "pipeline_stats": {
+                    "squirrel": squirrel_stats,
+                },
                 "artifacts": {
                     "squirrel_json": str(squirrel_output),
                     "betterleaks_json": str(betterleaks_output),
@@ -641,8 +700,8 @@ def run_corpus(args: argparse.Namespace) -> None:
             }
         )
 
-    write_json(results_dir / "corpus_summary.json", aggregate)
-    write_corpus_summary(results_dir / "corpus_summary.md", manifest, aggregate, results_dir)
+    write_json((results_dir / "corpus_summary.json").resolve(), aggregate)
+    write_corpus_summary((results_dir / "corpus_summary.md").resolve(), manifest, aggregate, results_dir)
     print(f"[benchmark] Repository-tree benchmark complete: {results_dir}")
 
 

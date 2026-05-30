@@ -8,7 +8,7 @@
 [[rules]]
 id = "bearer-token-header"
 description = "Authorization: Bearer token in HTTP headers hardcoded in source"
-regex = '''(?i)(?:Authorization|auth)\s{0,5}[:=]\s{0,5}["']?Bearer\s{1,5}([a-zA-Z0-9\-_\.]{20,500})["']?'''
+regex = '''(?i)(?:Authorization|authorization|auth|x-auth-token|x-access-token)\s{0,5}[:=]\s{0,5}["']?Bearer\s{1,5}([a-zA-Z0-9\-_\.=]{20,500})["']?'''
 keywords = ["Authorization: Bearer", "Authorization: bearer", "Bearer "]
 severity = "high"
 category = "generic"
@@ -54,7 +54,7 @@ remediation = "Never include API keys in URLs; they appear in server logs, brows
 [[rules]]
 id = "x-api-key-header"
 description = "X-API-Key HTTP header with hardcoded value in source code"
-regex = '''(?i)(?:X-API-Key|X-Api-Key|x-api-key)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!EXAMPLE)([a-zA-Z0-9\-_]{16,100})["']?'''
+regex = '''(?i)(?:X-API-Key|X-Api-Key|x-api-key|x_api_key)\s{0,5}[:=]\s{0,5}["']?(?!\s*["']$)(?!\$\{)(?!<)(?!YOUR_)(?!EXAMPLE)([a-zA-Z0-9\-_\.=]{16,100})["']?'''
 keywords = ["X-API-Key", "X-Api-Key", "x-api-key", "x_api_key"]
 severity = "high"
 category = "generic"
@@ -76,7 +76,7 @@ remediation = "Store the API key in a secrets manager and inject it at request t
 [[rules]]
 id = "session-cookie"
 description = "Session cookie with long hex or base64 value hardcoded"
-regex = '''(?i)(?:session|sid|sess(?:ion)?[_\-]?id|PHPSESSID|JSESSIONID|connect\.sid)\s{0,5}=\s{0,5}["']?([a-f0-9]{32,128}|[a-zA-Z0-9\-_\.]{40,200})["']?'''
+regex = '''(?i)(?:session|sid|sess(?:ion)?[_\-]?id|PHPSESSID|JSESSIONID|connect\.sid|set-cookie|cookie)\s{0,5}[:=]\s{0,5}["']?([a-f0-9]{32,128}|[a-zA-Z0-9\-_\.=]{40,200})["']?'''
 keywords = ["session=", "PHPSESSID=", "JSESSIONID=", "connect.sid=", "session_id="]
 severity = "high"
 category = "generic"

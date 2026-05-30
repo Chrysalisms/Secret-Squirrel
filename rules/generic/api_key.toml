@@ -83,7 +83,7 @@ id = "api-key-json-field"
 description = "API key value in JSON configuration files"
 severity = "high"
 category = "generic"
-regex = '''(?i)"(?:api[_-]?key|api[_-]?secret|access[_-]?key|secret[_-]?key|client[_-]?secret)"\s*:\s*"([A-Za-z0-9\-_./+]{24,})"'''
+regex = '''(?i)"(?:api[_-]?key|api[_-]?secret|access[_-]?key|secret[_-]?key|client[_-]?secret|app[_-]?secret|signing[_-]?key|webhook[_-]?secret)"\s*:\s*"([A-Za-z0-9\-_./+=]{20,})"'''
 allowlist = [
     '": "$\{',
     '": "your-',
@@ -106,7 +106,7 @@ id = "api-key-yaml-field"
 description = "API key value in YAML configuration files"
 severity = "high"
 category = "generic"
-regex = '''(?i)(?:api[_-]?key|api[_-]?secret|access[_-]?key|secret[_-]?key|client[_-]?secret)\s*:\s*['"]?([A-Za-z0-9\-_./+]{24,})['"]?'''
+regex = '''(?i)(?:api[_-]?key|api[_-]?secret|access[_-]?key|secret[_-]?key|client[_-]?secret|app[_-]?secret|signing[_-]?key|webhook[_-]?secret)\s*:\s*['"]?([A-Za-z0-9\-_./+=]{20,})['"]?'''
 allowlist = [
     ': $\{',
     ': \{\{',
@@ -144,7 +144,7 @@ id = "secret-key-variable"
 description = "Variable named secret_key or similar with a high-entropy value"
 severity = "high"
 category = "generic"
-regex = '''(?i)(?:secret[_-]?key|secret[_-]?token|secret[_-]?pass(?:word)?)\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_./+]{16,})['"]?'''
+regex = '''(?i)(?:secret[_-]?key|secret[_-]?token|secret[_-]?pass(?:word)?|app[_-]?secret|signing[_-]?key|webhook[_-]?secret|private[_-]?key[_-]?id)\s*[=:]\s*['"]?([A-Za-z0-9!@#$%^&*\-_./+=]{16,})['"]?'''
 allowlist = [
     '=$\{',
     ': $\{',
@@ -168,7 +168,7 @@ id = "access-token-variable"
 description = "Variable named access_token or similar with a high-entropy value"
 severity = "high"
 category = "generic"
-regex = '''(?i)(?:access[_-]?token|auth[_-]?token|bearer[_-]?token)\s*[=:]\s*['"]?([A-Za-z0-9\-_./+]{20,})['"]?'''
+regex = '''(?i)(?:access[_-]?token|auth[_-]?token|bearer[_-]?token|refresh[_-]?token|session[_-]?secret|x[_-]?auth[_-]?token)\s*[=:]\s*['"]?([A-Za-z0-9\-_./+=]{20,})['"]?'''
 allowlist = [
     '=$\{',
     ': $\{',

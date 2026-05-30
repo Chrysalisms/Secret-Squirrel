@@ -51,6 +51,30 @@ pub struct ScanStats {
     pub duration_ms: u64,
     /// UTC timestamp when the session was created.
     pub started_at: DateTime<Utc>,
+    /// Pattern path-A matches accumulated across fragments.
+    pub path_a_matches: u64,
+    /// Pattern path-B matches accumulated across fragments.
+    pub path_b_matches: u64,
+    /// Typed candidates generated during the scan.
+    pub typed_candidates: u64,
+    /// Multiline typed candidates generated during the scan.
+    pub typed_multiline_candidates: u64,
+    /// Typed rule verifications attempted during the scan.
+    pub typed_rule_checks: u64,
+    /// Regex matches considered before deduplication.
+    pub regex_matches: u64,
+    /// Discovery candidates generated before routing.
+    pub discovered_candidates: u64,
+    /// Candidates that survived routing into validators.
+    pub routed_candidates: u64,
+    /// Candidates dropped for low combined signal.
+    pub dropped_low_signal: u64,
+    /// Candidates dropped because no validator bucket applied.
+    pub dropped_no_bucket: u64,
+    /// Validator executions performed across routed candidates.
+    pub validator_runs: u64,
+    /// Matches recovered from decoded candidate variants.
+    pub decoded_matches: u64,
 }
 
 impl ScanStats {
@@ -71,6 +95,35 @@ impl ScanStats {
         } else {
             self.cpu_dispatches += 1;
         }
+    }
+
+    pub fn record_pipeline_stats(
+        &mut self,
+        path_a_matches: usize,
+        path_b_matches: usize,
+        typed_candidates: usize,
+        typed_multiline_candidates: usize,
+        typed_rule_checks: usize,
+        regex_matches: usize,
+        discovered_candidates: usize,
+        routed_candidates: usize,
+        dropped_low_signal: usize,
+        dropped_no_bucket: usize,
+        validator_runs: usize,
+        decoded_matches: usize,
+    ) {
+        self.path_a_matches += path_a_matches as u64;
+        self.path_b_matches += path_b_matches as u64;
+        self.typed_candidates += typed_candidates as u64;
+        self.typed_multiline_candidates += typed_multiline_candidates as u64;
+        self.typed_rule_checks += typed_rule_checks as u64;
+        self.regex_matches += regex_matches as u64;
+        self.discovered_candidates += discovered_candidates as u64;
+        self.routed_candidates += routed_candidates as u64;
+        self.dropped_low_signal += dropped_low_signal as u64;
+        self.dropped_no_bucket += dropped_no_bucket as u64;
+        self.validator_runs += validator_runs as u64;
+        self.decoded_matches += decoded_matches as u64;
     }
 
     /// Finalise the duration field using the current time minus `started_at`.

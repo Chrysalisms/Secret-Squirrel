@@ -26,6 +26,7 @@ pub use table::TableReporter;
 
 use crate::config::OutputFormat;
 use crate::error::Result;
+use crate::engine::session::ScanStats;
 use crate::types::Finding;
 use std::io::Write;
 
@@ -45,6 +46,15 @@ pub trait Reporter: Send + Sync {
     /// * `findings`     — slice of findings to format
     /// * `writer`       — output sink (stdout, file, etc.)
     fn write(&self, findings: &[Finding], writer: &mut dyn Write) -> Result<()>;
+
+    fn write_with_stats(
+        &self,
+        findings: &[Finding],
+        _stats: Option<&ScanStats>,
+        writer: &mut dyn Write,
+    ) -> Result<()> {
+        self.write(findings, writer)
+    }
 }
 
 // ============================================================================

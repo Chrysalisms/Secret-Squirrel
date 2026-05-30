@@ -19,16 +19,45 @@
 //! ```
 
 use crate::error::Result;
+use crate::engine::session::ScanStats;
 use crate::report::{Formatter, Reporter};
 use crate::types::Finding;
+use serde::Serialize;
 use std::io::Write;
 
 /// Serializes findings to a pretty-printed JSON array.
 pub struct JsonReporter;
 
+#[derive(Serialize)]
+struct JsonReport<'a> {
+    findings: &'a [Finding],
+    count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stats: Option<&'a ScanStats>,
+}
+
 impl Reporter for JsonReporter {
     fn write(&self, findings: &[Finding], writer: &mut dyn Write) -> Result<()> {
-        let json = serde_json::to_string_pretty(findings)?;
+        let json = serde_json::to_string_pretty(&JsonReport {
+            findings,
+            count: findings.len(),
+            stats: None,
+        })?;
+        writeln!(writer, "{}", json)?;
+        Ok(())
+    }
+
+    fn write_with_stats(
+        &self,
+        findings: &[Finding],
+        stats: Option<&ScanStats>,
+        writer: &mut dyn Write,
+    ) -> Result<()> {
+        let json = serde_json::to_string_pretty(&JsonReport {
+            findings,
+            count: findings.len(),
+            stats,
+        })?;
         writeln!(writer, "{}", json)?;
         Ok(())
     }
@@ -42,7 +71,11 @@ impl Formatter for JsonReporter {
     /// which never exposes more than 40% of the value. For the full raw
     /// value the caller must separately call [`Finding::secret.expose()`].
     fn format(&self, findings: &[Finding], _show_secrets: bool) -> String {
-        serde_json::to_string_pretty(findings)
+        serde_json::to_string_pretty(&JsonReport {
+            findings,
+            count: findings.len(),
+            stats: None,
+        })
             .unwrap_or_else(|e| format!("{{\"error\": \"serialization failed: {}\"}}", e))
     }
 }
@@ -100,8 +133,9 @@ mod tests {
         let mut buf = Vec::new();
         reporter.write(&[], &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
-        // Must be a JSON array
-        assert!(s.contains("[]"), "empty result should be '[]', got: {}", s);
+        let parsed: serde_json::Value = serde_json::from_str(&s).expect("output must be valid JSON");
+        assert_eq!(parsed["count"], 0);
+        assert!(parsed["findings"].as_array().is_some());
     }
 
     #[test]
@@ -115,8 +149,9 @@ mod tests {
         // Must parse as a valid JSON array
         let parsed: serde_json::Value =
             serde_json::from_str(&s).expect("output must be valid JSON");
-        assert!(parsed.is_array(), "output must be a JSON array");
-        assert_eq!(parsed.as_array().unwrap().len(), 1);
+        assert!(parsed.is_object(), "output must be a JSON object");
+        assert_eq!(parsed["count"], 1);
+        assert_eq!(parsed["findings"].as_array().unwrap().len(), 1);
     }
 
     #[test]
@@ -142,7 +177,7 @@ mod tests {
 
         // Parse the JSON and check only the "secret" field value is redacted
         let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
-        let secret_field = parsed[0]["secret"]
+        let secret_field = parsed["findings"][0]["secret"]
             .as_str()
             .expect("secret must be a string");
 
@@ -165,6 +200,7 @@ mod tests {
         let output = fmt.format(&findings, false);
         let parsed: serde_json::Value =
             serde_json::from_str(&output).expect("format() must return valid JSON");
-        assert!(parsed.is_array());
+        assert!(parsed.is_object());
+        assert_eq!(parsed["count"], 1);
     }
 }

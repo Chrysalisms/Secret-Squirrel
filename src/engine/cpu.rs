@@ -26,8 +26,8 @@ use tracing::debug;
 
 use crate::error::{Result, SquirrelError};
 use crate::types::{
-    EntropyCandidate, MatchEvidence, MatchKind, PatternMatch, ProximityMatch, ProximityPattern,
-    TriStreamResult,
+    CandidateSource, DiscoveryCandidate, EntropyCandidate, MatchEvidence, MatchKind, PatternMatch,
+    ProximityMatch, ProximityPattern, TriStreamResult,
 };
 
 // ── CompiledRule forward declaration ─────────────────────────────────────────
@@ -58,16 +58,18 @@ pub struct CpuEngine {
     pub thread_pool: rayon::ThreadPool,
 }
 
-#[derive(Debug, Clone)]
-struct TypedAssignmentCandidate {
-    base_offset: usize,
-    context: Bytes,
-    snippet: String,
-    identifier: Option<String>,
-    value: String,
-    evidence: MatchEvidence,
-    proximity_score: f32,
-    structure_score: f32,
+#[derive(Debug, Clone, Default)]
+pub struct PatternExecutionStats {
+    pub regex_matches: usize,
+    pub typed_candidates: usize,
+    pub typed_multiline_candidates: usize,
+    pub typed_rule_checks: usize,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PatternExecutionResult {
+    pub matches: Vec<PatternMatch>,
+    pub stats: PatternExecutionStats,
 }
 
 impl std::fmt::Debug for CpuEngine {
@@ -227,7 +229,7 @@ impl CpuEngine {
         keyword_to_rule: &[usize],
         path_hint: Option<&str>,
         enable_typed_extractor: bool,
-    ) -> Vec<PatternMatch> {
+    ) -> PatternExecutionResult {
         // Context window: how many bytes before/after the keyword hit to scan.
         // 512 bytes is enough to capture the full assignment expression and
         // the secret value for every known credential format.
@@ -235,6 +237,7 @@ impl CpuEngine {
 
         let data_str = String::from_utf8_lossy(data);
         let mut matches: Vec<PatternMatch> = Vec::new();
+        let mut stats = PatternExecutionStats::default();
         // Dedup key: (rule_id_idx, match_start) — avoids duplicates when the
         // same keyword appears multiple times in the file.
         let mut seen = std::collections::HashSet::<(usize, usize)>::new();
@@ -246,11 +249,12 @@ impl CpuEngine {
             if !rule.keywords.is_empty() {
                 continue;
             }
-            let regex_matches = Self::run_regex(rule, &data_str);
-            for (start, end, text) in regex_matches {
+            let regex_matches = Self::run_routed_regex(rule, &data_str);
+            stats.regex_matches += regex_matches.len();
+            for (start, end, text, encoding_chain) in regex_matches {
                 let key = (rule_idx, start);
                 if seen.insert(key) {
-                    matches.push(Self::make_match(rule, start, end, text, data));
+                    matches.push(Self::make_match(rule, start, end, text, data, encoding_chain));
                 }
             }
         }
@@ -276,13 +280,21 @@ impl CpuEngine {
             let window_str = String::from_utf8_lossy(window_bytes);
             let base = win_start;
 
-            let regex_matches = Self::run_regex(rule, &window_str);
-            for (rel_start, rel_end, text) in regex_matches {
+            let regex_matches = Self::run_routed_regex(rule, &window_str);
+            stats.regex_matches += regex_matches.len();
+            for (rel_start, rel_end, text, encoding_chain) in regex_matches {
                 let abs_start = base + rel_start;
                 let abs_end = base + rel_end;
                 let key = (rule_idx, abs_start);
                 if seen.insert(key) {
-                    matches.push(Self::make_match(rule, abs_start, abs_end, text, data));
+                    matches.push(Self::make_match(
+                        rule,
+                        abs_start,
+                        abs_end,
+                        text,
+                        data,
+                        encoding_chain,
+                    ));
                 }
             }
         }
@@ -291,13 +303,19 @@ impl CpuEngine {
         // This is the first step toward a discovery-first architecture:
         // instead of relying solely on keyword hits, parse assignment-shaped
         // snippets and run only semantically relevant rules on those snippets.
-        if enable_typed_extractor && path_hint.is_some_and(is_config_like_path) {
+        if enable_typed_extractor && path_hint.is_some_and(is_typed_extractor_path) {
             let typed_rule_indexes = build_typed_rule_indexes(rules);
-            for candidate in extract_typed_assignments(data) {
+            for candidate in extract_typed_assignments(data, path_hint) {
+                stats.typed_candidates += 1;
+                if candidate.evidence.multiline {
+                    stats.typed_multiline_candidates += 1;
+                }
                 for &rule_idx in candidate_rule_indexes(&candidate, &typed_rule_indexes) {
+                    stats.typed_rule_checks += 1;
                     let rule = &rules[rule_idx];
 
                     let regex_matches = Self::run_regex(rule, &candidate.snippet);
+                    stats.regex_matches += regex_matches.len();
                     for (rel_start, rel_end, text) in regex_matches {
                         let abs_start = candidate.base_offset + rel_start;
                         let abs_end = candidate.base_offset + rel_end;
@@ -316,7 +334,19 @@ impl CpuEngine {
             }
         }
 
-        matches
+        PatternExecutionResult { matches, stats }
+    }
+
+    pub fn discover_candidates(
+        &self,
+        data: &[u8],
+        path_hint: Option<&str>,
+    ) -> Vec<DiscoveryCandidate> {
+        if path_hint.is_some_and(is_typed_extractor_path) {
+            extract_typed_assignments(data, path_hint)
+        } else {
+            Vec::new()
+        }
     }
 
     /// Run the compiled regex (fancy or standard) over `haystack` and return
@@ -373,6 +403,30 @@ impl CpuEngine {
         matches
     }
 
+    pub(crate) fn run_routed_regex(
+        rule: &crate::rules::CompiledRule,
+        haystack: &str,
+    ) -> Vec<(usize, usize, String, Option<Vec<String>>)> {
+        let mut out = Self::run_regex(rule, haystack)
+            .into_iter()
+            .map(|(start, end, text)| (start, end, text, None))
+            .collect::<Vec<_>>();
+
+        for literal in extract_literals(haystack.as_bytes()) {
+            for variant in crate::stages::decoder::deep_decode(&literal, 4) {
+                if variant.encoding_chain.is_empty() {
+                    continue;
+                }
+                let decoded = String::from_utf8_lossy(&variant.data);
+                for (start, end, text) in Self::run_regex(rule, &decoded) {
+                    out.push((start, end, text, Some(variant.encoding_chain.clone())));
+                }
+            }
+        }
+
+        out
+    }
+
     /// Build a [`PatternMatch`] from raw match coordinates.
     fn make_match(
         rule: &crate::rules::CompiledRule,
@@ -380,6 +434,7 @@ impl CpuEngine {
         end: usize,
         text: String,
         data: &[u8],
+        encoding_chain: Option<Vec<String>>,
     ) -> PatternMatch {
         let raw_bytes = if end <= data.len() {
             Bytes::copy_from_slice(&data[start.min(data.len())..end.min(data.len())])
@@ -414,7 +469,7 @@ impl CpuEngine {
             match_end: end,
             pattern_score: rule.confidence_weight as f32,
             evidence,
-            encoding_chain: None,
+            encoding_chain,
         }
     }
 
@@ -423,7 +478,7 @@ impl CpuEngine {
         start: usize,
         end: usize,
         text: String,
-        candidate: &TypedAssignmentCandidate,
+        candidate: &DiscoveryCandidate,
     ) -> PatternMatch {
         let value_bytes = Bytes::copy_from_slice(candidate.value.as_bytes());
         let tristream = TriStreamResult {
@@ -517,13 +572,26 @@ pub fn shannon_entropy(data: &[u8]) -> f32 {
 // ============================================================================
 
 /// Assignment patterns to scan for (ordered by specificity, longest first).
-const ASSIGNMENT_PATTERNS: &[&[u8]] = &[
-    b"Authorization: Bearer ",
-    b"Authorization: Token ",
-    b"= \"",
-    b"=\"",
-    b"= '",
-    b"='",
+const ASSIGNMENT_PATTERNS: &[(&[u8], ProximityPattern, f32)] = &[
+    (b"Authorization: Bearer ", ProximityPattern::HeaderValue, 0.35),
+    (b"Authorization: Token ", ProximityPattern::HeaderValue, 0.35),
+    (b"Bearer ", ProximityPattern::HeaderValue, 0.28),
+    (b"export ", ProximityPattern::Export, 0.25),
+    (b"ENV ", ProximityPattern::DockerEnv, 0.20),
+    (b"ARG ", ProximityPattern::DockerEnv, 0.15),
+    (b"Set ", ProximityPattern::EnvVar, 0.18),
+    (b"default = ", ProximityPattern::TerraformVar, 0.22),
+    (b"valueFrom:", ProximityPattern::K8sSecret, 0.20),
+    (b"stringData:", ProximityPattern::K8sSecret, 0.20),
+    (b"= \"", ProximityPattern::Assignment, 0.25),
+    (b"=\"", ProximityPattern::Assignment, 0.25),
+    (b"= '", ProximityPattern::Assignment, 0.25),
+    (b"='", ProximityPattern::Assignment, 0.25),
+    (b": \"", ProximityPattern::JsonKey, 0.22),
+    (b": '", ProximityPattern::YamlKey, 0.22),
+    (b":=", ProximityPattern::Assignment, 0.18),
+    (b"= ", ProximityPattern::Assignment, 0.18),
+    (b": ", ProximityPattern::JsonKey, 0.18),
 ];
 
 /// Sensitive-keyword patterns.
@@ -538,6 +606,15 @@ const KEYWORD_PATTERNS: &[&[u8]] = &[
     b"private_key",
     b"access_key",
     b"auth_token",
+    b"client_secret",
+    b"client_id",
+    b"oauth",
+    b"credential",
+    b"signing",
+    b"consumer",
+    b"session",
+    b"cookie",
+    b"refresh",
     b"bearer",
     b"key",
 ];
@@ -547,35 +624,40 @@ const KEYWORD_PATTERNS: &[&[u8]] = &[
 /// Returns `(score, pattern)` where `score` is in `[0.0, 1.0]`.
 fn proximity_score_and_pattern(data: &[u8]) -> (f32, ProximityPattern) {
     let total_patterns = ASSIGNMENT_PATTERNS.len() + KEYWORD_PATTERNS.len();
-    let mut hits = 0usize;
+    let mut score = 0.0f32;
     let mut best_pattern = ProximityPattern::Unknown;
+    let mut best_pattern_score = 0.0f32;
 
     // Check assignment patterns.
-    for &pat in ASSIGNMENT_PATTERNS {
+    for &(pat, pattern, pattern_score) in ASSIGNMENT_PATTERNS {
         if memchr::memmem::find(data, pat).is_some() {
-            hits += 1;
-            best_pattern = classify_assignment(pat);
+            score += pattern_score;
+            if pattern_score >= best_pattern_score {
+                best_pattern_score = pattern_score;
+                best_pattern = pattern;
+            }
         }
     }
 
     // Check keyword patterns.
     for &kw in KEYWORD_PATTERNS {
         if memchr::memmem::find(data, kw).is_some() {
-            hits += 1;
+            score += if kw == b"key" || kw == b"apiKey" || kw == b"api_key" {
+                0.08
+            } else {
+                0.14
+            };
         }
     }
 
-    let score = (hits as f32 / total_patterns as f32).min(1.0);
-    (score, best_pattern)
-}
-
-/// Map a matched assignment byte pattern to a [`ProximityPattern`] variant.
-fn classify_assignment(pat: &[u8]) -> ProximityPattern {
-    match pat {
-        b"Authorization: Bearer " | b"Authorization: Token " => ProximityPattern::HeaderValue,
-        b"= \"" | b"=\"" | b"= '" | b"='" => ProximityPattern::Assignment,
-        _ => ProximityPattern::Unknown,
+    if memchr::memmem::find(data, b"-----BEGIN ").is_some() {
+        score += 0.24;
+        if best_pattern == ProximityPattern::Unknown {
+            best_pattern = ProximityPattern::Unknown;
+        }
     }
+
+    ((score / total_patterns as f32).min(1.0), best_pattern)
 }
 
 // ============================================================================
@@ -736,13 +818,81 @@ fn url_credentials_regex() -> &'static regex::Regex {
     })
 }
 
-fn extract_typed_assignments(data: &[u8]) -> Vec<TypedAssignmentCandidate> {
+fn export_assignment_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)\bexport\s+([A-Za-z_][A-Za-z0-9_.-]{1,80})\b\s*=\s*["']?([^\s"'`#;]{6,256})["']?"#,
+        )
+        .expect("valid export assignment regex")
+    })
+}
+
+fn env_assignment_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)\b(?:env|arg|set)\s+([A-Za-z_][A-Za-z0-9_.-]{1,80})\b\s*[=:]\s*["']?([^\s"'`#;]{6,256})["']?"#,
+        )
+        .expect("valid env assignment regex")
+    })
+}
+
+fn function_assignment_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)\b([A-Za-z_][A-Za-z0-9_.-]{1,80})\b\s*=\s*["']?([A-Za-z0-9_./+=:@-]{6,256})["']?\s*[,)\]}]"#,
+        )
+        .expect("valid function assignment regex")
+    })
+}
+
+fn pem_block_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r"(?s)-----BEGIN [A-Z0-9 ]+PRIVATE KEY-----.*?-----END [A-Z0-9 ]+PRIVATE KEY-----",
+        )
+        .expect("valid PEM block regex")
+    })
+}
+
+fn bearer_block_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(r"(?is)(authorization\s*:\s*bearer\s+[A-Za-z0-9._=-]{12,512})")
+            .expect("valid bearer block regex")
+    })
+}
+
+fn header_assignment_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)\b(authorization|x-api-key|x-auth-token|x-access-token|cookie|set-cookie)\b\s*[:=]\s*["']?([^"'`]{8,512})["']?"#,
+        )
+        .expect("valid header assignment regex")
+    })
+}
+
+fn setenv_assignment_regex() -> &'static regex::Regex {
+    static REGEX: OnceLock<regex::Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        regex::Regex::new(
+            r#"(?i)\b(?:setenv|set_env|putenv|setproperty|set_property)\s*\(\s*["']([A-Za-z_][A-Za-z0-9_.-]{1,80})["']\s*,\s*["']([^"'`]{6,256})["']\s*\)"#,
+        )
+        .expect("valid setenv assignment regex")
+    })
+}
+
+fn extract_typed_assignments(data: &[u8], path_hint: Option<&str>) -> Vec<DiscoveryCandidate> {
     let mut candidates = Vec::new();
     let mut line_offset = 0usize;
-    const MAX_TYPED_CANDIDATES: usize = 64;
+    let max_typed_candidates = max_typed_candidates_for_path(path_hint);
 
     for line in data.split_inclusive(|&b| b == b'\n') {
-        if candidates.len() >= MAX_TYPED_CANDIDATES {
+        if candidates.len() >= max_typed_candidates {
             break;
         }
         let line_len = line.len();
@@ -777,6 +927,36 @@ fn extract_typed_assignments(data: &[u8]) -> Vec<TypedAssignmentCandidate> {
             }
         }
 
+        for caps in export_assignment_regex().captures_iter(&line_str) {
+            let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let value = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                identifier,
+                value,
+                ProximityPattern::Export,
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
+        for caps in env_assignment_regex().captures_iter(&line_str) {
+            let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let value = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                identifier,
+                value,
+                ProximityPattern::DockerEnv,
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
         for caps in kv_assignment_regex().captures_iter(&line_str) {
             let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
             let value = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
@@ -792,6 +972,51 @@ fn extract_typed_assignments(data: &[u8]) -> Vec<TypedAssignmentCandidate> {
                 identifier,
                 value,
                 pattern,
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
+        for caps in function_assignment_regex().captures_iter(&line_str) {
+            let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let value = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                identifier,
+                value,
+                ProximityPattern::FunctionArg,
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
+        for caps in setenv_assignment_regex().captures_iter(&line_str) {
+            let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let value = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                identifier,
+                value,
+                ProximityPattern::FunctionArg,
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
+        for caps in header_assignment_regex().captures_iter(&line_str) {
+            let identifier = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+            let value = caps.get(2).map(|m| m.as_str()).unwrap_or_default();
+            if let Some(candidate) = build_typed_assignment_candidate(
+                line_offset,
+                line_body,
+                &line_str,
+                identifier,
+                value,
+                ProximityPattern::HeaderValue,
             ) {
                 candidates.push(candidate);
             }
@@ -819,7 +1044,148 @@ fn extract_typed_assignments(data: &[u8]) -> Vec<TypedAssignmentCandidate> {
         line_offset += line_len;
     }
 
+    if candidates.len() < max_typed_candidates {
+        let data_str = String::from_utf8_lossy(data);
+        for pem in pem_block_regex().find_iter(&data_str) {
+            if candidates.len() >= max_typed_candidates {
+                break;
+            }
+            let snippet = pem.as_str();
+            let candidate = DiscoveryCandidate {
+                source: CandidateSource::StructuredBlock,
+                base_offset: pem.start(),
+                context: Bytes::copy_from_slice(snippet.as_bytes()),
+                snippet: snippet.to_string(),
+                identifier: Some("private_key".to_string()),
+                value: snippet.to_string(),
+                evidence: MatchEvidence {
+                    kind: MatchKind::PrivateKey,
+                    primary_identifier: Some("private_key".to_string()),
+                    secondary_context: path_hint.map(str::to_string),
+                    proximity_pattern: ProximityPattern::Unknown,
+                    typed: true,
+                    generic_catchall: false,
+                    private_key_like: true,
+                    multiline: true,
+                    has_assignment: false,
+                    has_secret_identifier: true,
+                    has_auth_context: false,
+                    value_entropy: shannon_entropy(snippet.as_bytes()),
+                },
+                proximity_score: 0.95,
+                structure_score: 0.95,
+                entropy_score: shannon_entropy(snippet.as_bytes()),
+            };
+            candidates.push(candidate);
+        }
+        for bearer in bearer_block_regex().captures_iter(&data_str) {
+            if candidates.len() >= max_typed_candidates {
+                break;
+            }
+            let snippet = bearer.get(1).map(|m| m.as_str()).unwrap_or_default();
+            candidates.push(DiscoveryCandidate {
+                source: CandidateSource::StructuredBlock,
+                base_offset: bearer.get(1).map(|m| m.start()).unwrap_or(0),
+                context: Bytes::copy_from_slice(snippet.as_bytes()),
+                snippet: snippet.to_string(),
+                identifier: Some("authorization".to_string()),
+                value: snippet.to_string(),
+                evidence: MatchEvidence {
+                    kind: MatchKind::BearerAuth,
+                    primary_identifier: Some("authorization".to_string()),
+                    secondary_context: path_hint.map(str::to_string),
+                    proximity_pattern: ProximityPattern::HeaderValue,
+                    typed: true,
+                    generic_catchall: false,
+                    private_key_like: false,
+                    multiline: snippet.contains('\n'),
+                    has_assignment: false,
+                    has_secret_identifier: true,
+                    has_auth_context: true,
+                    value_entropy: shannon_entropy(snippet.as_bytes()),
+                },
+                proximity_score: 0.92,
+                structure_score: 0.88,
+                entropy_score: shannon_entropy(snippet.as_bytes()),
+            });
+        }
+        for heredoc in extract_heredoc_candidates(&data_str, max_typed_candidates - candidates.len()) {
+            if candidates.len() >= max_typed_candidates {
+                break;
+            }
+            if let Some(candidate) = build_typed_assignment_candidate(
+                heredoc.base_offset,
+                heredoc.value.as_bytes(),
+                &heredoc.value,
+                &heredoc.identifier,
+                &heredoc.value,
+                ProximityPattern::Assignment,
+            ) {
+                let mut candidate = candidate;
+                candidate.evidence.multiline = true;
+                candidate.snippet = heredoc.value.clone();
+                candidate.context = Bytes::copy_from_slice(heredoc.value.as_bytes());
+                candidates.push(candidate);
+            }
+        }
+    }
+
     candidates
+}
+
+#[derive(Debug, Clone)]
+struct HeredocCandidate {
+    base_offset: usize,
+    identifier: String,
+    value: String,
+}
+
+fn extract_heredoc_candidates(data: &str, limit: usize) -> Vec<HeredocCandidate> {
+    let mut out = Vec::new();
+    let mut search_offset = 0usize;
+    while let Some(rel_idx) = data[search_offset..].find("<<") {
+        if out.len() >= limit {
+            break;
+        }
+        let idx = search_offset + rel_idx;
+        let line_start = data[..idx].rfind('\n').map(|i| i + 1).unwrap_or(0);
+        let line_end = data[idx..]
+            .find('\n')
+            .map(|i| idx + i)
+            .unwrap_or(data.len());
+        let header = data[line_start..line_end].trim();
+        let Some(eq_idx) = header.find('=') else {
+            search_offset = idx + 2;
+            continue;
+        };
+        let identifier = header[..eq_idx].trim();
+        let marker = header[eq_idx + 1..]
+            .trim()
+            .trim_start_matches("<<")
+            .trim_start_matches('-')
+            .trim_start_matches('~')
+            .trim();
+        if identifier.is_empty() || marker.is_empty() || marker.len() > 32 {
+            search_offset = idx + 2;
+            continue;
+        }
+        let body_start = line_end.saturating_add(1);
+        let closing = format!("\n{marker}");
+        let Some(rel_close_idx) = data[body_start..].find(&closing) else {
+            search_offset = idx + 2;
+            continue;
+        };
+        let value = data[body_start..body_start + rel_close_idx].trim();
+        if (12..=2048).contains(&value.len()) {
+            out.push(HeredocCandidate {
+                base_offset: line_start,
+                identifier: identifier.to_string(),
+                value: value.to_string(),
+            });
+        }
+        search_offset = body_start + rel_close_idx + closing.len();
+    }
+    out
 }
 
 fn build_typed_assignment_candidate(
@@ -829,7 +1195,7 @@ fn build_typed_assignment_candidate(
     identifier: &str,
     value: &str,
     pattern: ProximityPattern,
-) -> Option<TypedAssignmentCandidate> {
+) -> Option<DiscoveryCandidate> {
     let value = value.trim_matches(|c| c == '"' || c == '\'' || c == '`').trim();
     if !is_plausible_assignment_value(value) {
         return None;
@@ -847,6 +1213,7 @@ fn build_typed_assignment_candidate(
     let evidence = MatchEvidence {
         kind,
         primary_identifier: Some(identifier.to_string()),
+        secondary_context: infer_secondary_context(line_str),
         proximity_pattern: pattern,
         typed: true,
         generic_catchall: false,
@@ -858,7 +1225,8 @@ fn build_typed_assignment_candidate(
         value_entropy: shannon_entropy(value.as_bytes()),
     };
 
-    Some(TypedAssignmentCandidate {
+    Some(DiscoveryCandidate {
+        source: CandidateSource::TypedAssignment,
         base_offset: line_offset,
         context: Bytes::copy_from_slice(line_body),
         snippet: line_str.to_string(),
@@ -871,6 +1239,7 @@ fn build_typed_assignment_candidate(
         } else {
             0.75
         },
+        entropy_score: shannon_entropy(value.as_bytes()),
     })
 }
 
@@ -895,6 +1264,16 @@ fn classify_identifier_kind(identifier: &str, value: &str, line: &str) -> MatchK
         MatchKind::UrlCredentials
     } else if normalized.contains("bearer") || lower_line.contains("authorization: bearer") {
         MatchKind::BearerAuth
+    } else if normalized.contains("xapikey")
+        || normalized.contains("apikeyheader")
+        || normalized.contains("accesskeyid")
+    {
+        MatchKind::ApiKeyAssignment
+    } else if normalized.contains("setcookie")
+        || normalized.contains("cookie")
+        || normalized.contains("sessioncookie")
+    {
+        MatchKind::TokenAssignment
     } else if normalized.contains("jwt") {
         MatchKind::Jwt
     } else if normalized.contains("password")
@@ -906,9 +1285,17 @@ fn classify_identifier_kind(identifier: &str, value: &str, line: &str) -> MatchK
         || normalized.contains("clientsecret")
         || normalized.contains("secretkey")
         || normalized.contains("accesskey")
+        || normalized.contains("clientid")
+        || normalized.contains("consumerkey")
+        || normalized.contains("signingsecret")
+        || normalized.contains("licensekey")
+        || normalized.contains("publickey")
+        || normalized.contains("apikeyid")
+        || normalized.contains("privatekeyid")
         || normalized.contains("webhooksecret")
         || normalized.contains("hmacsecret")
         || normalized.contains("signingkey")
+        || normalized.contains("appsecret")
     {
         MatchKind::ApiKeyAssignment
     } else if normalized.contains("token")
@@ -916,14 +1303,80 @@ fn classify_identifier_kind(identifier: &str, value: &str, line: &str) -> MatchK
         || normalized.contains("sessionsecret")
         || normalized.contains("oauth")
         || normalized.contains("oidc")
+        || normalized.contains("credential")
+        || normalized.contains("auth")
+        || normalized.contains("sessionid")
+        || normalized.contains("cookie")
+        || normalized.contains("refresh")
         || lower_value.starts_with("ghp_")
         || lower_value.starts_with("ghs_")
         || lower_value.starts_with("xoxb-")
     {
         MatchKind::TokenAssignment
+    } else if let Some(kind) = classify_value_shape(value, line) {
+        kind
     } else {
         MatchKind::Unknown
     }
+}
+
+fn classify_value_shape(value: &str, line: &str) -> Option<MatchKind> {
+    let lower_value = value.to_lowercase();
+    let lower_line = line.to_lowercase();
+    if lower_value.starts_with("ghp_")
+        || lower_value.starts_with("ghs_")
+        || lower_value.starts_with("github_pat_")
+        || lower_value.starts_with("glpat-")
+        || lower_value.starts_with("xoxb-")
+        || lower_value.starts_with("xoxp-")
+        || lower_value.starts_with("xoxa-2-")
+        || lower_value.starts_with("xoxr-")
+        || lower_value.starts_with("sk_live_")
+        || lower_value.starts_with("sk_test_")
+        || lower_value.starts_with("rk_live_")
+        || lower_value.starts_with("sg.")
+        || lower_value.starts_with("sq0atp-")
+        || lower_value.starts_with("ya29.")
+    {
+        return Some(if lower_value.starts_with("sk_") || lower_value.starts_with("rk_") {
+            MatchKind::ApiKeyAssignment
+        } else {
+            MatchKind::TokenAssignment
+        });
+    }
+    if value.starts_with("AKIA")
+        || value.starts_with("ASIA")
+        || value.starts_with("A3T")
+        || value.starts_with("AIza")
+    {
+        return Some(MatchKind::ApiKeyAssignment);
+    }
+    if looks_like_jwt(value) {
+        return Some(MatchKind::Jwt);
+    }
+    if value.contains("://") && value.contains('@') {
+        return Some(MatchKind::UrlCredentials);
+    }
+    if lower_line.contains("authorization: bearer") || lower_value.starts_with("bearer ") {
+        return Some(MatchKind::BearerAuth);
+    }
+    if lower_line.contains("begin private key") || lower_value.contains("begin private key") {
+        return Some(MatchKind::PrivateKey);
+    }
+    None
+}
+
+fn looks_like_jwt(value: &str) -> bool {
+    let parts: Vec<&str> = value.split('.').collect();
+    if parts.len() != 3 {
+        return false;
+    }
+    parts.iter().all(|part| {
+        part.len() >= 8
+            && part
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'='))
+    })
 }
 
 fn identifier_looks_secret(identifier: &str) -> bool {
@@ -937,6 +1390,17 @@ fn identifier_looks_secret(identifier: &str) -> bool {
         "apikey",
         "accesskey",
         "clientsecret",
+        "clientid",
+        "credential",
+        "auth",
+        "consumer",
+        "signing",
+        "license",
+        "session",
+        "cookie",
+        "refresh",
+        "header",
+        "webhook",
         "privatekey",
         "nonce",
     ]
@@ -953,12 +1417,17 @@ fn is_plausible_assignment_value(value: &str) -> bool {
         || value.starts_with("$(")
         || value.starts_with("<")
         || value.starts_with("{{")
+        || value.eq_ignore_ascii_case("true")
+        || value.eq_ignore_ascii_case("false")
         || lower == "null"
         || lower == "undefined"
         || lower == "changeme"
         || lower == "password"
+        || lower == "secret"
+        || lower == "token"
         || lower.starts_with("your_")
         || lower.starts_with("example")
+        || lower.starts_with("placeholder")
     {
         return false;
     }
@@ -970,13 +1439,35 @@ fn looks_like_typed_assignment_line(line: &str) -> bool {
         return false;
     }
     let lower = line.to_lowercase();
-    let has_assignment_shape = line.contains('=') || line.contains(':') || line.contains("://");
+    let has_assignment_shape = line.contains('=')
+        || line.contains(':')
+        || line.contains("://")
+        || lower.contains("setenv(")
+        || lower.contains("set_env(")
+        || lower.contains("putenv(")
+        || lower.contains("setproperty(")
+        || lower.contains("set_property(");
     let has_secretish_words = [
         "password",
         "passwd",
         "pwd",
         "secret",
         "token",
+        "credential",
+        "client_id",
+        "clientid",
+        "oauth",
+        "auth",
+        "signing",
+        "consumer",
+        "refresh",
+        "session",
+        "cookie",
+        "x-api-key",
+        "x-auth-token",
+        "set-cookie",
+        "header",
+        "license",
         "api_key",
         "apikey",
         "access_key",
@@ -989,10 +1480,30 @@ fn looks_like_typed_assignment_line(line: &str) -> bool {
         "jwt",
         "bearer",
         "nonce",
+        "app_secret",
+        "privatekey",
     ]
     .iter()
     .any(|needle| lower.contains(needle));
-    has_assignment_shape && has_secretish_words
+    let has_high_signal_value = lower.contains("ghp_")
+        || lower.contains("ghs_")
+        || lower.contains("glpat-")
+        || lower.contains("xoxb-")
+        || lower.contains("xoxp-")
+        || lower.contains("xoxa-2-")
+        || lower.contains("xoxr-")
+        || lower.contains("sk_live_")
+        || lower.contains("sk_test_")
+        || lower.contains("github_pat_")
+        || lower.contains("sg.")
+        || lower.contains("ya29.")
+        || lower.contains("akia")
+        || lower.contains("asia")
+        || lower.contains("aiza")
+        || lower.contains("authorization: bearer")
+        || lower.contains("begin private key")
+        || lower.contains("://");
+    has_assignment_shape && (has_secretish_words || has_high_signal_value)
 }
 
 fn is_config_like_path(path: &str) -> bool {
@@ -1018,6 +1529,43 @@ fn is_config_like_path(path: &str) -> bool {
         || lower.contains("settings")
 }
 
+fn is_typed_extractor_path(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    is_config_like_path(path)
+        || lower.ends_with(".py")
+        || lower.ends_with(".go")
+        || lower.ends_with(".rs")
+        || lower.ends_with(".js")
+        || lower.ends_with(".ts")
+        || lower.ends_with(".java")
+        || lower.ends_with(".cs")
+        || lower.ends_with(".rb")
+        || lower.ends_with(".php")
+        || lower.ends_with(".c")
+        || lower.ends_with(".cpp")
+        || lower.ends_with(".sh")
+        || lower.ends_with(".bash")
+        || lower.ends_with(".zsh")
+        || lower.ends_with(".ps1")
+        || lower.ends_with(".envrc")
+        || lower.contains("/src/")
+        || lower.contains("\\src\\")
+        || lower.contains("/test/")
+        || lower.contains("\\test\\")
+        || lower.contains("/tests/")
+        || lower.contains("\\tests\\")
+        || lower.contains("/setting/")
+        || lower.contains("\\setting\\")
+}
+
+fn max_typed_candidates_for_path(path_hint: Option<&str>) -> usize {
+    match path_hint {
+        Some(path) if is_config_like_path(path) => 128,
+        Some(path) if is_typed_extractor_path(path) => 64,
+        _ => 32,
+    }
+}
+
 #[derive(Default)]
 struct TypedRuleIndexes {
     api_key: Vec<usize>,
@@ -1026,6 +1574,9 @@ struct TypedRuleIndexes {
     url_credentials: Vec<usize>,
     private_key: Vec<usize>,
     nonce_like: Vec<usize>,
+    auth_header: Vec<usize>,
+    code_assignments: Vec<usize>,
+    config_assignments: Vec<usize>,
 }
 
 fn build_typed_rule_indexes(rules: &[crate::rules::CompiledRule]) -> TypedRuleIndexes {
@@ -1036,6 +1587,7 @@ fn build_typed_rule_indexes(rules: &[crate::rules::CompiledRule]) -> TypedRuleIn
             || id.contains("secret-key")
             || id.contains("access-key")
             || id.contains("client-secret")
+            || id.contains("client-id")
             || id.contains("oauth")
             || id.contains("webhook")
             || id.contains("hmac")
@@ -1051,11 +1603,33 @@ fn build_typed_rule_indexes(rules: &[crate::rules::CompiledRule]) -> TypedRuleIn
             || id.contains("secret")
             || id.contains("oauth")
             || id.contains("jwt")
+            || id.contains("bearer")
             || id.contains("session-secret")
             || id.contains("webhook")
             || id.contains("hmac")
         {
             indexes.token.push(idx);
+        }
+        if id.contains("bearer") || id.contains("jwt") || id.contains("auth") {
+            indexes.auth_header.push(idx);
+        }
+        if id.contains("header") || id.contains("cookie") || id.contains("session") {
+            indexes.auth_header.push(idx);
+        }
+        if id.contains("generic") || id.contains("assignment") || id.contains("password") || id.contains("token") {
+            indexes.code_assignments.push(idx);
+            indexes.config_assignments.push(idx);
+        }
+        if id.contains("api-key")
+            || id.contains("secret")
+            || id.contains("oauth")
+            || id.contains("client")
+            || id.contains("access-key")
+        {
+            indexes.code_assignments.push(idx);
+        }
+        if id.contains("env") || id.contains("config") || id.contains("url") || id.contains("credential") {
+            indexes.config_assignments.push(idx);
         }
         if id.contains("url") || id.contains("database-url") || id.contains("credentials") {
             indexes.url_credentials.push(idx);
@@ -1071,13 +1645,48 @@ fn build_typed_rule_indexes(rules: &[crate::rules::CompiledRule]) -> TypedRuleIn
 }
 
 fn candidate_rule_indexes<'a>(
-    candidate: &TypedAssignmentCandidate,
+    candidate: &DiscoveryCandidate,
     indexes: &'a TypedRuleIndexes,
 ) -> &'a [usize] {
+    if matches!(
+        candidate.evidence.proximity_pattern,
+        ProximityPattern::Assignment | ProximityPattern::FunctionArg
+    ) && !candidate.evidence.multiline
+    {
+        if candidate
+            .evidence
+            .primary_identifier
+            .as_deref()
+            .is_some_and(identifier_looks_secret)
+        {
+            return &indexes.code_assignments;
+        }
+    }
+    if matches!(candidate.evidence.proximity_pattern, ProximityPattern::HeaderValue) {
+        return match candidate.evidence.kind {
+            MatchKind::ApiKeyAssignment => &indexes.api_key,
+            MatchKind::BearerAuth | MatchKind::Jwt | MatchKind::TokenAssignment => {
+                &indexes.auth_header
+            }
+            _ => &indexes.code_assignments,
+        };
+    }
+    if matches!(
+        candidate.evidence.proximity_pattern,
+        ProximityPattern::JsonKey
+            | ProximityPattern::YamlKey
+            | ProximityPattern::Export
+            | ProximityPattern::DockerEnv
+            | ProximityPattern::EnvVar
+            | ProximityPattern::TerraformVar
+    ) {
+        return &indexes.config_assignments;
+    }
     match candidate.evidence.kind {
         MatchKind::ApiKeyAssignment => &indexes.api_key,
         MatchKind::PasswordAssignment => &indexes.password,
-        MatchKind::TokenAssignment | MatchKind::BearerAuth | MatchKind::Jwt => &indexes.token,
+        MatchKind::TokenAssignment => &indexes.token,
+        MatchKind::BearerAuth | MatchKind::Jwt => &indexes.auth_header,
         MatchKind::UrlCredentials => &indexes.url_credentials,
         MatchKind::PrivateKey => &indexes.private_key,
         MatchKind::NonceLike => &indexes.nonce_like,
@@ -1139,6 +1748,7 @@ fn infer_match_evidence(
     MatchEvidence {
         kind,
         primary_identifier,
+        secondary_context: infer_secondary_context(&context),
         proximity_pattern: source.source.pattern,
         typed: kind.is_typed(),
         generic_catchall,
@@ -1149,6 +1759,31 @@ fn infer_match_evidence(
         has_auth_context,
         value_entropy,
     }
+}
+
+fn infer_secondary_context(text: &str) -> Option<String> {
+    let lower = text.to_lowercase();
+    for needle in [
+        "oauth",
+        "github",
+        "gitlab",
+        "stripe",
+        "slack",
+        "database",
+        "jwt",
+        "bearer",
+        "private key",
+        "x-api-key",
+        "authorization",
+        "cookie",
+        "session",
+        "webhook",
+    ] {
+        if lower.contains(needle) {
+            return Some(needle.to_string());
+        }
+    }
+    None
 }
 
 // ============================================================================
@@ -1396,7 +2031,7 @@ mod tests {
     #[test]
     fn test_typed_assignment_extractor_finds_api_key_assignment() {
         let data = br#"client_secret = "sk_live_1234567890abcdefghijklmnopqrstuvwxyz""#;
-        let candidates = extract_typed_assignments(data);
+        let candidates = extract_typed_assignments(data, Some(".env"));
         assert!(
             candidates
                 .iter()
@@ -1408,7 +2043,7 @@ mod tests {
     #[test]
     fn test_typed_assignment_extractor_finds_url_credentials() {
         let data = br#"DATABASE_URL=postgres://user:sup3rsecr3t@example.com/db"#;
-        let candidates = extract_typed_assignments(data);
+        let candidates = extract_typed_assignments(data, Some(".env"));
         assert!(
             candidates
                 .iter()
@@ -1420,10 +2055,38 @@ mod tests {
     #[test]
     fn test_typed_assignment_extractor_skips_placeholders() {
         let data = br#"API_KEY=YOUR_API_KEY"#;
-        let candidates = extract_typed_assignments(data);
+        let candidates = extract_typed_assignments(data, Some(".env"));
         assert!(
             candidates.is_empty(),
             "placeholder assignments should not become typed candidates"
+        );
+    }
+
+    #[test]
+    fn test_typed_assignment_extractor_finds_bearer_header() {
+        let data = br#"Authorization: Bearer ghp_1234567890abcdefghijklmnopqrstuvwxyz"#;
+        let candidates = extract_typed_assignments(data, Some("config/http.txt"));
+        assert!(
+            candidates
+                .iter()
+                .any(|c| c.evidence.kind == MatchKind::BearerAuth),
+            "authorization bearer headers should become typed candidates"
+        );
+    }
+
+    #[test]
+    fn test_typed_assignment_extractor_finds_setenv_secret() {
+        let data = br#"setenv("CLIENT_SECRET", "ghp_1234567890abcdefghijklmnopqrstuvwxyz")"#;
+        let candidates = extract_typed_assignments(data, Some("src/main.rs"));
+        assert!(
+            candidates.iter().any(|c| {
+                c.identifier.as_deref() == Some("CLIENT_SECRET")
+                    && matches!(
+                        c.evidence.kind,
+                        MatchKind::ApiKeyAssignment | MatchKind::TokenAssignment
+                    )
+            }),
+            "setenv-style secret assignments should become typed candidates"
         );
     }
 

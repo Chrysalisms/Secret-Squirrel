@@ -44,7 +44,32 @@ use crate::config::PipelineConfig;
 use crate::error::Result;
 use crate::types::{Fragment, PatternMatch};
 
+use super::discovery::CandidateBus;
 use super::router::Router;
+use super::routing::{route_candidates, RuleBucketIndexes};
+use super::validation::validate_routed_candidates;
+
+#[derive(Debug, Clone, Default)]
+pub struct PipelineStageStats {
+    pub path_a_matches: usize,
+    pub path_b_matches: usize,
+    pub typed_candidates: usize,
+    pub typed_multiline_candidates: usize,
+    pub typed_rule_checks: usize,
+    pub regex_matches: usize,
+    pub discovered_candidates: usize,
+    pub routed_candidates: usize,
+    pub dropped_low_signal: usize,
+    pub dropped_no_bucket: usize,
+    pub validator_runs: usize,
+    pub decoded_matches: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct PipelineResult {
+    pub matches: Vec<PatternMatch>,
+    pub stats: PipelineStageStats,
+}
 
 // ============================================================================
 // Pipeline
@@ -172,6 +197,7 @@ impl Pipeline {
                     evidence: crate::types::MatchEvidence {
                         kind: crate::types::MatchKind::Unknown,
                         primary_identifier: tsr.identifiers.first().cloned(),
+                        secondary_context: None,
                         proximity_pattern: tsr.source.pattern,
                         typed: false,
                         generic_catchall: false,
@@ -226,7 +252,7 @@ impl Pipeline {
         ac: &aho_corasick::AhoCorasick,
         rules: &[crate::rules::CompiledRule],
         keyword_to_rule: &[usize],
-    ) -> Result<Vec<PatternMatch>> {
+    ) -> Result<PipelineResult> {
         let input = &fragment.content;
         let path = &fragment.metadata.path;
 
@@ -250,10 +276,46 @@ impl Pipeline {
             input.as_ref()
         };
 
-        let direct_hits = self
+        let direct_result = self
             .router
             .cpu
             .execute_pattern(scan_slice, ac, rules, keyword_to_rule, Some(path), true);
+        let mut direct_hits = direct_result.matches;
+        let buckets = RuleBucketIndexes::build(rules);
+        let candidate_bus = CandidateBus::discover(&self.router.cpu, scan_slice, Some(path));
+        let discovered_count = candidate_bus.stats.discovered_candidates;
+        let typed_multiline_candidates = candidate_bus
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.evidence.multiline)
+            .count();
+        let typed_candidates = candidate_bus
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.evidence.typed)
+            .count();
+        let (routed, routing_stats) =
+            route_candidates(candidate_bus.candidates, path, self.config.entropy_threshold, &buckets);
+        let (validated_hits, validation_stats) =
+            validate_routed_candidates(&self.router.cpu, &routed, path, rules, &buckets);
+        direct_hits.extend(validated_hits);
+        let mut stats = PipelineStageStats {
+            path_a_matches: direct_hits.len(),
+            typed_candidates: direct_result.stats.typed_candidates.max(typed_candidates),
+            typed_multiline_candidates: direct_result
+                .stats
+                .typed_multiline_candidates
+                .max(typed_multiline_candidates),
+            typed_rule_checks: direct_result.stats.typed_rule_checks + validation_stats.validator_runs,
+            regex_matches: direct_result.stats.regex_matches + validation_stats.regex_matches,
+            discovered_candidates: discovered_count,
+            routed_candidates: routing_stats.routed_candidates,
+            dropped_low_signal: routing_stats.dropped_low_signal,
+            dropped_no_bucket: routing_stats.dropped_no_bucket,
+            validator_runs: validation_stats.validator_runs,
+            decoded_matches: validation_stats.decoded_matches,
+            ..Default::default()
+        };
 
         debug!(
             path = %path,
@@ -281,44 +343,31 @@ impl Pipeline {
                     vec![]
                 } else {
                     let tristream_results = self.router.execute_tristream(&proximity_matches)?;
-
-                    let mut out = Vec::new();
-                    for tsr in tristream_results {
-                        let raw = tsr.source.candidate.raw.clone();
-                        let base_offset = tsr.source.candidate.offset as usize;
-
-                        let hits = self.router.cpu.execute_pattern(
-                            raw.as_ref(),
-                            ac,
-                            rules,
-                            keyword_to_rule,
-                            Some(path),
-                            false,
-                        );
-
-                        for mut hit in hits {
-                            hit.match_start += base_offset;
-                            hit.match_end += base_offset;
-                            let rebuilt = PatternMatch {
-                                source: crate::types::TriStreamResult {
-                                    source: tsr.source.clone(),
-                                    identifiers: tsr.identifiers.clone(),
-                                    literals: tsr.literals.clone(),
-                                    structure_score: tsr.structure_score,
-                                    combined_score: tsr.combined_score,
-                                },
-                                rule_id: hit.rule_id,
-                                matched_text: hit.matched_text,
-                                match_start: hit.match_start,
-                                match_end: hit.match_end,
-                                pattern_score: hit.pattern_score,
-                                evidence: hit.evidence,
-                                encoding_chain: hit.encoding_chain,
-                            };
-                            out.push(rebuilt);
-                        }
-                    }
-                    out
+                    let heuristic_candidates = tristream_results
+                        .iter()
+                        .map(crate::types::DiscoveryCandidate::from_tristream)
+                        .collect::<Vec<_>>();
+                    stats.discovered_candidates += heuristic_candidates.len();
+                    let (routed_heuristic, routing_stats) = route_candidates(
+                        heuristic_candidates,
+                        path,
+                        self.config.entropy_threshold,
+                        &buckets,
+                    );
+                    stats.routed_candidates += routing_stats.routed_candidates;
+                    stats.dropped_low_signal += routing_stats.dropped_low_signal;
+                    stats.dropped_no_bucket += routing_stats.dropped_no_bucket;
+                    let (validated_hits, validation_stats) = validate_routed_candidates(
+                        &self.router.cpu,
+                        &routed_heuristic,
+                        path,
+                        rules,
+                        &buckets,
+                    );
+                    stats.validator_runs += validation_stats.validator_runs;
+                    stats.regex_matches += validation_stats.regex_matches;
+                    stats.decoded_matches += validation_stats.decoded_matches;
+                    validated_hits
                 }
             }
         };
@@ -328,6 +377,7 @@ impl Pipeline {
             matches = heuristic_matches.len(),
             "Pipeline path B (heuristic) complete"
         );
+        stats.path_b_matches = heuristic_matches.len();
 
         // ── Merge: path A wins on duplicates ──────────────────────────────
         // Build a set of (rule_id, match_start) keys from path A results.
@@ -387,7 +437,10 @@ impl Pipeline {
             "Pipeline merged (A+B) stage complete"
         );
 
-        Ok(all_matches)
+        Ok(PipelineResult {
+            matches: all_matches,
+            stats,
+        })
     }
 
     /// Return a reference to the inner router (for stats gathering).
@@ -409,6 +462,9 @@ impl Pipeline {
 mod tests {
     use super::*;
     use crate::config::{GpuConfig, PipelineConfig};
+    use crate::rules::compiler::{build_automaton, compile_rules};
+    use crate::rules::parser::{Rule, RuleCategory};
+    use crate::types::Severity;
     use crate::types::{Fragment, FragmentMetadata, SourceType};
     use bytes::Bytes;
 
@@ -432,6 +488,30 @@ mod tests {
                 attributes: Default::default(),
             },
         }
+    }
+
+    fn make_rule(id: &str, regex: &str, keywords: Vec<&str>) -> crate::rules::CompiledRule {
+        let rule = Rule {
+            id: id.to_string(),
+            description: format!("test rule {id}"),
+            regex: regex.to_string(),
+            secret_group_regex: None,
+            keywords: keywords.into_iter().map(|s| s.to_string()).collect(),
+            severity: Severity::High,
+            category: RuleCategory::Generic,
+            tags: vec![],
+            allowlist: vec![],
+            entropy_threshold: None,
+            confidence_weight: Some(0.90),
+            validation_provider: None,
+            remediation: None,
+            squirrel: None,
+        };
+        compile_rules(vec![rule])
+            .expect("test rule should compile")
+            .into_iter()
+            .next()
+            .expect("compiled rule missing")
     }
 
     #[tokio::test]
@@ -503,5 +583,45 @@ mod tests {
                 m.match_start
             );
         }
+    }
+
+    #[tokio::test]
+    async fn test_process_fragment_with_rules_path_b_uses_context_for_verification() {
+        let gpu_config = GpuConfig {
+            enabled: false,
+            threshold_bytes: 100 * 1024 * 1024,
+            backend: None,
+        };
+        let router = Router::new(&gpu_config).await;
+        let config = PipelineConfig {
+            entropy_threshold: 2.0,
+            proximity_threshold: 0.01,
+            entropy_chunk_size: 64,
+            ..PipelineConfig::default()
+        };
+        let pipeline = Pipeline::new(router, config);
+
+        let rules = vec![make_rule(
+            "test-context-secret",
+            r#"Bearer\s+([A-Za-z0-9._-]{20,})"#,
+            vec!["Bearer "],
+        )];
+        let ac = build_automaton(&rules);
+        let keyword_to_rule = vec![0usize];
+
+        let content =
+            b"Authorization: Bearer ghp_1234567890abcdefghijklmnopqrstuvwxyz".to_vec();
+        let fragment = make_fragment(&content, "config/http.txt");
+        let result = pipeline
+            .process_fragment_with_rules(&fragment, &ac, &rules, &keyword_to_rule)
+            .expect("pipeline with rules should succeed");
+
+        assert!(
+            result
+                .matches
+                .iter()
+                .any(|m| m.rule_id == "test-context-secret"),
+            "Path B should verify against surrounding context, not only the tight entropy slice"
+        );
     }
 }

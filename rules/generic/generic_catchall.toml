@@ -1,11 +1,11 @@
 [[rules]]
 id = "generic-catchall-key"
 description = "Generic key assignment"
-regex = '''(?i)(?:key|secret|token|password|auth|nonce|salt)\s*[=:]\s*['"]?([a-zA-Z0-9_\-!@#$%^&*+=/]{12,120})['"]?'''
+regex = '''(?i)(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|session[_-]?secret|webhook[_-]?secret|signing[_-]?key|password|nonce|salt)\s*[=:]\s*['"]?([a-zA-Z0-9_\-!@#$%^&*+=/\.]{16,160})['"]?'''
 keywords = ["key", "secret", "token", "password", "auth", "nonce", "salt"]
 severity = "medium"
 category = "generic"
-entropy_threshold = 3.5
+entropy_threshold = 3.8
 allowlist = [
     'key="YOUR_KEY"',
     'secret="changeme"',
@@ -16,7 +16,10 @@ allowlist = [
     'YOUR_',
     'EXAMPLE',
     'changeme',
-    'replace'
+    'replace',
+    'placeholder',
+    'test',
+    'fake'
 ]
 tags = ["generic", "catchall"]
 

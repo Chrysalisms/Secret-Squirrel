@@ -336,6 +336,7 @@ impl MatchKind {
 pub struct MatchEvidence {
     pub kind: MatchKind,
     pub primary_identifier: Option<String>,
+    pub secondary_context: Option<String>,
     pub proximity_pattern: ProximityPattern,
     pub typed: bool,
     pub generic_catchall: bool,
@@ -363,6 +364,7 @@ impl Default for MatchEvidence {
         Self {
             kind: MatchKind::Unknown,
             primary_identifier: None,
+            secondary_context: None,
             proximity_pattern: ProximityPattern::Unknown,
             typed: false,
             generic_catchall: false,
@@ -374,6 +376,153 @@ impl Default for MatchEvidence {
             value_entropy: 0.0,
         }
     }
+}
+
+// ============================
+// DiscoveryCandidate
+// ============================
+
+/// A first-class discovery-stage candidate before rule validation produces a finding.
+///
+/// This separates candidate generation from final rule-backed findings so the
+/// pipeline can route, score, and validate candidates without forcing every
+/// stage to immediately emit a [`PatternMatch`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateSource {
+    TypedAssignment,
+    Heuristic,
+    StructuredBlock,
+}
+
+#[derive(Debug, Clone)]
+pub struct DiscoveryCandidate {
+    /// Which discovery subsystem produced the candidate.
+    pub source: CandidateSource,
+    /// Absolute byte offset within the fragment where the candidate begins.
+    pub base_offset: usize,
+    /// Candidate-local context bytes used for validation.
+    pub context: Bytes,
+    /// Original snippet or normalized candidate payload.
+    pub snippet: String,
+    /// Optional primary identifier such as `API_KEY` or `Authorization`.
+    pub identifier: Option<String>,
+    /// Candidate value portion extracted from the snippet.
+    pub value: String,
+    /// Structured semantic evidence attached during discovery.
+    pub evidence: MatchEvidence,
+    /// Lightweight discovery-time proximity/structural score.
+    pub proximity_score: f32,
+    /// Lightweight structural score assigned by discovery.
+    pub structure_score: f32,
+    /// Entropy observed on the candidate value.
+    pub entropy_score: f32,
+}
+
+impl DiscoveryCandidate {
+    pub fn from_tristream(result: &TriStreamResult) -> Self {
+        let primary_identifier = result.identifiers.first().cloned();
+        let value = result
+            .literals
+            .first()
+            .map(|literal| String::from_utf8_lossy(literal).into_owned())
+            .unwrap_or_else(|| String::from_utf8_lossy(result.source.candidate.raw.as_ref()).into_owned());
+        let lower_context = String::from_utf8_lossy(result.source.context.as_ref()).to_lowercase();
+        let lower_identifiers = result.identifiers.join(" ").to_lowercase();
+        let has_auth_context = lower_context.contains("authorization")
+            || lower_context.contains("bearer")
+            || lower_context.contains("auth")
+            || lower_identifiers.contains("auth");
+        let has_secret_identifier = lower_identifiers.contains("password")
+            || lower_identifiers.contains("secret")
+            || lower_identifiers.contains("token")
+            || lower_identifiers.contains("api_key")
+            || lower_identifiers.contains("apikey")
+            || lower_identifiers.contains("private_key")
+            || lower_identifiers.contains("nonce");
+        let kind = if lower_context.contains("begin private key") || value.contains("PRIVATE KEY") {
+            MatchKind::PrivateKey
+        } else if lower_context.contains("://") && lower_context.contains('@') {
+            MatchKind::UrlCredentials
+        } else if has_auth_context && value.to_lowercase().starts_with("bearer ") {
+            MatchKind::BearerAuth
+        } else if lower_identifiers.contains("jwt") {
+            MatchKind::Jwt
+        } else if lower_identifiers.contains("api_key") || lower_identifiers.contains("apikey") {
+            MatchKind::ApiKeyAssignment
+        } else if lower_identifiers.contains("password") {
+            MatchKind::PasswordAssignment
+        } else if lower_identifiers.contains("token") || lower_identifiers.contains("secret") {
+            MatchKind::TokenAssignment
+        } else {
+            MatchKind::Unknown
+        };
+
+        Self {
+            source: CandidateSource::Heuristic,
+            base_offset: result.source.candidate.offset as usize,
+            context: result.source.context.clone(),
+            snippet: String::from_utf8_lossy(result.source.context.as_ref()).into_owned(),
+            identifier: primary_identifier.clone(),
+            value: value.clone(),
+            evidence: MatchEvidence {
+                kind,
+                primary_identifier,
+                secondary_context: None,
+                proximity_pattern: result.source.pattern,
+                typed: false,
+                generic_catchall: false,
+                private_key_like: matches!(kind, MatchKind::PrivateKey),
+                multiline: value.contains('\n'),
+                has_assignment: !matches!(result.source.pattern, ProximityPattern::Unknown),
+                has_secret_identifier,
+                has_auth_context,
+                value_entropy: result.source.candidate.entropy,
+            },
+            proximity_score: result.source.proximity_score,
+            structure_score: result.structure_score,
+            entropy_score: result.source.candidate.entropy,
+        }
+    }
+}
+
+/// Routing-time feature bundle derived from a [`DiscoveryCandidate`].
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CandidateFeatures {
+    pub entropy: f32,
+    pub proximity: f32,
+    pub structure: f32,
+    pub typed: bool,
+    pub multiline: bool,
+    pub has_secret_identifier: bool,
+    pub has_auth_context: bool,
+    pub path_score: f32,
+}
+
+/// Narrow validator route for a candidate after feature extraction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateRoute {
+    Generic,
+    Config,
+    AuthHeader,
+    UrlCredential,
+    PrivateKey,
+    Token,
+    ApiKey,
+    Password,
+}
+
+impl Default for CandidateRoute {
+    fn default() -> Self {
+        Self::Generic
+    }
+}
+
+/// Candidate enriched with routing and feature data prior to validation.
+#[derive(Debug, Clone)]
+pub struct RoutedCandidate {
+    pub candidate: DiscoveryCandidate,
+    pub features: CandidateFeatures,
+    pub route: CandidateRoute,
 }
 
 // ============================

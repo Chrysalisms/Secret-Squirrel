@@ -15,7 +15,10 @@
 
 pub mod buffers;
 pub mod cpu;
+pub mod discovery;
 pub mod gpu;
 pub mod pipeline;
 pub mod router;
+pub mod routing;
 pub mod session;
+pub mod validation;

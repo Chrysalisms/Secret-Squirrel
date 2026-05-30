@@ -199,14 +199,41 @@ fn evidence_adjustment(metadata: &FragmentMetadata, evidence: &MatchEvidence) ->
     if evidence.has_assignment && evidence.has_secret_identifier {
         adj += 0.08;
     }
+    if evidence.has_assignment && !evidence.has_secret_identifier && evidence.secondary_context.is_some() {
+        adj += 0.06;
+    }
     if evidence.private_key_like || evidence.multiline {
         adj += 0.10;
     }
     if evidence.has_auth_context {
         adj += 0.06;
     }
+    if evidence.secondary_context.is_some() {
+        adj += 0.05;
+    }
     if evidence.generic_catchall {
         adj -= 0.18;
+    }
+    if evidence.multiline && matches!(evidence.kind, MatchKind::PrivateKey) {
+        adj += 0.12;
+    }
+    if matches!(evidence.kind, MatchKind::Jwt | MatchKind::BearerAuth | MatchKind::UrlCredentials) {
+        adj += 0.08;
+    }
+    if matches!(evidence.kind, MatchKind::ApiKeyAssignment | MatchKind::TokenAssignment)
+        && evidence.value_entropy >= 3.0
+    {
+        adj += 0.06;
+    }
+    if matches!(
+        evidence.kind,
+        MatchKind::BearerAuth | MatchKind::ApiKeyAssignment | MatchKind::TokenAssignment
+    ) && matches!(evidence.proximity_pattern, crate::types::ProximityPattern::HeaderValue)
+    {
+        adj += 0.08;
+    }
+    if lower_path.ends_with(".txt") && evidence.typed && evidence.has_assignment {
+        adj += 0.06;
     }
 
     if lower_path.ends_with(".example")
@@ -218,9 +245,30 @@ fn evidence_adjustment(metadata: &FragmentMetadata, evidence: &MatchEvidence) ->
     {
         if evidence.typed && evidence.has_assignment && evidence.has_secret_identifier {
             adj += 0.18;
+        } else if evidence.typed && evidence.secondary_context.is_some() {
+            adj += 0.12;
+        } else if evidence.typed && evidence.has_auth_context {
+            adj += 0.10;
         } else if evidence.generic_catchall {
             adj -= 0.12;
         }
+    }
+
+    if (lower_path.contains("/test/")
+        || lower_path.contains("/tests/")
+        || lower_path.contains("/fixture/")
+        || lower_path.contains("/fixtures/")
+        || lower_path.contains("\\test\\")
+        || lower_path.contains("\\tests\\")
+        || lower_path.contains("\\fixture\\")
+        || lower_path.contains("\\fixtures\\"))
+        && evidence.typed
+        && (evidence.has_secret_identifier
+            || evidence.has_auth_context
+            || evidence.multiline
+            || evidence.secondary_context.is_some())
+    {
+        adj += 0.10;
     }
 
     if matches!(evidence.kind, MatchKind::NonceLike) {
@@ -352,6 +400,7 @@ mod tests {
         let evidence = MatchEvidence {
             kind: MatchKind::ApiKeyAssignment,
             primary_identifier: Some("API_KEY".to_string()),
+            secondary_context: None,
             proximity_pattern: ProximityPattern::Assignment,
             typed: true,
             generic_catchall: false,
@@ -369,6 +418,34 @@ mod tests {
             Some(&evidence),
         );
         assert!(score > 0.7, "Typed example-file evidence should recover score, got {score:.3}");
+    }
+
+    #[test]
+    fn test_test_file_auth_typed_evidence_recovers_score() {
+        let evidence = MatchEvidence {
+            kind: MatchKind::BearerAuth,
+            primary_identifier: Some("Authorization".to_string()),
+            secondary_context: Some("bearer".to_string()),
+            proximity_pattern: ProximityPattern::HeaderValue,
+            typed: true,
+            generic_catchall: false,
+            private_key_like: false,
+            multiline: false,
+            has_assignment: true,
+            has_secret_identifier: true,
+            has_auth_context: true,
+            value_entropy: 4.2,
+        };
+        let score = ConfidenceAdjuster::adjust_with_context(
+            0.4,
+            &meta("fixtures/http/auth_test.txt"),
+            &["Authorization".to_string()],
+            Some(&evidence),
+        );
+        assert!(
+            score > 0.65,
+            "typed auth/header evidence in test fixtures should recover score, got {score:.3}"
+        );
     }
 
     #[test]

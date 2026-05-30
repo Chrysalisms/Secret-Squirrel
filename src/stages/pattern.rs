@@ -215,6 +215,7 @@ fn infer_pattern_evidence(rule: &CompiledRule, result: &TriStreamResult, matched
     MatchEvidence {
         kind,
         primary_identifier: result.identifiers.first().cloned(),
+        secondary_context: None,
         proximity_pattern: result.source.pattern,
         typed: kind.is_typed(),
         generic_catchall: lower_rule.contains("catchall"),

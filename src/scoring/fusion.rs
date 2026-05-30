@@ -195,6 +195,7 @@ mod tests {
             evidence: crate::types::MatchEvidence {
                 kind: crate::types::MatchKind::ApiKeyAssignment,
                 primary_identifier: Some("API_SECRET".to_string()),
+                secondary_context: None,
                 proximity_pattern: ProximityPattern::Assignment,
                 typed: true,
                 generic_catchall: false,

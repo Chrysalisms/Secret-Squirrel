@@ -156,6 +156,7 @@ mod tests {
                     crate::types::MatchKind::ApiKeyAssignment
                 },
                 primary_identifier: None,
+                secondary_context: None,
                 proximity_pattern: crate::types::ProximityPattern::Assignment,
                 typed: !rule_id.contains("generic"),
                 generic_catchall: rule_id.contains("generic"),
