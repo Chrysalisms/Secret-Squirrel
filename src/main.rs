@@ -1217,8 +1217,10 @@ async fn run_model(action: ModelCommands) -> Result<i32> {
                     }
                     buf.extend_from_slice(&tmp[..n]);
                     downloaded += n as u64;
-                    if content_length > 0 {
-                        let pct = downloaded * 100 / content_length;
+                    if let Some(pct) = downloaded
+                        .checked_mul(100)
+                        .and_then(|value| value.checked_div(content_length))
+                    {
                         eprint!(
                             "\r[squirrel] Progress: {}/{} bytes ({}%)",
                             downloaded, content_length, pct
