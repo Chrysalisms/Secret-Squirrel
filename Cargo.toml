@@ -97,7 +97,7 @@ tempfile = "3"
 dirs = "6"
 
 # Git
-git2 = "0.19"
+git2 = "0.20"
 
 # Archive support
 zip = "2"
